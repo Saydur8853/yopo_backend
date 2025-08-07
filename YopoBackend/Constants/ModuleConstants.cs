@@ -1,0 +1,89 @@
+namespace YopoBackend.Constants
+{
+    /// <summary>
+    /// Contains static constants for module IDs and related information.
+    /// </summary>
+    public static class ModuleConstants
+    {
+        /// <summary>
+        /// Module ID for the UserTypeCRUD module.
+        /// </summary>
+        public const int USER_TYPE_MODULE_ID = 1;
+
+        /// <summary>
+        /// Module name for the UserTypeCRUD module.
+        /// </summary>
+        public const string USER_TYPE_MODULE_NAME = "UserTypeCRUD";
+
+        /// <summary>
+        /// Module description for the UserTypeCRUD module.
+        /// </summary>
+        public const string USER_TYPE_MODULE_DESCRIPTION = "Module for managing user types and their module permissions";
+
+        /// <summary>
+        /// Current version of the UserTypeCRUD module.
+        /// </summary>
+        public const string USER_TYPE_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
+        /// Module ID for the InvitationCRUD module.
+        /// </summary>
+        public const int INVITATION_MODULE_ID = 2;
+
+        /// <summary>
+        /// Module name for the InvitationCRUD module.
+        /// </summary>
+        public const string INVITATION_MODULE_NAME = "InvitationCRUD";
+
+        /// <summary>
+        /// Module description for the InvitationCRUD module.
+        /// </summary>
+        public const string INVITATION_MODULE_DESCRIPTION = "Module for managing invitations with CRUD operations";
+
+        /// <summary>
+        /// Current version of the InvitationCRUD module.
+        /// </summary>
+        public const string INVITATION_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
+        /// Gets all module information as a dictionary for easy access.
+        /// </summary>
+        public static readonly Dictionary<int, ModuleInfo> Modules = new()
+        {
+            {
+                USER_TYPE_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = USER_TYPE_MODULE_ID,
+                    Name = USER_TYPE_MODULE_NAME,
+                    Description = USER_TYPE_MODULE_DESCRIPTION,
+                    Version = USER_TYPE_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                INVITATION_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = INVITATION_MODULE_ID,
+                    Name = INVITATION_MODULE_NAME,
+                    Description = INVITATION_MODULE_DESCRIPTION,
+                    Version = INVITATION_MODULE_VERSION,
+                    IsActive = true
+                }
+            }
+        };
+
+        /// <summary>
+        /// Represents module information.
+        /// </summary>
+        public class ModuleInfo
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public string Version { get; set; } = string.Empty;
+            public bool IsActive { get; set; }
+        }
+    }
+}

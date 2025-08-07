@@ -1,0 +1,92 @@
+### Yopo Backend - Invitation API Tests
+### Module: InvitationCRUD (Module ID: 2)
+
+@baseUrl = http://localhost:5206
+@contentType = application/json
+
+### 1. Get all invitations
+GET {{baseUrl}}/api/invitations
+Accept: {{contentType}}
+
+### 2. Create a new invitation (7 days expiry)
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+
+{
+  "emailAddress": "john.doe@example.com",
+  "userRoll": "Admin",
+  "expiryDays": 7
+}
+
+### 3. Create another invitation (3 days expiry)
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+
+{
+  "emailAddress": "jane.smith@example.com",
+  "userRoll": "User",
+  "expiryDays": 3
+}
+
+### 4. Get invitation by ID (replace {id} with actual ID)
+GET {{baseUrl}}/api/invitations/1
+Accept: {{contentType}}
+
+### 5. Update invitation (replace {id} with actual ID)
+PUT {{baseUrl}}/api/invitations/1
+Content-Type: {{contentType}}
+
+{
+  "userRoll": "SuperAdmin",
+  "expiryDays": 5
+}
+
+### 6. Get active invitations
+GET {{baseUrl}}/api/invitations/active
+Accept: {{contentType}}
+
+### 7. Get expired invitations
+GET {{baseUrl}}/api/invitations/expired
+Accept: {{contentType}}
+
+### 8. Check if email already has active invitation
+GET {{baseUrl}}/api/invitations/check-email/john.doe@example.com
+Accept: {{contentType}}
+
+### 9. Try to create duplicate invitation (should return 409 Conflict)
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+
+{
+  "emailAddress": "john.doe@example.com",
+  "userRoll": "User",
+  "expiryDays": 2
+}
+
+### 10. Create invitation with invalid email (should return 400 Bad Request)
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+
+{
+  "emailAddress": "invalid-email",
+  "userRoll": "User",
+  "expiryDays": 5
+}
+
+### 11. Create invitation with invalid expiry days (should return 400 Bad Request)
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+
+{
+  "emailAddress": "test@example.com",
+  "userRoll": "User",
+  "expiryDays": 10
+}
+
+### 12. Delete invitation (replace {id} with actual ID)
+DELETE {{baseUrl}}/api/invitations/1
+Accept: {{contentType}}
+
+### 13. Try to get deleted invitation (should return 404 Not Found)
+GET {{baseUrl}}/api/invitations/1
+Accept: {{contentType}}

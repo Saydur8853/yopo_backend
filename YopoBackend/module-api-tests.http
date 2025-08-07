@@ -1,0 +1,24 @@
+### Module API Tests
+
+@baseUrl = http://localhost:5000
+@contentType = application/json
+
+### Get all modules
+GET {{baseUrl}}/api/modules
+Accept: {{contentType}}
+
+### Get module by ID (InvitationCRUD module - ID: 2)
+GET {{baseUrl}}/api/modules/2
+Accept: {{contentType}}
+
+### Get all active modules
+GET {{baseUrl}}/api/modules/active
+Accept: {{contentType}}
+
+### Initialize modules (force sync from constants)
+POST {{baseUrl}}/api/modules/initialize
+Content-Type: {{contentType}}
+
+### Test non-existent module
+GET {{baseUrl}}/api/modules/999
+Accept: {{contentType}}
