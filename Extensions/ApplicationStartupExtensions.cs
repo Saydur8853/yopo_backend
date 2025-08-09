@@ -1,4 +1,5 @@
 using YopoBackend.Modules.UserTypeCRUD.Services;
+using YopoBackend.Modules.BuildingCRUD.Services;
 using YopoBackend.Services;
 
 namespace YopoBackend.Extensions
@@ -28,6 +29,10 @@ namespace YopoBackend.Extensions
                 // Initialize default user types (Super Admin gets all module access automatically)
                 var userTypeService = services.GetRequiredService<IUserTypeService>();
                 await userTypeService.InitializeDefaultUserTypesAsync();
+
+                // Initialize sample buildings for demonstration
+                var buildingService = services.GetRequiredService<IBuildingService>();
+                await buildingService.InitializeSampleBuildingsAsync();
 
                 Console.WriteLine("✅ Default data initialization completed successfully!");
             }
@@ -60,6 +65,10 @@ namespace YopoBackend.Extensions
                 // Initialize default user types (Super Admin gets all module access automatically)
                 var userTypeService = services.GetRequiredService<IUserTypeService>();
                 await userTypeService.InitializeDefaultUserTypesAsync();
+
+                // Initialize sample buildings for demonstration
+                var buildingService = services.GetRequiredService<IBuildingService>();
+                await buildingService.InitializeSampleBuildingsAsync();
 
                 Console.WriteLine("✅ Default data initialization completed successfully!");
             }

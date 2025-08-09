@@ -112,6 +112,145 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             return await query.AnyAsync();
         }
 
+        /// <inheritdoc/>
+        public async Task InitializeSampleBuildingsAsync()
+        {
+            // Check if buildings already exist
+            var existingBuildingsCount = await _context.Buildings.CountAsync();
+            if (existingBuildingsCount > 0)
+            {
+                // Buildings already exist, skip initialization
+                return;
+            }
+
+            var sampleBuildings = new List<Building>
+            {
+                new Building
+                {
+                    Name = "Downtown Plaza",
+                    Address = "123 Main Street, Downtown, NY 10001",
+                    Photo = "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-30)
+                },
+                new Building
+                {
+                    Name = "Sunset Apartments",
+                    Address = "456 Elm Avenue, Westside, CA 90210",
+                    Photo = "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-25)
+                },
+                new Building
+                {
+                    Name = "Tech Hub Center",
+                    Address = "789 Innovation Drive, Silicon Valley, CA 94105",
+                    Photo = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-20)
+                },
+                new Building
+                {
+                    Name = "Green Valley Towers",
+                    Address = "321 Oak Street, Green Valley, TX 75001",
+                    Photo = "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-18)
+                },
+                new Building
+                {
+                    Name = "Harbor View Complex",
+                    Address = "654 Waterfront Boulevard, Harbor City, FL 33101",
+                    Photo = "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-15)
+                },
+                new Building
+                {
+                    Name = "Mountain View Residences",
+                    Address = "987 Highland Road, Mountain View, CO 80424",
+                    Photo = "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-12)
+                },
+                new Building
+                {
+                    Name = "City Square Mall",
+                    Address = "147 Commerce Street, City Center, IL 60601",
+                    Photo = "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-10)
+                },
+                new Building
+                {
+                    Name = "Riverside Office Park",
+                    Address = "258 River Road, Riverside, WA 98052",
+                    Photo = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-8)
+                },
+                new Building
+                {
+                    Name = "Skyline Condominiums",
+                    Address = "369 Sky Drive, Uptown, NY 10128",
+                    Photo = "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-6)
+                },
+                new Building
+                {
+                    Name = "Industrial Park East",
+                    Address = "741 Factory Lane, Industrial District, MI 48201",
+                    Photo = "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-5)
+                },
+                new Building
+                {
+                    Name = "Lakeside Villas",
+                    Address = "852 Lakeshore Drive, Lakewood, MN 55416",
+                    Photo = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-4)
+                },
+                new Building
+                {
+                    Name = "Metro Business Center",
+                    Address = "963 Corporate Boulevard, Metro Area, GA 30309",
+                    Photo = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-3)
+                },
+                new Building
+                {
+                    Name = "Parkside Gardens",
+                    Address = "174 Garden Avenue, Parkside, OR 97201",
+                    Photo = "https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-2)
+                },
+                new Building
+                {
+                    Name = "Heritage Square",
+                    Address = "285 Heritage Street, Old Town, MA 02101",
+                    Photo = "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop",
+                    IsActive = false, // One inactive building
+                    CreatedAt = DateTime.UtcNow.AddDays(-1)
+                },
+                new Building
+                {
+                    Name = "Future City Complex",
+                    Address = "396 Tomorrow Lane, New Development, AZ 85001",
+                    Photo = "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&h=600&fit=crop",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                }
+            };
+
+            _context.Buildings.AddRange(sampleBuildings);
+            await _context.SaveChangesAsync();
+        }
+
         /// <summary>
         /// Maps a Building entity to a BuildingDto.
         /// </summary>

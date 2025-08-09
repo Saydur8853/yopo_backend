@@ -56,5 +56,11 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// <param name="excludeId">Optional ID to exclude from the check (for updates).</param>
         /// <returns>True if the name exists, false otherwise.</returns>
         Task<bool> BuildingExistsAsync(string name, int? excludeId = null);
+
+        /// <summary>
+        /// Initializes sample buildings for demonstration purposes.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task InitializeSampleBuildingsAsync();
     }
 }
