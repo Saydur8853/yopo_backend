@@ -144,6 +144,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         public async Task<IEnumerable<UserTypeModulePermissionDto>> GetUserTypeModulePermissionsAsync(int userTypeId)
         {
             var permissions = await _context.UserTypeModulePermissions
+                .Include(p => p.Module)
                 .Where(p => p.UserTypeId == userTypeId)
                 .ToListAsync();
 
@@ -151,6 +152,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             {
                 UserTypeId = p.UserTypeId,
                 ModuleId = p.ModuleId,
+                ModuleName = p.Module.Name,
                 IsActive = p.IsActive,
                 CreatedAt = p.CreatedAt
             });

@@ -118,6 +118,11 @@ namespace YopoBackend.Modules.UserTypeCRUD.DTOs
         public int ModuleId { get; set; }
 
         /// <summary>
+        /// Gets or sets the module name.
+        /// </summary>
+        public string ModuleName { get; set; } = string.Empty;
+
+        /// <summary>
         /// Gets or sets whether this permission is active.
         /// </summary>
         public bool IsActive { get; set; }
