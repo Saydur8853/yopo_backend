@@ -113,6 +113,11 @@ namespace YopoBackend.Modules.UserTypeCRUD.DTOs
         public int UserTypeId { get; set; }
 
         /// <summary>
+        /// Gets or sets the user type name.
+        /// </summary>
+        public string UserTypeName { get; set; } = string.Empty;
+
+        /// <summary>
         /// Gets or sets the module ID.
         /// </summary>
         public int ModuleId { get; set; }

@@ -145,12 +145,14 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         {
             var permissions = await _context.UserTypeModulePermissions
                 .Include(p => p.Module)
+                .Include(p => p.UserType)
                 .Where(p => p.UserTypeId == userTypeId)
                 .ToListAsync();
 
             return permissions.Select(p => new UserTypeModulePermissionDto
             {
                 UserTypeId = p.UserTypeId,
+                UserTypeName = p.UserType.Name,
                 ModuleId = p.ModuleId,
                 ModuleName = p.Module.Name,
                 IsActive = p.IsActive,
