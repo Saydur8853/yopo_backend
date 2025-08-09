@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using YopoBackend.Modules.InvitationCRUD.Models;
 using YopoBackend.Modules.UserTypeCRUD.Models;
+using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -39,6 +40,12 @@ namespace YopoBackend.Data
         /// Gets or sets the Invitations DbSet for managing invitation entities.
         /// </summary>
         public DbSet<Invitation> Invitations { get; set; }
+
+        // Module: BuildingCRUD (Module ID: 4)
+        /// <summary>
+        /// Gets or sets the Buildings DbSet for managing building entities.
+        /// </summary>
+        public DbSet<Building> Buildings { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -121,6 +128,21 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.UserTypeId)
                     .OnDelete(DeleteBehavior.Restrict); // Prevent deleting UserType if it has invitations
+            });
+            
+            // Configure Building entity (Module ID: 4)
+            modelBuilder.Entity<Building>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Name).IsUnique();
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.Address).HasMaxLength(500);
+                entity.Property(e => e.Photo).HasMaxLength(1000);
             });
         }
     }

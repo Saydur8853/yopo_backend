@@ -4,6 +4,7 @@ using YopoBackend.Data;
 using YopoBackend.Extensions;
 using YopoBackend.Modules.InvitationCRUD.Services;
 using YopoBackend.Modules.UserTypeCRUD.Services;
+using YopoBackend.Modules.BuildingCRUD.Services;
 using YopoBackend.Services;
 using YopoBackend.Constants;
 using DotNetEnv;
@@ -25,6 +26,9 @@ builder.Services.AddScoped<IUserTypeService, UserTypeService>();
 
 // Module: InvitationCRUD (Module ID: 2 - defined in ModuleConstants.INVITATION_MODULE_ID)
 builder.Services.AddScoped<IInvitationService, InvitationService>();
+
+// Module: BuildingCRUD (Module ID: 4)
+builder.Services.AddScoped<IBuildingService, BuildingService>();
 
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
@@ -63,7 +67,8 @@ static string GetControllerDisplayOrder(string? controllerName)
     {
         "modules" => "01-Modules",
         "usertypes" => "02-UserTypes",
-        "invitations" => "03-Invitations", 
+        "invitations" => "03-Invitations",
+        "buildings" => "04-Buildings",
         _ => $"99-{controllerName}"
     };
 }
@@ -119,7 +124,7 @@ using (var scope = app.Services.CreateScope())
         
         context.Database.EnsureCreated();
         Console.WriteLine("Database connection established successfully!");
-        Console.WriteLine("Available tables: Modules, UserTypes, UserTypeModulePermissions, Invitations");
+        Console.WriteLine("Available tables: Modules, UserTypes, UserTypeModulePermissions, Invitations, Buildings");
     }
     catch (Exception ex)
     {

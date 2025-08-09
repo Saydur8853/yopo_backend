@@ -46,6 +46,26 @@ namespace YopoBackend.Constants
         public const string INVITATION_MODULE_VERSION = "1.0.0";
 
         /// <summary>
+        /// Module ID for the BuildingCRUD module.
+        /// </summary>
+        public const int BUILDING_MODULE_ID = 4;
+
+        /// <summary>
+        /// Module name for the BuildingCRUD module.
+        /// </summary>
+        public const string BUILDING_MODULE_NAME = "BuildingCRUD";
+
+        /// <summary>
+        /// Module description for the BuildingCRUD module.
+        /// </summary>
+        public const string BUILDING_MODULE_DESCRIPTION = "Module for managing buildings with CRUD operations";
+
+        /// <summary>
+        /// Current version of the BuildingCRUD module.
+        /// </summary>
+        public const string BUILDING_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
         /// Gets all module information as a dictionary for easy access.
         /// </summary>
         public static readonly Dictionary<int, ModuleInfo> Modules = new()
@@ -69,6 +89,17 @@ namespace YopoBackend.Constants
                     Name = INVITATION_MODULE_NAME,
                     Description = INVITATION_MODULE_DESCRIPTION,
                     Version = INVITATION_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                BUILDING_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = BUILDING_MODULE_ID,
+                    Name = BUILDING_MODULE_NAME,
+                    Description = BUILDING_MODULE_DESCRIPTION,
+                    Version = BUILDING_MODULE_VERSION,
                     IsActive = true
                 }
             }
