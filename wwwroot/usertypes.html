@@ -297,6 +297,42 @@
             margin-bottom: 1rem;
         }
 
+        .dropdown-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f8f9fa;
+            transition: background-color 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .form-text {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 0 1rem;
@@ -357,8 +393,18 @@
             <form id="userTypeForm">
                 <div class="form-group">
                     <label for="userTypeName">Name *</label>
-                    <input type="text" id="userTypeName" class="form-control" required 
-                           placeholder="Enter user type name">
+                    <div style="position: relative;">
+                        <input type="text" id="userTypeName" class="form-control" required 
+                               placeholder="Type new name or select from existing"
+                               autocomplete="off"
+                               onkeyup="handleUserTypeNameInput(event)"
+                               onfocus="showUserTypeDropdown()"
+                               onblur="hideUserTypeDropdown()">
+                        <div id="userTypeDropdown" class="dropdown-suggestions" style="display: none;">
+                            <!-- Existing user type names will be populated here -->
+                        </div>
+                    </div>
+                    <small class="form-text text-muted">You can select from existing user types or type a new name. Multiple user types can have the same name.</small>
                 </div>
                 <div class="form-group">
                     <label for="userTypeDescription">Description</label>
@@ -369,6 +415,13 @@
                     <label for="isActive">
                         <input type="checkbox" id="isActive" checked> Active
                     </label>
+                </div>
+                <div class="form-group">
+                    <label for="dataAccessControl">Data Access Control *</label>
+                    <select id="dataAccessControl" class="form-control" required>
+                        <option value="ALL">Access All Data - Users can see all data for their user type</option>
+                        <option value="OWN">Access Own Data Only - Users can only see data they created</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Module Permissions</label>
@@ -394,6 +447,7 @@
         const API_BASE = '/api';
         let currentEditId = null;
         let allModules = [];
+        let existingUserTypeNames = [];
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
@@ -405,6 +459,7 @@
 
             loadUserTypes();
             loadModules();
+            loadExistingUserTypeNames();
 
             // Setup form submission
             document.getElementById('userTypeForm').addEventListener('submit', handleFormSubmit);
@@ -545,6 +600,88 @@
             }
         }
 
+        // Load existing user type names for dropdown
+        async function loadExistingUserTypeNames() {
+            try {
+                const response = await fetch(`${API_BASE}/usertypes/names?activeOnly=false`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load user type names');
+                }
+                
+                existingUserTypeNames = await response.json();
+            } catch (error) {
+                console.error('Error loading user type names:', error);
+                existingUserTypeNames = [];
+            }
+        }
+
+        // Handle user type name input with autocomplete
+        function handleUserTypeNameInput(event) {
+            const input = event.target;
+            const value = input.value.toLowerCase();
+            const dropdown = document.getElementById('userTypeDropdown');
+            
+            if (value.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            // Filter existing names that start with the input value
+            const filteredNames = existingUserTypeNames.filter(name => 
+                name.toLowerCase().includes(value)
+            );
+            
+            if (filteredNames.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            // Populate dropdown with filtered suggestions
+            dropdown.innerHTML = filteredNames.map(name => 
+                `<div class="dropdown-item" onclick="selectUserTypeName('${name}')">${name}</div>`
+            ).join('');
+            
+            dropdown.style.display = 'block';
+        }
+
+        // Show user type dropdown when focused
+        function showUserTypeDropdown() {
+            const input = document.getElementById('userTypeName');
+            const dropdown = document.getElementById('userTypeDropdown');
+            
+            if (input.value.length === 0 && existingUserTypeNames.length > 0) {
+                // Show all existing names when focused with empty input
+                dropdown.innerHTML = existingUserTypeNames.map(name => 
+                    `<div class="dropdown-item" onclick="selectUserTypeName('${name}')">${name}</div>`
+                ).join('');
+                dropdown.style.display = 'block';
+            }
+        }
+
+        // Hide user type dropdown
+        function hideUserTypeDropdown() {
+            // Add a small delay to allow click events on dropdown items
+            setTimeout(() => {
+                const dropdown = document.getElementById('userTypeDropdown');
+                dropdown.style.display = 'none';
+            }, 150);
+        }
+
+        // Select a user type name from dropdown
+        function selectUserTypeName(name) {
+            const input = document.getElementById('userTypeName');
+            const dropdown = document.getElementById('userTypeDropdown');
+            
+            input.value = name;
+            dropdown.style.display = 'none';
+            
+            // Focus back to the input for better UX
+            input.focus();
+        }
+
         // Show create modal
         function showCreateModal() {
             currentEditId = null;
@@ -552,6 +689,7 @@
             document.getElementById('submitText').textContent = 'Create User Type';
             document.getElementById('userTypeForm').reset();
             document.getElementById('isActive').checked = true;
+            document.getElementById('dataAccessControl').value = 'ALL'; // Default to ALL
             displayModulePermissions([]);
             document.getElementById('userTypeModal').style.display = 'block';
         }
@@ -575,6 +713,7 @@
                 document.getElementById('userTypeName').value = userType.name;
                 document.getElementById('userTypeDescription').value = userType.description || '';
                 document.getElementById('isActive').checked = userType.isActive;
+                document.getElementById('dataAccessControl').value = userType.dataAccessControl || 'ALL';
                 displayModulePermissions(userType.moduleIds || []);
                 document.getElementById('userTypeModal').style.display = 'block';
             } catch (error) {
@@ -620,6 +759,7 @@
                     name: document.getElementById('userTypeName').value.trim(),
                     description: document.getElementById('userTypeDescription').value.trim(),
                     isActive: document.getElementById('isActive').checked,
+                    dataAccessControl: document.getElementById('dataAccessControl').value,
                     moduleIds: Array.from(document.querySelectorAll('#modulePermissions input[type="checkbox"]:checked'))
                                    .map(cb => parseInt(cb.value))
                 };
@@ -642,8 +782,20 @@
                 });
                 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Operation failed');
+                    let errorMessage = 'Operation failed';
+                    try {
+                        // Try to parse as JSON first
+                        const error = await response.json();
+                        errorMessage = error.message || error || 'Operation failed';
+                    } catch (jsonError) {
+                        // If JSON parsing fails, get the response as text
+                        try {
+                            errorMessage = await response.text();
+                        } catch (textError) {
+                            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                        }
+                    }
+                    throw new Error(errorMessage);
                 }
                 
                 showMessage(
@@ -652,6 +804,7 @@
                 
                 closeModal();
                 loadUserTypes();
+                loadExistingUserTypeNames(); // Refresh the names list
                 
             } catch (error) {
                 showMessage(`Error: ${error.message}`, 'error');
@@ -674,8 +827,20 @@
                 });
                 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Failed to delete user type');
+                    let errorMessage = 'Failed to delete user type';
+                    try {
+                        // Try to parse as JSON first
+                        const error = await response.json();
+                        errorMessage = error.message || error || 'Failed to delete user type';
+                    } catch (jsonError) {
+                        // If JSON parsing fails, get the response as text
+                        try {
+                            errorMessage = await response.text();
+                        } catch (textError) {
+                            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                        }
+                    }
+                    throw new Error(errorMessage);
                 }
                 
                 showMessage('User type deleted successfully!');

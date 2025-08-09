@@ -9,45 +9,51 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
     public interface IBuildingService
     {
         /// <summary>
-        /// Gets all buildings.
+        /// Gets all buildings based on user's access control.
         /// </summary>
-        /// <returns>A list of all buildings.</returns>
-        Task<IEnumerable<BuildingDto>> GetAllBuildingsAsync();
+        /// <param name="userId">The ID of the current user.</param>
+        /// <returns>A list of all buildings the user has access to.</returns>
+        Task<IEnumerable<BuildingDto>> GetAllBuildingsAsync(int userId);
 
         /// <summary>
-        /// Gets all active buildings.
+        /// Gets all active buildings based on user's access control.
         /// </summary>
-        /// <returns>A list of all active buildings.</returns>
-        Task<IEnumerable<BuildingDto>> GetActiveBuildingsAsync();
+        /// <param name="userId">The ID of the current user.</param>
+        /// <returns>A list of all active buildings the user has access to.</returns>
+        Task<IEnumerable<BuildingDto>> GetActiveBuildingsAsync(int userId);
 
         /// <summary>
-        /// Gets a building by ID.
+        /// Gets a building by ID, respecting the current user's access control settings.
         /// </summary>
         /// <param name="id">The ID of the building.</param>
-        /// <returns>The building with the specified ID, or null if not found.</returns>
-        Task<BuildingDto?> GetBuildingByIdAsync(int id);
+        /// <param name="userId">The ID of the current user.</param>
+        /// <returns>The building with the specified ID if the user has access to it, or null if not found or no access.</returns>
+        Task<BuildingDto?> GetBuildingByIdAsync(int id, int userId);
 
         /// <summary>
         /// Creates a new building.
         /// </summary>
         /// <param name="createBuildingDto">The data for creating the building.</param>
+        /// <param name="createdByUserId">The ID of the user creating the building.</param>
         /// <returns>The created building.</returns>
-        Task<BuildingDto> CreateBuildingAsync(CreateBuildingDto createBuildingDto);
+        Task<BuildingDto> CreateBuildingAsync(CreateBuildingDto createBuildingDto, int createdByUserId);
 
         /// <summary>
-        /// Updates an existing building.
+        /// Updates an existing building, respecting the current user's access control settings.
         /// </summary>
         /// <param name="id">The ID of the building to update.</param>
         /// <param name="updateBuildingDto">The data for updating the building.</param>
-        /// <returns>The updated building, or null if the building was not found.</returns>
-        Task<BuildingDto?> UpdateBuildingAsync(int id, UpdateBuildingDto updateBuildingDto);
+        /// <param name="userId">The ID of the current user.</param>
+        /// <returns>The updated building if the user has access to it, or null if the building was not found or no access.</returns>
+        Task<BuildingDto?> UpdateBuildingAsync(int id, UpdateBuildingDto updateBuildingDto, int userId);
 
         /// <summary>
-        /// Deletes a building.
+        /// Deletes a building, respecting the current user's access control settings.
         /// </summary>
         /// <param name="id">The ID of the building to delete.</param>
-        /// <returns>True if the building was deleted successfully, false if not found.</returns>
-        Task<bool> DeleteBuildingAsync(int id);
+        /// <param name="userId">The ID of the current user.</param>
+        /// <returns>True if the building was deleted successfully and user has access, false if not found or no access.</returns>
+        Task<bool> DeleteBuildingAsync(int id, int userId);
 
         /// <summary>
         /// Checks if a building name already exists.

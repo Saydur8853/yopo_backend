@@ -88,7 +88,7 @@ namespace YopoBackend.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedOnAdd(); // Allow both auto-generated and manual IDs
-                entity.HasIndex(e => e.Name).IsUnique();
+                // Removed unique index on Name to allow multiple user types with the same name
                 entity.Property(e => e.CreatedAt)
                     .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");

@@ -44,6 +44,14 @@ namespace YopoBackend.Modules.UserTypeCRUD.Models
         public DateTime? UpdatedAt { get; set; }
 
         /// <summary>
+        /// Gets or sets the data access control type for this user type.
+        /// "OWN" = Users can only access their own created data
+        /// "ALL" = Users can access all data for their user type
+        /// </summary>
+        [MaxLength(10)]
+        public string DataAccessControl { get; set; } = "ALL";
+
+        /// <summary>
         /// Navigation property for the user type module permissions.
         /// </summary>
         public virtual ICollection<UserTypeModulePermission> ModulePermissions { get; set; } = new List<UserTypeModulePermission>();

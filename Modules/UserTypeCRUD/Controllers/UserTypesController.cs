@@ -98,18 +98,14 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         {
             try
             {
-                // Check if user type name already exists
-                if (await _userTypeService.UserTypeExistsAsync(createUserTypeDto.Name))
-                {
-                    return BadRequest($"A user type with the name '{createUserTypeDto.Name}' already exists.");
-                }
+                // Note: Multiple user types with the same name are allowed
 
                 // Validate module IDs if provided
                 if (createUserTypeDto.ModuleIds.Any())
                 {
                     if (!await _userTypeService.ValidateModuleIdsAsync(createUserTypeDto.ModuleIds))
                     {
-                        return BadRequest("One or more module IDs are invalid.");
+                        return BadRequest(new { message = "One or more module IDs are invalid." });
                     }
                 }
 
@@ -133,18 +129,14 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         {
             try
             {
-                // Check if user type name already exists (excluding current user type)
-                if (await _userTypeService.UserTypeExistsAsync(updateUserTypeDto.Name, id))
-                {
-                    return BadRequest($"A user type with the name '{updateUserTypeDto.Name}' already exists.");
-                }
+                // Note: Multiple user types with the same name are allowed
 
                 // Validate module IDs if provided
                 if (updateUserTypeDto.ModuleIds.Any())
                 {
                     if (!await _userTypeService.ValidateModuleIdsAsync(updateUserTypeDto.ModuleIds))
                     {
-                        return BadRequest("One or more module IDs are invalid.");
+                        return BadRequest(new { message = "One or more module IDs are invalid." });
                     }
                 }
 
@@ -235,17 +227,36 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                 {
                     if (!await _userTypeService.ValidateModuleIdsAsync(moduleIds))
                     {
-                        return BadRequest("One or more module IDs are invalid.");
+                        return BadRequest(new { message = "One or more module IDs are invalid." });
                     }
                 }
 
                 var result = await _userTypeService.UpdateUserTypeModulePermissionsAsync(id, moduleIds);
                 if (!result)
                 {
-                    return BadRequest("Failed to update user type permissions.");
+                    return BadRequest(new { message = "Failed to update user type permissions." });
                 }
 
                 return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gets a list of existing user type names for dropdown/autocomplete functionality.
+        /// </summary>
+        /// <param name="activeOnly">Optional parameter to return only active user types (default: true).</param>
+        /// <returns>A list of existing user type names.</returns>
+        [HttpGet("names")]
+        public async Task<ActionResult<IEnumerable<string>>> GetUserTypeNames([FromQuery] bool activeOnly = true)
+        {
+            try
+            {
+                var names = await _userTypeService.GetUserTypeNamesAsync(activeOnly);
+                return Ok(names);
             }
             catch (Exception ex)
             {
@@ -266,7 +277,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
             {
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    return BadRequest("Name parameter is required.");
+                    return BadRequest(new { message = "Name parameter is required." });
                 }
 
                 var exists = await _userTypeService.UserTypeExistsAsync(name, excludeId);

@@ -40,6 +40,11 @@ namespace YopoBackend.Modules.BuildingCRUD.Models
         public bool IsActive { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets the ID of the user who created this building.
+        /// </summary>
+        public int CreatedBy { get; set; }
+
+        /// <summary>
         /// Gets or sets when the building was created.
         /// </summary>
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

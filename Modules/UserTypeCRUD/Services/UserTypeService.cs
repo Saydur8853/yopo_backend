@@ -65,6 +65,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             {
                 Name = createUserTypeDto.Name,
                 Description = createUserTypeDto.Description,
+                DataAccessControl = createUserTypeDto.DataAccessControl,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -92,6 +93,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
 
             userType.Name = updateUserTypeDto.Name;
             userType.Description = updateUserTypeDto.Description;
+            userType.DataAccessControl = updateUserTypeDto.DataAccessControl;
             userType.IsActive = updateUserTypeDto.IsActive;
             userType.UpdatedAt = DateTime.UtcNow;
 
@@ -125,6 +127,24 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<string>> GetUserTypeNamesAsync(bool activeOnly = true)
+        {
+            var query = _context.UserTypes.AsQueryable();
+            
+            if (activeOnly)
+            {
+                query = query.Where(ut => ut.IsActive);
+            }
+
+            var names = await query
+                .Select(ut => ut.Name)
+                .OrderBy(name => name)
+                .ToListAsync();
+
+            return names;
         }
 
         /// <inheritdoc/>

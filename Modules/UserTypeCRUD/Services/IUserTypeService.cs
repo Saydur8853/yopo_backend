@@ -51,6 +51,13 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         Task<bool> DeleteUserTypeAsync(int id);
 
         /// <summary>
+        /// Gets a list of existing user type names for dropdown/autocomplete functionality.
+        /// </summary>
+        /// <param name="activeOnly">Optional parameter to return only active user types (default: true).</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a collection of user type names.</returns>
+        Task<IEnumerable<string>> GetUserTypeNamesAsync(bool activeOnly = true);
+
+        /// <summary>
         /// Checks if a user type with the specified name exists.
         /// </summary>
         /// <param name="name">The name to check.</param>
