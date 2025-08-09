@@ -15,10 +15,10 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         public string EmailAddress { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the user roll for the invitation.
+        /// Gets or sets the user type ID for the invitation.
         /// </summary>
         [Required]
-        public string UserRoll { get; set; } = string.Empty;
+        public int UserTypeId { get; set; }
 
         /// <summary>
         /// Gets or sets the number of days until the invitation expires (1-7 days).
@@ -39,9 +39,9 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         public string? EmailAddress { get; set; }
 
         /// <summary>
-        /// Gets or sets the user roll for the invitation (optional for updates).
+        /// Gets or sets the user type ID for the invitation (optional for updates).
         /// </summary>
-        public string? UserRoll { get; set; }
+        public int? UserTypeId { get; set; }
 
         /// <summary>
         /// Gets or sets the number of days until the invitation expires (optional for updates, 1-7 days).
@@ -66,9 +66,15 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         public string EmailAddress { get; set; } = string.Empty;
         
         /// <summary>
-        /// Gets or sets the user roll for the invitation.
+        /// Gets or sets the user type ID for the invitation.
         /// </summary>
-        public string UserRoll { get; set; } = string.Empty;
+        public int UserTypeId { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the user type name for display purposes.
+        /// </summary>
+        public string UserTypeName { get; set; } = string.Empty;
+        
         
         /// <summary>
         /// Gets or sets the date and time when the invitation expires.
@@ -94,5 +100,27 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// Gets or sets the number of days until the invitation expires.
         /// </summary>
         public int DaysUntilExpiry { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for user type dropdown selection in invitations
+    /// </summary>
+    public class UserTypeDropdownDTO
+    {
+        /// <summary>
+        /// Gets or sets the user type ID.
+        /// </summary>
+        public int Id { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the user type name.
+        /// </summary>
+        public string Name { get; set; } = string.Empty;
+        
+        
+        /// <summary>
+        /// Gets or sets whether this user type is active.
+        /// </summary>
+        public bool IsActive { get; set; }
     }
 }

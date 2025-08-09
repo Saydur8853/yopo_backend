@@ -27,14 +27,18 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         /// <inheritdoc/>
         public async Task<IEnumerable<InvitationResponseDTO>> GetAllInvitationsAsync()
         {
-            var invitations = await _context.Invitations.ToListAsync();
+            var invitations = await _context.Invitations
+                .Include(i => i.UserType)
+                .ToListAsync();
             return invitations.Select(MapToResponseDTO);
         }
 
         /// <inheritdoc/>
         public async Task<InvitationResponseDTO?> GetInvitationByIdAsync(int id)
         {
-            var invitation = await _context.Invitations.FindAsync(id);
+            var invitation = await _context.Invitations
+                .Include(i => i.UserType)
+                .FirstOrDefaultAsync(i => i.Id == id);
             return invitation == null ? null : MapToResponseDTO(invitation);
         }
 
@@ -44,7 +48,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             var invitation = new Invitation
             {
                 EmailAddress = createDto.EmailAddress.ToLowerInvariant(),
-                UserRoll = createDto.UserRoll,
+                UserTypeId = createDto.UserTypeId,
                 ExpiryTime = DateTime.UtcNow.AddDays(createDto.ExpiryDays),
                 CreatedAt = DateTime.UtcNow
             };
@@ -52,14 +56,22 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             _context.Invitations.Add(invitation);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Created invitation for email: {Email}", createDto.EmailAddress);
+            // Load the user type for the response
+            await _context.Entry(invitation)
+                .Reference(i => i.UserType)
+                .LoadAsync();
+
+            _logger.LogInformation("Created invitation for email: {Email} with UserType: {UserTypeId}", 
+                createDto.EmailAddress, createDto.UserTypeId);
             return MapToResponseDTO(invitation);
         }
 
         /// <inheritdoc/>
         public async Task<InvitationResponseDTO?> UpdateInvitationAsync(int id, UpdateInvitationDTO updateDto)
         {
-            var invitation = await _context.Invitations.FindAsync(id);
+            var invitation = await _context.Invitations
+                .Include(i => i.UserType)
+                .FirstOrDefaultAsync(i => i.Id == id);
             if (invitation == null)
             {
                 return null;
@@ -70,9 +82,9 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 invitation.EmailAddress = updateDto.EmailAddress.ToLowerInvariant();
             }
 
-            if (!string.IsNullOrEmpty(updateDto.UserRoll))
+            if (updateDto.UserTypeId.HasValue)
             {
-                invitation.UserRoll = updateDto.UserRoll;
+                invitation.UserTypeId = updateDto.UserTypeId.Value;
             }
 
             if (updateDto.ExpiryDays.HasValue)
@@ -82,6 +94,14 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
 
             invitation.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            // Reload the user type if it was changed
+            if (updateDto.UserTypeId.HasValue)
+            {
+                await _context.Entry(invitation)
+                    .Reference(i => i.UserType)
+                    .LoadAsync();
+            }
 
             _logger.LogInformation("Updated invitation ID: {Id}", id);
             return MapToResponseDTO(invitation);
@@ -107,6 +127,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         public async Task<IEnumerable<InvitationResponseDTO>> GetExpiredInvitationsAsync()
         {
             var expiredInvitations = await _context.Invitations
+                .Include(i => i.UserType)
                 .Where(i => i.ExpiryTime < DateTime.UtcNow)
                 .ToListAsync();
 
@@ -117,6 +138,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         public async Task<IEnumerable<InvitationResponseDTO>> GetActiveInvitationsAsync()
         {
             var activeInvitations = await _context.Invitations
+                .Include(i => i.UserType)
                 .Where(i => i.ExpiryTime >= DateTime.UtcNow)
                 .ToListAsync();
 
@@ -136,13 +158,38 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 .AnyAsync(i => i.EmailAddress == email.ToLowerInvariant() && i.ExpiryTime >= DateTime.UtcNow);
         }
 
+        /// <inheritdoc/>
+        public async Task<IEnumerable<UserTypeDropdownDTO>> GetAvailableUserTypesAsync()
+        {
+            var userTypes = await _context.UserTypes
+                .Where(ut => ut.IsActive)
+                .Select(ut => new UserTypeDropdownDTO
+                {
+                    Id = ut.Id,
+                    Name = ut.Name,
+                    IsActive = ut.IsActive
+                })
+                .OrderBy(ut => ut.Name)
+                .ToListAsync();
+
+            return userTypes;
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> ValidateUserTypeIdAsync(int userTypeId)
+        {
+            return await _context.UserTypes
+                .AnyAsync(ut => ut.Id == userTypeId && ut.IsActive);
+        }
+
         private static InvitationResponseDTO MapToResponseDTO(Invitation invitation)
         {
             return new InvitationResponseDTO
             {
                 Id = invitation.Id,
                 EmailAddress = invitation.EmailAddress,
-                UserRoll = invitation.UserRoll,
+                UserTypeId = invitation.UserTypeId,
+                UserTypeName = invitation.UserType?.Name ?? "Unknown",
                 ExpiryTime = invitation.ExpiryTime,
                 CreatedAt = invitation.CreatedAt,
                 UpdatedAt = invitation.UpdatedAt,
