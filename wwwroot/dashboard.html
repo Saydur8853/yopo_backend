@@ -82,78 +82,6 @@
             padding: 0 2rem;
         }
 
-        .welcome-card {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-
-        .welcome-card h2 {
-            font-size: 2rem;
-            color: #333;
-            margin-bottom: 1rem;
-        }
-
-        .welcome-card p {
-            font-size: 1.1rem;
-            color: #666;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            text-align: center;
-            transition: transform 0.2s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin: 0 auto 1rem;
-            color: white;
-        }
-
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            font-weight: 600;
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-description {
-            font-size: 0.9rem;
-            color: #888;
-        }
 
         .quick-actions {
             background: white;
@@ -196,54 +124,6 @@
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
 
-        .recent-activity {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-
-        .recent-activity h3 {
-            font-size: 1.3rem;
-            margin-bottom: 1.5rem;
-            color: #333;
-        }
-
-        .activity-item {
-            padding: 1rem;
-            border-left: 3px solid #667eea;
-            background: #f8f9fa;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-        }
-
-        .activity-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .activity-time {
-            font-size: 0.8rem;
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-
-        .activity-text {
-            color: #333;
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(102, 126, 234, 0.3);
-            border-radius: 50%;
-            border-top-color: #667eea;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
 
         .error-message {
             background: #f8d7da;
@@ -288,75 +168,15 @@
     <div class="container">
         <div id="error-container"></div>
 
-        <div class="welcome-card">
-            <h2>Welcome to your Dashboard!</h2>
-            <p>Here you can view your account information, manage your profile, and access all available features based on your user role.</p>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">👤</div>
-                <div class="stat-number" id="account-status">Active</div>
-                <div class="stat-label">Account Status</div>
-                <div class="stat-description">Your account is currently active</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon">📧</div>
-                <div class="stat-number" id="email-status">Verified</div>
-                <div class="stat-label">Email Status</div>
-                <div class="stat-description">Email verification status</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon">🏢</div>
-                <div class="stat-number" id="user-role">Member</div>
-                <div class="stat-label">User Role</div>
-                <div class="stat-description">Your current role in the system</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon">📅</div>
-                <div class="stat-number" id="member-since">Recently</div>
-                <div class="stat-label">Member Since</div>
-                <div class="stat-description">When you joined the platform</div>
-            </div>
-        </div>
-
         <div class="quick-actions">
             <h3>Quick Actions</h3>
             <div class="actions-grid">
-                <button class="action-btn" onclick="viewProfile()">
-                    👤 View Profile
-                </button>
-                <button class="action-btn" onclick="changePassword()">
-                    🔒 Change Password
-                </button>
-                <a href="/swagger/index.html" class="action-btn">
-                    📚 API Documentation
-                </a>
-                <a href="/" class="action-btn">
-                    ⚙️ Admin Panel
-                </a>
+                <!-- All buttons are dynamically added based on module permissions -->
             </div>
         </div>
 
-        <div class="recent-activity">
-            <h3>Recent Activity</h3>
-            <div id="activity-container">
-                <div class="loading-spinner"></div> Loading recent activity...
-            </div>
-        </div>
     </div>
 
-    <!-- Profile Modal -->
-    <div id="profile-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="background: white; margin: 5% auto; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px;">
-            <h3 style="margin-bottom: 1rem;">User Profile</h3>
-            <div id="profile-content">Loading...</div>
-            <button onclick="closeModal('profile-modal')" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
-        </div>
-    </div>
 
     <!-- Change Password Modal -->
     <div id="password-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
@@ -395,7 +215,7 @@
             }
             
             loadUserData();
-            loadRecentActivity();
+            loadUserModules();
             
             // Setup change password form
             document.getElementById('change-password-form').addEventListener('submit', handlePasswordChange);
@@ -438,17 +258,97 @@
             const avatar = document.getElementById('user-avatar');
             avatar.textContent = user.firstName ? user.firstName.charAt(0).toUpperCase() : 'U';
             
-            // Stats cards
-            document.getElementById('account-status').textContent = user.isActive ? 'Active' : 'Inactive';
-            document.getElementById('email-status').textContent = user.isEmailVerified ? 'Verified' : 'Unverified';
-            document.getElementById('user-role').textContent = user.userTypeName || 'Member';
+            // Buttons are now handled dynamically by module permissions
+        }
+
+        // Load user modules and update Quick Actions accordingly
+        async function loadUserModules() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/users/me/modules`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        logout();
+                        return;
+                    }
+                    throw new Error('Failed to fetch user modules');
+                }
+                
+                const data = await response.json();
+                updateQuickActionsBasedOnModules(data.modules);
+                
+            } catch (error) {
+                console.error('Error loading user modules:', error);
+                // Continue without module-specific features
+            }
+        }
+
+        // Update Quick Actions based on user's module permissions
+        function updateQuickActionsBasedOnModules(modules) {
+            const actionsGrid = document.querySelector('.actions-grid');
             
-            // Member since
-            const memberSince = new Date(user.createdAt).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short'
+            // Clear existing module-specific actions (keep profile, password, API docs)
+            const existingModuleButtons = actionsGrid.querySelectorAll('[data-module-id]');
+            existingModuleButtons.forEach(btn => btn.remove());
+            
+            // Module ID constants (matching ModuleConstants.cs)
+            const MODULE_IDS = {
+                USER_TYPE: 1,
+                INVITATION: 2,
+                USER: 3,
+                BUILDING: 4
+            };
+            
+            // Add module-specific actions
+            modules.forEach(module => {
+                let buttonHtml = '';
+                
+                switch(module.id) {
+                    case MODULE_IDS.BUILDING:
+                        buttonHtml = `
+                            <button class="action-btn" onclick="manageBuildings()" data-module-id="${module.id}">
+                                🏢 Manage Buildings
+                            </button>`;
+                        break;
+                    case MODULE_IDS.USER_TYPE:
+                        // This is already handled by Super Admin check, but we can add it here too
+                        buttonHtml = `
+                            <button class="action-btn" onclick="manageUserTypes()" data-module-id="${module.id}">
+                                👥 Manage User Types
+                            </button>`;
+                        break;
+                    case MODULE_IDS.INVITATION:
+                        // This is already handled by Super Admin check, but we can add it here too
+                        buttonHtml = `
+                            <button class="action-btn" onclick="manageInvitations()" data-module-id="${module.id}">
+                                📤 Manage Invitations
+                            </button>`;
+                        break;
+                    case MODULE_IDS.USER:
+                        buttonHtml = `
+                            <button class="action-btn" onclick="manageUsers()" data-module-id="${module.id}">
+                                👤 Manage Users
+                            </button>`;
+                        break;
+                }
+                
+                if (buttonHtml) {
+                    // Insert before the API Documentation link
+                    const apiDocsLink = actionsGrid.querySelector('a[href="/swagger/index.html"]');
+                    if (apiDocsLink) {
+                        apiDocsLink.insertAdjacentHTML('beforebegin', buttonHtml);
+                    } else {
+                        actionsGrid.insertAdjacentHTML('beforeend', buttonHtml);
+                    }
+                }
             });
-            document.getElementById('member-since').textContent = memberSince;
+            
+            console.log(`Loaded ${modules.length} modules for user:`, modules.map(m => m.name));
         }
 
         // Fetch current user from API
@@ -479,48 +379,8 @@
             }
         }
 
-        // Load recent activity
-        function loadRecentActivity() {
-            const container = document.getElementById('activity-container');
-            
-            // Simulate some recent activity (in a real app, this would come from an API)
-            setTimeout(() => {
-                container.innerHTML = `
-                    <div class="activity-item">
-                        <div class="activity-time">Just now</div>
-                        <div class="activity-text">Successfully logged into your account</div>
-                    </div>
-                    <div class="activity-item">
-                        <div class="activity-time">Earlier today</div>
-                        <div class="activity-text">Profile information was updated</div>
-                    </div>
-                    <div class="activity-item">
-                        <div class="activity-time">Yesterday</div>
-                        <div class="activity-text">Account security settings reviewed</div>
-                    </div>
-                `;
-            }, 1500);
-        }
 
         // Modal functions
-        function viewProfile() {
-            if (userData) {
-                const content = `
-                    <div style="line-height: 1.8;">
-                        <p><strong>Name:</strong> ${userData.fullName || `${userData.firstName} ${userData.lastName}`}</p>
-                        <p><strong>Email:</strong> ${userData.emailAddress}</p>
-                        <p><strong>Phone:</strong> ${userData.phoneNumber || 'Not provided'}</p>
-                        <p><strong>User Type:</strong> ${userData.userTypeName}</p>
-                        <p><strong>Status:</strong> ${userData.isActive ? 'Active' : 'Inactive'}</p>
-                        <p><strong>Email Verified:</strong> ${userData.isEmailVerified ? 'Yes' : 'No'}</p>
-                        <p><strong>Member Since:</strong> ${new Date(userData.createdAt).toLocaleDateString()}</p>
-                        ${userData.lastLoginAt ? `<p><strong>Last Login:</strong> ${new Date(userData.lastLoginAt).toLocaleDateString()}</p>` : ''}
-                    </div>
-                `;
-                document.getElementById('profile-content').innerHTML = content;
-            }
-            document.getElementById('profile-modal').style.display = 'block';
-        }
 
         function changePassword() {
             document.getElementById('password-modal').style.display = 'block';
@@ -599,6 +459,30 @@
             
             // Redirect to auth page
             window.location.href = '/auth.html';
+        }
+
+        // Manage invitations function
+        function manageInvitations() {
+            // Redirect to the dedicated invitation management page
+            window.location.href = '/invite.html';
+        }
+
+        // Manage user types function
+        function manageUserTypes() {
+            // Redirect to the dedicated user types management page
+            window.location.href = '/usertypes.html';
+        }
+
+        // Manage buildings function
+        function manageBuildings() {
+            // Redirect to the dedicated building management page
+            window.location.href = '/buildings.html';
+        }
+
+        // Manage users function
+        function manageUsers() {
+            // Redirect to the dedicated user management page
+            window.location.href = '/users.html';
         }
 
         // Close modals when clicking outside

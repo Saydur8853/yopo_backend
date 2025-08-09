@@ -350,6 +350,25 @@
                 </button>
             </form>
 
+            <!-- Information Panel -->
+            <div id="info-panel" style="
+                background: #e3f2fd;
+                border: 1px solid #bbdefb;
+                border-radius: 8px;
+                padding: 1rem;
+                margin-bottom: 1.5rem;
+                font-size: 0.9rem;
+                color: #1565c0;
+                display: none;
+            ">
+                <p><strong>ℹ️ New to Yopo?</strong></p>
+                <p style="margin: 0.5rem 0;">
+                    • If you're the <strong>first user</strong>, you'll automatically become the Super Administrator<br>
+                    • If someone has already registered, you need an <strong>invitation</strong> to join<br>
+                    • Contact your system administrator to request access
+                </p>
+            </div>
+
             <div class="auth-links">
                 <a href="/swagger/index.html">API Documentation</a>
             </div>
@@ -383,9 +402,13 @@
             document.getElementById('login-form').addEventListener('submit', handleLogin);
             document.getElementById('register-form').addEventListener('submit', handleRegister);
             
-            // Real-time password confirmation validation
+        // Real-time password confirmation validation
             const confirmPassword = document.getElementById('register-confirm-password');
             confirmPassword.addEventListener('input', validatePasswordMatch);
+            
+            // Real-time email validation for registration eligibility - removed
+            // const registerEmail = document.getElementById('register-email');
+            // registerEmail.addEventListener('blur', checkRegistrationEligibility);
         }
 
         // Form switching
@@ -398,12 +421,15 @@
             document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
             document.getElementById(`${formType}-form`).classList.add('active');
             
-            // Update header text
+            // Update header text and show/hide info panel
             const headerP = document.querySelector('.auth-header p');
+            const infoPanel = document.getElementById('info-panel');
             if (formType === 'login') {
                 headerP.textContent = 'Welcome back! Please sign in to your account';
+                infoPanel.style.display = 'none';
             } else {
                 headerP.textContent = 'Create a new account to get started';
+                infoPanel.style.display = 'block';
             }
             
             // Clear messages
@@ -567,6 +593,12 @@
                 const data = await response.json();
                 
                 if (!response.ok) {
+                    // Handle invitation required error specially
+                    if (response.status === 403 && data.requiresInvitation) {
+                        showMessage(data.message + ' Please contact your system administrator for an invitation.', 'error');
+                        document.getElementById('register-btn').disabled = true;
+                        return;
+                    }
                     throw new Error(data.message || 'Registration failed');
                 }
                 
@@ -604,6 +636,41 @@
             localStorage.removeItem('tokenExpiry');
             localStorage.removeItem('userData');
             window.location.href = '/auth.html';
+        }
+
+        // Check registration eligibility
+        async function checkRegistrationEligibility(e) {
+            const email = e.target.value.trim();
+            
+            if (!email || !email.includes('@')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/users/check-registration-eligibility?email=${encodeURIComponent(email)}`);
+                const data = await response.json();
+                
+                if (data.canRegister) {
+                    if (data.isFirstUser) {
+                        showMessage('🎉 ' + data.message, 'success');
+                        document.querySelector('.auth-header p').textContent = '🚀 You will become the Super Administrator!';
+                        document.querySelector('.auth-header').style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+                    } else {
+                        showMessage('✅ ' + data.message, 'success');
+                        document.querySelector('.auth-header p').textContent = 'You have been invited to join!';
+                    }
+                    document.getElementById('register-btn').disabled = false;
+                    document.getElementById('register-btn').style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+                } else {
+                    showMessage('⚠️ ' + data.message, 'error');
+                    document.getElementById('register-btn').disabled = true;
+                    document.getElementById('register-btn').style.background = '#dc3545';
+                    document.querySelector('.auth-header p').textContent = 'Registration requires invitation';
+                    document.querySelector('.auth-header').style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+                }
+            } catch (error) {
+                console.error('Error checking registration eligibility:', error);
+            }
         }
     </script>
 </body>

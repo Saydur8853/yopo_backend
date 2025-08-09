@@ -106,12 +106,42 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     return null; // Email already registered
                 }
 
-                // Use default Super Admin user type for registration
-                var defaultUserTypeId = UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
-                var userType = await _context.UserTypes.FindAsync(defaultUserTypeId);
+                // Check if this is the first user in the system
+                var isFirstUser = !await _context.Users.AnyAsync();
+                
+                int userTypeId;
+                if (isFirstUser)
+                {
+                    // First user becomes Super Admin
+                    userTypeId = UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+                    Console.WriteLine($"First user registration - assigning Super Admin role to: {registerRequest.EmailAddress}");
+                }
+                else
+                {
+                    // Check if email has a valid invitation
+                    var invitation = await _context.Invitations
+                        .Include(i => i.UserType)
+                        .FirstOrDefaultAsync(i => i.EmailAddress.ToLower() == registerRequest.EmailAddress.ToLower() 
+                                                 && i.ExpiryTime > DateTime.UtcNow);
+                    
+                    if (invitation == null)
+                    {
+                        // No valid invitation found
+                        Console.WriteLine($"Registration denied for {registerRequest.EmailAddress} - no valid invitation");
+                        throw new UnauthorizedAccessException("You are not invited. Please contact with Authority.");
+                    }
+                    
+                    userTypeId = invitation.UserTypeId;
+                    Console.WriteLine($"User registration with invitation - assigning user type {invitation.UserType?.Name} to: {registerRequest.EmailAddress}");
+                    
+                    // Remove the used invitation
+                    _context.Invitations.Remove(invitation);
+                }
+
+                var userType = await _context.UserTypes.FindAsync(userTypeId);
                 if (userType == null || !userType.IsActive)
                 {
-                    return null; // Default user type not found or inactive
+                    return null; // User type not found or inactive
                 }
 
                 // Hash password
@@ -125,7 +155,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     FirstName = registerRequest.FirstName,
                     LastName = registerRequest.LastName,
                     PhoneNumber = registerRequest.PhoneNumber,
-                    UserTypeId = defaultUserTypeId,
+                    UserTypeId = userTypeId,
                     IsActive = true,
                     IsEmailVerified = false,
                     CreatedAt = DateTime.UtcNow
@@ -140,13 +170,19 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 // Generate JWT token
                 var (token, expiresAt) = await _jwtService.GenerateTokenAsync(user);
 
+                var message = isFirstUser ? "Registration successful - You are now the Super Administrator!" : "Registration successful";
+                
                 return new AuthenticationResponseDTO
                 {
                     Token = token,
                     ExpiresAt = expiresAt,
                     User = MapToUserResponse(user),
-                    Message = "Registration successful"
+                    Message = message
                 };
+            }
+            catch (UnauthorizedAccessException)
+            {
+                throw; // Re-throw to preserve the specific error message
             }
             catch (Exception ex)
             {

@@ -184,11 +184,12 @@ using (var scope = app.Services.CreateScope())
     try
     {
         // For development: Drop and recreate database to handle schema changes
-        if (app.Environment.IsDevelopment())
-        {
-            context.Database.EnsureDeleted();
-            Console.WriteLine("Development mode: Dropped existing database");
-        }
+        // COMMENTED OUT: This was causing data loss on every run
+        // if (app.Environment.IsDevelopment())
+        // {
+        //     context.Database.EnsureDeleted();
+        //     Console.WriteLine("Development mode: Dropped existing database");
+        // }
         
         context.Database.EnsureCreated();
         Console.WriteLine("Database connection established successfully!");

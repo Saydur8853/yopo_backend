@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
 using YopoBackend.Modules.UserCRUD.Services;
 using YopoBackend.Services;
@@ -18,16 +20,19 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
     {
         private readonly IUserService _userService;
         private readonly IJwtService _jwtService;
+        private readonly ApplicationDbContext _context;
 
         /// <summary>
         /// Initializes a new instance of the UsersController class.
         /// </summary>
         /// <param name="userService">The user service.</param>
         /// <param name="jwtService">The JWT service for token management.</param>
-        public UsersController(IUserService userService, IJwtService jwtService)
+        /// <param name="context">The database context.</param>
+        public UsersController(IUserService userService, IJwtService jwtService, ApplicationDbContext context)
         {
             _userService = userService;
             _jwtService = jwtService;
+            _context = context;
         }
 
         // Authentication endpoints
@@ -73,6 +78,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         [AllowAnonymous]
         [ProducesResponseType(typeof(AuthenticationResponseDTO), 200)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(403)]
         public async Task<IActionResult> Register([FromBody] RegisterUserRequestDTO registerRequest)
         {
             if (!ModelState.IsValid)
@@ -80,14 +86,25 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 return BadRequest(ModelState);
             }
 
-            var result = await _userService.RegisterAsync(registerRequest);
-
-            if (result == null)
+            try
             {
-                return BadRequest(new { message = "Registration failed. Email may already be registered." });
-            }
+                var result = await _userService.RegisterAsync(registerRequest);
 
-            return Ok(result);
+                if (result == null)
+                {
+                    return BadRequest(new { message = "Registration failed. Email may already be registered." });
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { 
+                    message = ex.Message,
+                    canRegister = false,
+                    requiresInvitation = true
+                });
+            }
         }
 
         /// <summary>
@@ -469,6 +486,128 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 email = email, 
                 isAvailable = !isRegistered,
                 message = isRegistered ? "Email is already registered." : "Email is available."
+            });
+        }
+
+        /// <summary>
+        /// Gets the current user's module permissions based on their user type.
+        /// </summary>
+        /// <returns>List of modules the current user has access to.</returns>
+        /// <response code="200">Module permissions retrieved successfully</response>
+        /// <response code="401">Unauthorized</response>
+        /// <response code="404">User not found</response>
+        [HttpGet("me/modules")]
+        [Authorize]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetCurrentUserModules()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            // Get user with user type and module permissions
+            var user = await _context.Users
+                .Include(u => u.UserType)
+                    .ThenInclude(ut => ut!.ModulePermissions)
+                        .ThenInclude(utmp => utmp.Module)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            // Get all modules the user has access to
+            object[] userModules;
+            if (user.UserType?.ModulePermissions != null)
+            {
+                userModules = user.UserType.ModulePermissions
+                    .Where(utmp => utmp.IsActive && utmp.Module.IsActive)
+                    .Select(utmp => new
+                    {
+                        id = utmp.Module.Id,
+                        name = utmp.Module.Name,
+                        description = utmp.Module.Description,
+                        version = utmp.Module.Version,
+                        isActive = utmp.Module.IsActive
+                    })
+                    .Cast<object>()
+                    .ToArray();
+            }
+            else
+            {
+                userModules = Array.Empty<object>();
+            }
+
+            return Ok(new
+            {
+                userId = user.Id,
+                userType = user.UserType?.Name,
+                modules = userModules,
+                totalModules = userModules.Length
+            });
+        }
+
+        /// <summary>
+        /// Checks if registration is allowed for a given email address.
+        /// </summary>
+        /// <param name="email">The email address to check.</param>
+        /// <returns>Registration eligibility status.</returns>
+        /// <response code="200">Registration eligibility status</response>
+        [HttpGet("check-registration-eligibility")]
+        [AllowAnonymous]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> CheckRegistrationEligibility([FromQuery] string email)
+        {
+            if (string.IsNullOrEmpty(email))
+            {
+                return BadRequest(new { message = "Email parameter is required." });
+            }
+
+            // Check if this would be the first user
+            var isFirstUser = !await _userService.IsEmailRegisteredAsync(email) && !await _context.Users.AnyAsync();
+            
+            if (isFirstUser)
+            {
+                return Ok(new {
+                    canRegister = true,
+                    isFirstUser = true,
+                    message = "You will be registered as the Super Administrator."
+                });
+            }
+
+            // Check if email is already registered
+            if (await _userService.IsEmailRegisteredAsync(email))
+            {
+                return Ok(new {
+                    canRegister = false,
+                    isFirstUser = false,
+                    message = "Email is already registered."
+                });
+            }
+
+            // Check if email has a valid invitation
+            var hasInvitation = await _context.Invitations
+                .AnyAsync(i => i.EmailAddress.ToLower() == email.ToLower() && i.ExpiryTime > DateTime.UtcNow);
+
+            if (hasInvitation)
+            {
+                return Ok(new {
+                    canRegister = true,
+                    isFirstUser = false,
+                    message = "You have a valid invitation to register."
+                });
+            }
+
+            return Ok(new {
+                canRegister = false,
+                isFirstUser = false,
+                message = "You are not invited. Please contact with Authority."
             });
         }
     }

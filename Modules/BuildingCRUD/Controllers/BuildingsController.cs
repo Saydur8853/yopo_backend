@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using YopoBackend.Modules.BuildingCRUD.DTOs;
 using YopoBackend.Modules.BuildingCRUD.Services;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 
 namespace YopoBackend.Modules.BuildingCRUD.Controllers
 {
@@ -10,6 +13,8 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
+    [RequireModule(ModuleConstants.BUILDING_MODULE_ID)]
     public class BuildingsController : ControllerBase
     {
         private readonly IBuildingService _buildingService;

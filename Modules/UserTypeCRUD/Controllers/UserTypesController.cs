@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using YopoBackend.Modules.UserTypeCRUD.DTOs;
 using YopoBackend.Modules.UserTypeCRUD.Services;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 
 namespace YopoBackend.Modules.UserTypeCRUD.Controllers
 {
@@ -10,6 +13,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
+    [RequireModule(ModuleConstants.USER_TYPE_MODULE_ID)]
     public class UserTypesController : ControllerBase
     {
         private readonly IUserTypeService _userTypeService;
