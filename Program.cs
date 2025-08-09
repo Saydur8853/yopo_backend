@@ -1,12 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using YopoBackend.Data;
 using YopoBackend.Extensions;
 using YopoBackend.Modules.InvitationCRUD.Services;
 using YopoBackend.Modules.UserTypeCRUD.Services;
+using YopoBackend.Modules.UserCRUD.Services;
 using YopoBackend.Modules.BuildingCRUD.Services;
 using YopoBackend.Services;
 using YopoBackend.Constants;
+using YopoBackend.Middleware;
 using DotNetEnv;
 
 // Load environment variables from .env file
@@ -19,6 +24,7 @@ builder.Services.AddControllers();
 
 // Register core services
 builder.Services.AddScoped<IModuleService, ModuleService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
 
 // Register module services
 // Module: UserTypeCRUD (Module ID: 1 - defined in ModuleConstants.USER_TYPE_MODULE_ID)
@@ -26,6 +32,9 @@ builder.Services.AddScoped<IUserTypeService, UserTypeService>();
 
 // Module: InvitationCRUD (Module ID: 2 - defined in ModuleConstants.INVITATION_MODULE_ID)
 builder.Services.AddScoped<IInvitationService, InvitationService>();
+
+// Module: UserCRUD (Module ID: 3 - defined in ModuleConstants.USER_MODULE_ID)
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Module: BuildingCRUD (Module ID: 4)
 builder.Services.AddScoped<IBuildingService, BuildingService>();
@@ -37,6 +46,31 @@ var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRI
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
+// Configure JWT Authentication
+var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
+                  builder.Configuration["Jwt:SecretKey"] ?? 
+                  "YourDefaultSecretKeyThatShouldBeAtLeast32CharactersLong";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "YopoBackend";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "YopoBackend";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSecretKey)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -45,7 +79,32 @@ builder.Services.AddSwaggerGen(c =>
     { 
         Title = "Yopo Backend API", 
         Version = "v1",
-        Description = "Yopo Backend API with module management system"
+        Description = "Yopo Backend API with module management system and JWT authentication"
+    });
+    
+    // Add JWT Authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
     });
     
     // Order tags alphabetically with Modules first
@@ -68,7 +127,8 @@ static string GetControllerDisplayOrder(string? controllerName)
         "modules" => "01-Modules",
         "usertypes" => "02-UserTypes",
         "invitations" => "03-Invitations",
-        "buildings" => "04-Buildings",
+        "users" => "04-Users",
+        "buildings" => "05-Buildings",
         _ => $"99-{controllerName}"
     };
 }
@@ -105,6 +165,14 @@ app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+
+// Add rate limiting middleware (comment out for development if needed)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseMiddleware<RateLimitingMiddleware>();
+}
+
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

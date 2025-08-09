@@ -46,6 +46,26 @@ namespace YopoBackend.Constants
         public const string INVITATION_MODULE_VERSION = "1.0.0";
 
         /// <summary>
+        /// Module ID for the UserCRUD module.
+        /// </summary>
+        public const int USER_MODULE_ID = 3;
+
+        /// <summary>
+        /// Module name for the UserCRUD module.
+        /// </summary>
+        public const string USER_MODULE_NAME = "UserCRUD";
+
+        /// <summary>
+        /// Module description for the UserCRUD module.
+        /// </summary>
+        public const string USER_MODULE_DESCRIPTION = "Module for managing users with authentication and CRUD operations";
+
+        /// <summary>
+        /// Current version of the UserCRUD module.
+        /// </summary>
+        public const string USER_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
         /// Module ID for the BuildingCRUD module.
         /// </summary>
         public const int BUILDING_MODULE_ID = 4;
@@ -89,6 +109,17 @@ namespace YopoBackend.Constants
                     Name = INVITATION_MODULE_NAME,
                     Description = INVITATION_MODULE_DESCRIPTION,
                     Version = INVITATION_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                USER_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = USER_MODULE_ID,
+                    Name = USER_MODULE_NAME,
+                    Description = USER_MODULE_DESCRIPTION,
+                    Version = USER_MODULE_VERSION,
                     IsActive = true
                 }
             },
