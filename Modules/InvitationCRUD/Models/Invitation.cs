@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using YopoBackend.Modules.UserTypeCRUD.Models;
 
 namespace YopoBackend.Modules.InvitationCRUD.Models
 {
@@ -22,11 +23,10 @@ namespace YopoBackend.Modules.InvitationCRUD.Models
         public string EmailAddress { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the user roll for the invitation.
+        /// Gets or sets the user type ID for the invitation (foreign key to UserType).
         /// </summary>
         [Required]
-        [StringLength(50)]
-        public string UserRoll { get; set; } = string.Empty;
+        public int UserTypeId { get; set; }
 
         /// <summary>
         /// Gets or sets the date and time when the invitation expires.
@@ -53,5 +53,10 @@ namespace YopoBackend.Modules.InvitationCRUD.Models
         /// Gets the number of days until the invitation expires.
         /// </summary>
         public int DaysUntilExpiry => (int)(ExpiryTime - DateTime.UtcNow).TotalDays;
+
+        /// <summary>
+        /// Navigation property to the associated user type.
+        /// </summary>
+        public virtual UserType UserType { get; set; } = null!;
     }
 }

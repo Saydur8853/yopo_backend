@@ -79,5 +79,11 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         /// <param name="moduleIds">The list of module IDs to validate.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains true if all module IDs are valid, otherwise false.</returns>
         Task<bool> ValidateModuleIdsAsync(List<int> moduleIds);
+
+        /// <summary>
+        /// Initializes default user types (like Super Admin) in the database.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task InitializeDefaultUserTypesAsync();
     }
 }

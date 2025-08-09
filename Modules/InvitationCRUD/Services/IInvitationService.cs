@@ -68,5 +68,18 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         /// <param name="email">The email address to check.</param>
         /// <returns>A task that represents the asynchronous operation. The task result indicates whether the email already has an active invitation.</returns>
         Task<bool> EmailAlreadyInvitedAsync(string email);
+        
+        /// <summary>
+        /// Gets all available user types for invitation dropdown selection.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a collection of available user types.</returns>
+        Task<IEnumerable<UserTypeDropdownDTO>> GetAvailableUserTypesAsync();
+        
+        /// <summary>
+        /// Validates if a user type ID exists and is active.
+        /// </summary>
+        /// <param name="userTypeId">The user type ID to validate.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result indicates whether the user type ID is valid.</returns>
+        Task<bool> ValidateUserTypeIdAsync(int userTypeId);
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using YopoBackend.Data;
 
@@ -11,9 +12,11 @@ using YopoBackend.Data;
 namespace YopoBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250809045024_UpdateUserTypeIdConfiguration")]
+    partial class UpdateUserTypeIdConfiguration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -83,14 +86,14 @@ namespace YopoBackend.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime");
 
-                    b.Property<int>("UserTypeId")
-                        .HasColumnType("int");
+                    b.Property<string>("UserRoll")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("EmailAddress");
-
-                    b.HasIndex("UserTypeId");
 
                     b.ToTable("Invitations");
                 });
@@ -161,17 +164,6 @@ namespace YopoBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("UserTypeModulePermissions");
-                });
-
-            modelBuilder.Entity("YopoBackend.Modules.InvitationCRUD.Models.Invitation", b =>
-                {
-                    b.HasOne("YopoBackend.Modules.UserTypeCRUD.Models.UserType", "UserType")
-                        .WithMany()
-                        .HasForeignKey("UserTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("UserType");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UserTypeCRUD.Models.UserTypeModulePermission", b =>

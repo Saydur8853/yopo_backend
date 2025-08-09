@@ -89,6 +89,13 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
                 return Conflict($"Email {createDto.EmailAddress} already has an active invitation.");
             }
 
+            // Validate user type ID
+            var isValidUserType = await _invitationService.ValidateUserTypeIdAsync(createDto.UserTypeId);
+            if (!isValidUserType)
+            {
+                return BadRequest($"User type with ID {createDto.UserTypeId} is not valid or not active.");
+            }
+
             var invitation = await _invitationService.CreateInvitationAsync(createDto);
             
             return CreatedAtAction(
@@ -115,6 +122,16 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            // Validate user type ID if provided
+            if (updateDto.UserTypeId.HasValue)
+            {
+                var isValidUserType = await _invitationService.ValidateUserTypeIdAsync(updateDto.UserTypeId.Value);
+                if (!isValidUserType)
+                {
+                    return BadRequest($"User type with ID {updateDto.UserTypeId.Value} is not valid or not active.");
+                }
             }
 
             var invitation = await _invitationService.UpdateInvitationAsync(id, updateDto);
@@ -192,6 +209,19 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
 
             var exists = await _invitationService.EmailAlreadyInvitedAsync(email);
             return Ok(new { emailAlreadyInvited = exists });
+        }
+
+        /// <summary>
+        /// Get available user types for invitation dropdown
+        /// </summary>
+        /// <returns>List of available user types</returns>
+        /// <response code="200">Returns the list of available user types</response>
+        [HttpGet("user-types")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<UserTypeDropdownDTO>>> GetAvailableUserTypes()
+        {
+            var userTypes = await _invitationService.GetAvailableUserTypesAsync();
+            return Ok(userTypes);
         }
     }
 }

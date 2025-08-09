@@ -3,83 +3,1013 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yopo Backend API</title>
+    <title>Yopo Backend Admin Panel</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        * {
             margin: 0;
             padding: 0;
-            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .swagger-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .swagger-link:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-1px);
         }
         
         .container {
-            background: white;
-            padding: 3rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 500px;
-            width: 90%;
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
         }
         
-        h1 {
-            color: #333;
-            margin-bottom: 1rem;
-            font-weight: 600;
-        }
-        
-        p {
-            color: #666;
+        .module-tabs {
+            display: flex;
+            gap: 0;
             margin-bottom: 2rem;
-            line-height: 1.6;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
-        .swagger-button {
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            background: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .tab.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border: none;
-            padding: 1rem 2rem;
-            font-size: 1.1rem;
-            font-weight: 600;
+        }
+        
+        .tab:not(.active):hover {
+            background: #f8f9fa;
+        }
+        
+        .module-content {
+            display: none;
+            background: white;
             border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .module-content.active {
+            display: block;
+        }
+        
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f2f5;
+        }
+        
+        .module-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-weight: 600;
             text-decoration: none;
             display: inline-block;
+            transition: all 0.2s ease;
         }
         
-        .swagger-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
         
-        .swagger-button:active {
-            transform: translateY(0);
+        .btn-danger {
+            background: #dc3545;
+            color: white;
         }
         
-        .footer {
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .form-group {
+            flex: 1;
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+        
+        .table-container {
+            overflow-x: auto;
             margin-top: 2rem;
-            font-size: 0.9rem;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        .table th,
+        .table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
             color: #999;
+        }
+        
+        .close:hover {
+            color: #333;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .modules-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.75rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .module-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .module-checkbox:last-child {
+            border-bottom: none;
+        }
+        
+        .module-checkbox input[type="checkbox"] {
+            margin-right: 0.5rem;
+            transform: scale(1.1);
+        }
+        
+        .module-checkbox label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+            flex: 1;
+        }
+        
+        .module-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        
+        .module-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .module-description {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.25rem;
+            }
+            
+            .module-tabs {
+                flex-direction: column;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>🚀 Yopo Backend Admin Panel</h1>
+        <a href="/swagger/index.html" class="swagger-link">📚 API Documentation</a>
+    </div>
+    
     <div class="container">
-        <h1>🚀 Yopo Backend API</h1>
-        <p>Welcome to the Yopo Backend API. This is a modular backend system with comprehensive API documentation.</p>
+        <div class="module-tabs">
+            <button class="tab active" onclick="showModule('invitations')">📧 Invitations</button>
+            <button class="tab" onclick="showModule('usertypes')">👥 User Types</button>
+        </div>
         
-        <a href="/swagger/index.html" class="swagger-button">
-            📚 View API Documentation
-        </a>
+        <!-- Invitations Module -->
+        <div id="invitations" class="module-content active">
+            <div class="module-header">
+                <h2 class="module-title">Invitation Management</h2>
+                <button class="btn btn-primary" onclick="showAddInvitationModal()">+ Add Invitation</button>
+            </div>
+            
+            <div class="stats" id="invitation-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-invitations">-</div>
+                    <div class="stat-label">Total Invitations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="active-invitations">-</div>
+                    <div class="stat-label">Active Invitations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="expired-invitations">-</div>
+                    <div class="stat-label">Expired Invitations</div>
+                </div>
+            </div>
+            
+            <div id="invitation-messages"></div>
+            
+            <div class="table-container">
+                <table class="table" id="invitations-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Email</th>
+                            <th>User Role</th>
+                            <th>Status</th>
+                            <th>Expires</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invitations-tbody">
+                        <tr>
+                            <td colspan="7" class="loading">Loading invitations...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
         
-        <div class="footer">
-            <p>Click the button above to access the interactive API documentation powered by Swagger UI.</p>
+        <!-- User Types Module -->
+        <div id="usertypes" class="module-content">
+            <div class="module-header">
+                <h2 class="module-title">User Type Management</h2>
+                <button class="btn btn-primary" onclick="showAddUserTypeModal()">+ Add User Type</button>
+            </div>
+            
+            <div class="stats" id="usertype-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-usertypes">-</div>
+                    <div class="stat-label">Total User Types</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="active-usertypes">-</div>
+                    <div class="stat-label">Active User Types</div>
+                </div>
+            </div>
+            
+            <div id="usertype-messages"></div>
+            
+            <div class="table-container">
+                <table class="table" id="usertypes-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Modules</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usertypes-tbody">
+                        <tr>
+                            <td colspan="7" class="loading">Loading user types...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+    
+    <!-- Add/Edit Invitation Modal -->
+    <div id="invitation-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="invitation-modal-title">Add Invitation</h3>
+                <button class="close" onclick="closeModal('invitation-modal')">&times;</button>
+            </div>
+            <form id="invitation-form">
+                <div class="form-group">
+                    <label for="invitation-email">Email Address</label>
+                    <input type="email" id="invitation-email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="invitation-role">User Role</label>
+                    <select id="invitation-role" class="form-control" required>
+                        <option value="">Loading user types...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="invitation-days">Expiry Days (1-7)</label>
+                    <input type="number" id="invitation-days" class="form-control" min="1" max="7" value="7" required>
+                </div>
+                <div class="form-row">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('invitation-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="invitation-submit-btn">Add Invitation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add/Edit User Type Modal -->
+    <div id="usertype-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="usertype-modal-title">Add User Type</h3>
+                <button class="close" onclick="closeModal('usertype-modal')">&times;</button>
+            </div>
+            <form id="usertype-form">
+                <div class="form-group">
+                    <label for="usertype-name">Name</label>
+                    <input type="text" id="usertype-name" class="form-control" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label for="usertype-description">Description</label>
+                    <textarea id="usertype-description" class="form-control" rows="3" maxlength="500"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Module Access</label>
+                    <div id="usertype-modules-container" class="modules-container">
+                        <div class="loading">Loading modules...</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('usertype-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="usertype-submit-btn">Add User Type</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // API Base URL
+        const API_BASE = '/api';
+        
+        // Global variables
+        let currentEditingInvitation = null;
+        let currentEditingUserType = null;
+        let availableModules = [];
+        let availableUserTypes = [];
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAvailableModules();
+            loadAvailableUserTypes();
+            loadInvitations();
+            loadUserTypes();
+            
+            // Set up form handlers
+            document.getElementById('invitation-form').addEventListener('submit', handleInvitationSubmit);
+            document.getElementById('usertype-form').addEventListener('submit', handleUserTypeSubmit);
+        });
+        
+        // Module switching
+        function showModule(moduleId) {
+            // Update tabs
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.module-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(moduleId).classList.add('active');
+            
+            // Reload data
+            if (moduleId === 'invitations') {
+                loadInvitations();
+            } else if (moduleId === 'usertypes') {
+                loadUserTypes();
+            }
+        }
+        
+        // Utility functions
+        function showMessage(containerId, message, type = 'error') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => container.innerHTML = '', 5000);
+        }
+        
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString() + ' ' + new Date(dateString).toLocaleTimeString();
+        }
+        
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            // Reset form
+            const form = document.querySelector(`#${modalId} form`);
+            if (form) form.reset();
+            
+            // Reset global editing variables
+            currentEditingInvitation = null;
+            currentEditingUserType = null;
+        }
+        
+        // INVITATION FUNCTIONS
+        async function loadInvitations() {
+            try {
+                const response = await fetch(`${API_BASE}/invitations`);
+                if (!response.ok) throw new Error('Failed to fetch invitations');
+                
+                const invitations = await response.json();
+                displayInvitations(invitations);
+                updateInvitationStats(invitations);
+            } catch (error) {
+                showMessage('invitation-messages', `Error loading invitations: ${error.message}`);
+                document.getElementById('invitations-tbody').innerHTML = 
+                    '<tr><td colspan="7" class="error">Failed to load invitations</td></tr>';
+            }
+        }
+        
+        function displayInvitations(invitations) {
+            const tbody = document.getElementById('invitations-tbody');
+            
+            if (invitations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666;">No invitations found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = invitations.map(invitation => `
+                <tr>
+                    <td>${invitation.id}</td>
+                    <td>${invitation.emailAddress}</td>
+                    <td>${invitation.userTypeName}</td>
+                    <td><span class="badge ${invitation.isExpired ? 'badge-danger' : 'badge-success'}">
+                        ${invitation.isExpired ? 'Expired' : 'Active'}
+                    </span></td>
+                    <td>${formatDate(invitation.expiryTime)}</td>
+                    <td>${formatDate(invitation.createdAt)}</td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.5rem; font-size: 0.875rem;" 
+                                onclick="editInvitation(${invitation.id})">Edit</button>
+                        <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" 
+                                onclick="deleteInvitation(${invitation.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function updateInvitationStats(invitations) {
+            const total = invitations.length;
+            const active = invitations.filter(i => !i.isExpired).length;
+            const expired = invitations.filter(i => i.isExpired).length;
+            
+            document.getElementById('total-invitations').textContent = total;
+            document.getElementById('active-invitations').textContent = active;
+            document.getElementById('expired-invitations').textContent = expired;
+        }
+        
+        function showAddInvitationModal() {
+            currentEditingInvitation = null;
+            document.getElementById('invitation-modal-title').textContent = 'Add Invitation';
+            document.getElementById('invitation-submit-btn').textContent = 'Add Invitation';
+            openModal('invitation-modal');
+        }
+        
+        async function editInvitation(id) {
+            try {
+                const response = await fetch(`${API_BASE}/invitations/${id}`);
+                if (!response.ok) throw new Error('Failed to fetch invitation');
+                
+                const invitation = await response.json();
+                currentEditingInvitation = invitation;
+                
+                document.getElementById('invitation-modal-title').textContent = 'Edit Invitation';
+                document.getElementById('invitation-submit-btn').textContent = 'Update Invitation';
+                document.getElementById('invitation-email').value = invitation.emailAddress;
+                document.getElementById('invitation-role').value = invitation.userTypeId;
+                document.getElementById('invitation-days').value = invitation.daysUntilExpiry || 7;
+                
+                openModal('invitation-modal');
+            } catch (error) {
+                showMessage('invitation-messages', `Error loading invitation: ${error.message}`);
+            }
+        }
+        
+        async function deleteInvitation(id) {
+            if (!confirm('Are you sure you want to delete this invitation?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/invitations/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) throw new Error('Failed to delete invitation');
+                
+                showMessage('invitation-messages', 'Invitation deleted successfully!', 'success');
+                loadInvitations();
+            } catch (error) {
+                showMessage('invitation-messages', `Error deleting invitation: ${error.message}`);
+            }
+        }
+        
+        async function handleInvitationSubmit(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('invitation-email').value;
+            const role = document.getElementById('invitation-role').value;
+            const days = parseInt(document.getElementById('invitation-days').value);
+            
+            const data = {
+                emailAddress: email,
+                userTypeId: parseInt(role),
+                expiryDays: days
+            };
+            
+            try {
+                let response;
+                if (currentEditingInvitation) {
+                    // Update
+                    response = await fetch(`${API_BASE}/invitations/${currentEditingInvitation.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    // Create
+                    response = await fetch(`${API_BASE}/invitations`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                }
+                
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(errorData);
+                }
+                
+                const action = currentEditingInvitation ? 'updated' : 'created';
+                showMessage('invitation-messages', `Invitation ${action} successfully!`, 'success');
+                closeModal('invitation-modal');
+                loadInvitations();
+            } catch (error) {
+                showMessage('invitation-messages', `Error: ${error.message}`);
+            }
+        }
+        
+        // USER TYPE FUNCTIONS
+        async function loadUserTypes() {
+            try {
+                const response = await fetch(`${API_BASE}/usertypes`);
+                if (!response.ok) throw new Error('Failed to fetch user types');
+                
+                const userTypes = await response.json();
+                displayUserTypes(userTypes);
+                updateUserTypeStats(userTypes);
+            } catch (error) {
+                showMessage('usertype-messages', `Error loading user types: ${error.message}`);
+                document.getElementById('usertypes-tbody').innerHTML = 
+                    '<tr><td colspan="7" class="error">Failed to load user types</td></tr>';
+            }
+        }
+        
+        function displayUserTypes(userTypes) {
+            const tbody = document.getElementById('usertypes-tbody');
+            
+            if (userTypes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666;">No user types found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = userTypes.map(userType => `
+                <tr>
+                    <td>${userType.id}</td>
+                    <td>${userType.name}</td>
+                    <td>${userType.description || '-'}</td>
+                    <td><span class="badge ${userType.isActive ? 'badge-success' : 'badge-danger'}">
+                        ${userType.isActive ? 'Active' : 'Inactive'}
+                    </span></td>
+                    <td>${userType.moduleNames ? userType.moduleNames.join(', ') : '-'}</td>
+                    <td>${formatDate(userType.createdAt)}</td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.5rem; font-size: 0.875rem;" 
+                                onclick="editUserType(${userType.id})">Edit</button>
+                        <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" 
+                                onclick="deleteUserType(${userType.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function updateUserTypeStats(userTypes) {
+            const total = userTypes.length;
+            const active = userTypes.filter(ut => ut.isActive).length;
+            
+            document.getElementById('total-usertypes').textContent = total;
+            document.getElementById('active-usertypes').textContent = active;
+        }
+        
+        function showAddUserTypeModal() {
+            currentEditingUserType = null;
+            document.getElementById('usertype-modal-title').textContent = 'Add User Type';
+            document.getElementById('usertype-submit-btn').textContent = 'Add User Type';
+            openModal('usertype-modal');
+        }
+        
+        async function editUserType(id) {
+            try {
+                const response = await fetch(`${API_BASE}/usertypes/${id}`);
+                if (!response.ok) throw new Error('Failed to fetch user type');
+                
+                const userType = await response.json();
+                currentEditingUserType = userType;
+                
+                document.getElementById('usertype-modal-title').textContent = 'Edit User Type';
+                document.getElementById('usertype-submit-btn').textContent = 'Update User Type';
+                document.getElementById('usertype-name').value = userType.name;
+                document.getElementById('usertype-description').value = userType.description || '';
+                
+                // Set selected modules using checkboxes
+                setSelectedModules(userType.moduleIds || []);
+                
+                openModal('usertype-modal');
+            } catch (error) {
+                showMessage('usertype-messages', `Error loading user type: ${error.message}`);
+            }
+        }
+        
+        async function deleteUserType(id) {
+            if (!confirm('Are you sure you want to delete this user type?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/usertypes/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) throw new Error('Failed to delete user type');
+                
+                showMessage('usertype-messages', 'User type deleted successfully!', 'success');
+                loadUserTypes();
+            } catch (error) {
+                showMessage('usertype-messages', `Error deleting user type: ${error.message}`);
+            }
+        }
+        
+        async function handleUserTypeSubmit(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('usertype-name').value;
+            const description = document.getElementById('usertype-description').value;
+            const modulesInput = document.getElementById('usertype-modules').value;
+            
+            const moduleIds = modulesInput ? 
+                modulesInput.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)) : [];
+            
+            const data = {
+                name: name,
+                description: description,
+                moduleIds: moduleIds
+            };
+            
+            if (currentEditingUserType) {
+                data.isActive = currentEditingUserType.isActive;
+            }
+            
+            try {
+                let response;
+                if (currentEditingUserType) {
+                    // Update
+                    response = await fetch(`${API_BASE}/usertypes/${currentEditingUserType.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    // Create
+                    response = await fetch(`${API_BASE}/usertypes`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                }
+                
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(errorData);
+                }
+                
+                const action = currentEditingUserType ? 'updated' : 'created';
+                showMessage('usertype-messages', `User type ${action} successfully!`, 'success');
+                closeModal('usertype-modal');
+                loadUserTypes();
+            } catch (error) {
+                showMessage('usertype-messages', `Error: ${error.message}`);
+            }
+        }
+        
+        // MODULE FUNCTIONS
+        async function loadAvailableModules() {
+            try {
+                const response = await fetch(`${API_BASE}/modules`);
+                if (!response.ok) throw new Error('Failed to fetch modules');
+                
+                const moduleData = await response.json();
+                availableModules = moduleData.modules || [];
+                renderModuleCheckboxes();
+            } catch (error) {
+                console.error('Error loading modules:', error);
+                document.getElementById('usertype-modules-container').innerHTML = 
+                    '<div class="error">Failed to load modules</div>';
+            }
+        }
+        
+        function renderModuleCheckboxes() {
+            const container = document.getElementById('usertype-modules-container');
+            
+            if (availableModules.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">No modules available</div>';
+                return;
+            }
+            
+            container.innerHTML = availableModules.map(module => `
+                <div class="module-checkbox">
+                    <input type="checkbox" id="module-${module.id}" value="${module.id}">
+                    <label for="module-${module.id}" class="module-info">
+                        <div class="module-name">${module.name} (ID: ${module.id})</div>
+                        ${module.description ? `<div class="module-description">${module.description}</div>` : ''}
+                    </label>
+                </div>
+            `).join('');
+        }
+        
+        function setSelectedModules(moduleIds) {
+            // Clear all checkboxes first
+            availableModules.forEach(module => {
+                const checkbox = document.getElementById(`module-${module.id}`);
+                if (checkbox) checkbox.checked = false;
+            });
+            
+            // Set selected modules
+            if (moduleIds && moduleIds.length > 0) {
+                moduleIds.forEach(id => {
+                    const checkbox = document.getElementById(`module-${id}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+        }
+        
+        function getSelectedModuleIds() {
+            const selectedIds = [];
+            availableModules.forEach(module => {
+                const checkbox = document.getElementById(`module-${module.id}`);
+                if (checkbox && checkbox.checked) {
+                    selectedIds.push(module.id);
+                }
+            });
+            return selectedIds;
+        }
+        
+        // USER TYPE DROPDOWN FUNCTIONS
+        async function loadAvailableUserTypes() {
+            try {
+                const response = await fetch(`${API_BASE}/invitations/user-types`);
+                if (!response.ok) throw new Error('Failed to fetch user types for invitation dropdown');
+                
+                const userTypes = await response.json();
+                availableUserTypes = userTypes || [];
+                renderUserTypeDropdown();
+            } catch (error) {
+                console.error('Error loading user types for dropdown:', error);
+                const dropdown = document.getElementById('invitation-role');
+                dropdown.innerHTML = '<option value="">Error loading user types</option>';
+            }
+        }
+        
+        function renderUserTypeDropdown() {
+            const dropdown = document.getElementById('invitation-role');
+            
+            if (availableUserTypes.length === 0) {
+                dropdown.innerHTML = '<option value="">No user types available</option>';
+                return;
+            }
+            
+            dropdown.innerHTML = `
+                <option value="">Select a user type...</option>
+                ${availableUserTypes.map(userType => 
+                    `<option value="${userType.id}">${userType.name}${userType.description ? ' - ' + userType.description : ''}</option>`
+                ).join('')}
+            `;
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
 </body>
 </html>

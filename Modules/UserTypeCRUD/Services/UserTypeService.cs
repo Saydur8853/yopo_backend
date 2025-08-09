@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using YopoBackend.Constants;
 using YopoBackend.Data;
 using YopoBackend.Modules.UserTypeCRUD.DTOs;
 using YopoBackend.Modules.UserTypeCRUD.Models;
@@ -206,6 +207,114 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 .ToListAsync();
 
             return existingModuleIds.Count == moduleIds.Count;
+        }
+
+        /// <inheritdoc/>
+        public async Task InitializeDefaultUserTypesAsync()
+        {
+            foreach (var userTypeInfo in UserTypeConstants.DefaultUserTypes)
+            {
+                var existingUserType = await _context.UserTypes
+                    .FirstOrDefaultAsync(ut => ut.Id == userTypeInfo.Key);
+
+                if (existingUserType == null)
+                {
+                    // Create new default user type
+                    var newUserType = new UserType
+                    {
+                        Id = userTypeInfo.Value.Id,
+                        Name = userTypeInfo.Value.Name,
+                        Description = userTypeInfo.Value.Description,
+                        IsActive = userTypeInfo.Value.IsActive,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.UserTypes.Add(newUserType);
+                    await _context.SaveChangesAsync();
+
+                    // If this user type should have access to all modules, grant it
+                    if (userTypeInfo.Value.HasAllModuleAccess)
+                    {
+                        await GrantAllModuleAccessAsync(userTypeInfo.Value.Id);
+                    }
+                }
+                else
+                {
+                    // Update existing default user type if needed
+                    var hasChanges = false;
+
+                    if (existingUserType.Name != userTypeInfo.Value.Name)
+                    {
+                        existingUserType.Name = userTypeInfo.Value.Name;
+                        hasChanges = true;
+                    }
+
+                    if (existingUserType.Description != userTypeInfo.Value.Description)
+                    {
+                        existingUserType.Description = userTypeInfo.Value.Description;
+                        hasChanges = true;
+                    }
+
+                    if (existingUserType.IsActive != userTypeInfo.Value.IsActive)
+                    {
+                        existingUserType.IsActive = userTypeInfo.Value.IsActive;
+                        hasChanges = true;
+                    }
+
+                    if (hasChanges)
+                    {
+                        existingUserType.UpdatedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // Ensure the user type has access to all modules if required
+                    if (userTypeInfo.Value.HasAllModuleAccess)
+                    {
+                        await GrantAllModuleAccessAsync(userTypeInfo.Value.Id);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Grants access to all active modules for a specific user type.
+        /// </summary>
+        /// <param name="userTypeId">The ID of the user type.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task GrantAllModuleAccessAsync(int userTypeId)
+        {
+            // Get all active module IDs
+            var allActiveModuleIds = await _context.Modules
+                .Where(m => m.IsActive)
+                .Select(m => m.Id)
+                .ToListAsync();
+
+            if (allActiveModuleIds.Any())
+            {
+                // Get existing permissions for this user type
+                var existingPermissions = await _context.UserTypeModulePermissions
+                    .Where(p => p.UserTypeId == userTypeId)
+                    .Select(p => p.ModuleId)
+                    .ToListAsync();
+
+                // Find missing permissions
+                var missingModuleIds = allActiveModuleIds.Except(existingPermissions).ToList();
+
+                if (missingModuleIds.Any())
+                {
+                    // Add missing permissions
+                    var newPermissions = missingModuleIds.Select(moduleId => new UserTypeModulePermission
+                    {
+                        UserTypeId = userTypeId,
+                        ModuleId = moduleId,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    });
+
+                    _context.UserTypeModulePermissions.AddRange(newPermissions);
+                    await _context.SaveChangesAsync();
+                }
+            }
         }
 
         /// <summary>

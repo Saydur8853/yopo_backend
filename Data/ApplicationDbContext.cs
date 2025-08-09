@@ -68,6 +68,7 @@ namespace YopoBackend.Data
             modelBuilder.Entity<UserType>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd(); // Allow both auto-generated and manual IDs
                 entity.HasIndex(e => e.Name).IsUnique();
                 entity.Property(e => e.CreatedAt)
                     .HasColumnType("datetime")
@@ -114,7 +115,12 @@ namespace YopoBackend.Data
                 entity.Property(e => e.UpdatedAt)
                     .HasColumnType("datetime");
                 entity.Property(e => e.EmailAddress).HasMaxLength(255);
-                entity.Property(e => e.UserRoll).HasMaxLength(50);
+                
+                // Configure foreign key relationship with UserType
+                entity.HasOne(e => e.UserType)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserTypeId)
+                    .OnDelete(DeleteBehavior.Restrict); // Prevent deleting UserType if it has invitations
             });
         }
     }

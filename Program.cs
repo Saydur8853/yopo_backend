@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using YopoBackend.Data;
+using YopoBackend.Extensions;
 using YopoBackend.Modules.InvitationCRUD.Services;
 using YopoBackend.Modules.UserTypeCRUD.Services;
 using YopoBackend.Services;
@@ -102,11 +103,10 @@ app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 
-// Ensure database is created and modules are initialized
+// Ensure database is created and initialize default data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var moduleService = scope.ServiceProvider.GetRequiredService<IModuleService>();
     
     try
     {
@@ -119,17 +119,17 @@ using (var scope = app.Services.CreateScope())
         
         context.Database.EnsureCreated();
         Console.WriteLine("Database connection established successfully!");
-        
-        // Initialize modules from constants
-        await moduleService.InitializeModulesAsync();
-        Console.WriteLine($"Modules initialized! UserTypeCRUD Module ID: {ModuleConstants.USER_TYPE_MODULE_ID}, InvitationCRUD Module ID: {ModuleConstants.INVITATION_MODULE_ID}");
-        
         Console.WriteLine("Available tables: Modules, UserTypes, UserTypeModulePermissions, Invitations");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"Database connection failed: {ex.Message}");
+        throw;
     }
 }
+
+// 🚀 AUTOMATIC INITIALIZATION: This ensures Super Admin always has ALL module access!
+// Every time you add new modules, Super Admin will automatically get access
+await app.TryInitializeDefaultDataAsync();
 
 app.Run();

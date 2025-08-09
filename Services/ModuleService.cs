@@ -3,6 +3,7 @@ using YopoBackend.Constants;
 using YopoBackend.Data;
 using YopoBackend.DTOs;
 using YopoBackend.Models;
+using YopoBackend.Modules.UserTypeCRUD.Models;
 
 namespace YopoBackend.Services
 {
@@ -149,6 +150,63 @@ namespace YopoBackend.Services
             }
 
             await _context.SaveChangesAsync();
+            
+            // Automatically grant Super Admin access to all new/updated active modules
+            await EnsureSuperAdminHasAllModuleAccessAsync();
+        }
+
+        /// <summary>
+        /// Ensures that Super Admin user type has access to all active modules.
+        /// This is called automatically whenever modules are initialized.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task EnsureSuperAdminHasAllModuleAccessAsync()
+        {
+            // Check if Super Admin user type exists
+            var superAdminExists = await _context.UserTypes
+                .AnyAsync(ut => ut.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID);
+
+            if (!superAdminExists)
+            {
+                // Super Admin doesn't exist yet, skip this step
+                // It will get permissions when it's created
+                return;
+            }
+
+            // Get all active module IDs
+            var allActiveModuleIds = await _context.Modules
+                .Where(m => m.IsActive)
+                .Select(m => m.Id)
+                .ToListAsync();
+
+            if (!allActiveModuleIds.Any())
+            {
+                return; // No active modules to assign
+            }
+
+            // Get existing Super Admin permissions
+            var existingPermissions = await _context.UserTypeModulePermissions
+                .Where(p => p.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
+                .Select(p => p.ModuleId)
+                .ToListAsync();
+
+            // Find missing permissions
+            var missingModuleIds = allActiveModuleIds.Except(existingPermissions).ToList();
+
+            if (missingModuleIds.Any())
+            {
+                // Add missing permissions for Super Admin
+                var newPermissions = missingModuleIds.Select(moduleId => new UserTypeModulePermission
+                {
+                    UserTypeId = UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID,
+                    ModuleId = moduleId,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                _context.UserTypeModulePermissions.AddRange(newPermissions);
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }

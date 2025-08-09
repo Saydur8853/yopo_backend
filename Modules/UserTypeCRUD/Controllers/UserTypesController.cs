@@ -272,5 +272,24 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Initializes default user types (like Super Admin) in the database.
+        /// This is typically called during application startup.
+        /// </summary>
+        /// <returns>A confirmation of initialization.</returns>
+        [HttpPost("initialize-defaults")]
+        public async Task<ActionResult> InitializeDefaultUserTypes()
+        {
+            try
+            {
+                await _userTypeService.InitializeDefaultUserTypesAsync();
+                return Ok(new { message = "Default user types initialized successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
 }
