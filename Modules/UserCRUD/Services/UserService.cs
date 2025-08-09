@@ -4,6 +4,7 @@ using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
 using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Services;
+using YopoBackend.Constants;
 
 namespace YopoBackend.Modules.UserCRUD.Services
 {
@@ -105,11 +106,12 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     return null; // Email already registered
                 }
 
-                // Check if user type exists
-                var userType = await _context.UserTypes.FindAsync(registerRequest.UserTypeId);
+                // Use default Super Admin user type for registration
+                var defaultUserTypeId = UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+                var userType = await _context.UserTypes.FindAsync(defaultUserTypeId);
                 if (userType == null || !userType.IsActive)
                 {
-                    return null; // Invalid user type
+                    return null; // Default user type not found or inactive
                 }
 
                 // Hash password
@@ -123,7 +125,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     FirstName = registerRequest.FirstName,
                     LastName = registerRequest.LastName,
                     PhoneNumber = registerRequest.PhoneNumber,
-                    UserTypeId = registerRequest.UserTypeId,
+                    UserTypeId = defaultUserTypeId,
                     IsActive = true,
                     IsEmailVerified = false,
                     CreatedAt = DateTime.UtcNow

@@ -84,7 +84,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
 
             if (result == null)
             {
-                return BadRequest(new { message = "Registration failed. Email may already be registered or user type is invalid." });
+                return BadRequest(new { message = "Registration failed. Email may already be registered." });
             }
 
             return Ok(result);

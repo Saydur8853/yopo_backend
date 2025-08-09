@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yopo - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .user-details h3 {
+            font-size: 1rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .user-details p {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .welcome-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .welcome-card h2 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .welcome-card p {
+            font-size: 1.1rem;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem;
+            color: white;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-description {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .quick-actions {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .quick-actions h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .recent-activity {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .recent-activity h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        .activity-item {
+            padding: 1rem;
+            border-left: 3px solid #667eea;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .activity-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .activity-time {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .activity-text {
+            color: #333;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .user-info {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Yopo Dashboard</h1>
+        <div class="user-info">
+            <div class="user-avatar" id="user-avatar">U</div>
+            <div class="user-details">
+                <h3 id="user-name">Loading...</h3>
+                <p id="user-type">Loading...</p>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-container"></div>
+
+        <div class="welcome-card">
+            <h2>Welcome to your Dashboard!</h2>
+            <p>Here you can view your account information, manage your profile, and access all available features based on your user role.</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👤</div>
+                <div class="stat-number" id="account-status">Active</div>
+                <div class="stat-label">Account Status</div>
+                <div class="stat-description">Your account is currently active</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📧</div>
+                <div class="stat-number" id="email-status">Verified</div>
+                <div class="stat-label">Email Status</div>
+                <div class="stat-description">Email verification status</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">🏢</div>
+                <div class="stat-number" id="user-role">Member</div>
+                <div class="stat-label">User Role</div>
+                <div class="stat-description">Your current role in the system</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-number" id="member-since">Recently</div>
+                <div class="stat-label">Member Since</div>
+                <div class="stat-description">When you joined the platform</div>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <h3>Quick Actions</h3>
+            <div class="actions-grid">
+                <button class="action-btn" onclick="viewProfile()">
+                    👤 View Profile
+                </button>
+                <button class="action-btn" onclick="changePassword()">
+                    🔒 Change Password
+                </button>
+                <a href="/swagger/index.html" class="action-btn">
+                    📚 API Documentation
+                </a>
+                <a href="/" class="action-btn">
+                    ⚙️ Admin Panel
+                </a>
+            </div>
+        </div>
+
+        <div class="recent-activity">
+            <h3>Recent Activity</h3>
+            <div id="activity-container">
+                <div class="loading-spinner"></div> Loading recent activity...
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="background: white; margin: 5% auto; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px;">
+            <h3 style="margin-bottom: 1rem;">User Profile</h3>
+            <div id="profile-content">Loading...</div>
+            <button onclick="closeModal('profile-modal')" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="password-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="background: white; margin: 5% auto; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px;">
+            <h3 style="margin-bottom: 1rem;">Change Password</h3>
+            <form id="change-password-form">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Current Password:</label>
+                    <input type="password" id="current-password" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" required>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">New Password:</label>
+                    <input type="password" id="new-password" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" required>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" style="padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Update Password</button>
+                    <button type="button" onclick="closeModal('password-modal')" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE = '/api';
+        
+        // Global state
+        let userData = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            if (!isAuthenticated()) {
+                window.location.href = '/auth.html';
+                return;
+            }
+            
+            loadUserData();
+            loadRecentActivity();
+            
+            // Setup change password form
+            document.getElementById('change-password-form').addEventListener('submit', handlePasswordChange);
+        });
+
+        // Authentication check
+        function isAuthenticated() {
+            const token = localStorage.getItem('authToken');
+            const expiry = localStorage.getItem('tokenExpiry');
+            
+            if (!token || !expiry) return false;
+            
+            return new Date() < new Date(expiry);
+        }
+
+        // Load user data
+        function loadUserData() {
+            try {
+                const storedUserData = localStorage.getItem('userData');
+                if (storedUserData) {
+                    userData = JSON.parse(storedUserData);
+                    displayUserInfo(userData);
+                } else {
+                    // Fallback: fetch from API
+                    fetchCurrentUser();
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showError('Failed to load user information');
+            }
+        }
+
+        // Display user information
+        function displayUserInfo(user) {
+            // Header
+            document.getElementById('user-name').textContent = user.fullName || `${user.firstName} ${user.lastName}`;
+            document.getElementById('user-type').textContent = user.userTypeName || 'Member';
+            
+            // Avatar with first letter of first name
+            const avatar = document.getElementById('user-avatar');
+            avatar.textContent = user.firstName ? user.firstName.charAt(0).toUpperCase() : 'U';
+            
+            // Stats cards
+            document.getElementById('account-status').textContent = user.isActive ? 'Active' : 'Inactive';
+            document.getElementById('email-status').textContent = user.isEmailVerified ? 'Verified' : 'Unverified';
+            document.getElementById('user-role').textContent = user.userTypeName || 'Member';
+            
+            // Member since
+            const memberSince = new Date(user.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short'
+            });
+            document.getElementById('member-since').textContent = memberSince;
+        }
+
+        // Fetch current user from API
+        async function fetchCurrentUser() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        logout();
+                        return;
+                    }
+                    throw new Error('Failed to fetch user data');
+                }
+                
+                const user = await response.json();
+                userData = user;
+                localStorage.setItem('userData', JSON.stringify(user));
+                displayUserInfo(user);
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                showError('Failed to load user information');
+            }
+        }
+
+        // Load recent activity
+        function loadRecentActivity() {
+            const container = document.getElementById('activity-container');
+            
+            // Simulate some recent activity (in a real app, this would come from an API)
+            setTimeout(() => {
+                container.innerHTML = `
+                    <div class="activity-item">
+                        <div class="activity-time">Just now</div>
+                        <div class="activity-text">Successfully logged into your account</div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-time">Earlier today</div>
+                        <div class="activity-text">Profile information was updated</div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-time">Yesterday</div>
+                        <div class="activity-text">Account security settings reviewed</div>
+                    </div>
+                `;
+            }, 1500);
+        }
+
+        // Modal functions
+        function viewProfile() {
+            if (userData) {
+                const content = `
+                    <div style="line-height: 1.8;">
+                        <p><strong>Name:</strong> ${userData.fullName || `${userData.firstName} ${userData.lastName}`}</p>
+                        <p><strong>Email:</strong> ${userData.emailAddress}</p>
+                        <p><strong>Phone:</strong> ${userData.phoneNumber || 'Not provided'}</p>
+                        <p><strong>User Type:</strong> ${userData.userTypeName}</p>
+                        <p><strong>Status:</strong> ${userData.isActive ? 'Active' : 'Inactive'}</p>
+                        <p><strong>Email Verified:</strong> ${userData.isEmailVerified ? 'Yes' : 'No'}</p>
+                        <p><strong>Member Since:</strong> ${new Date(userData.createdAt).toLocaleDateString()}</p>
+                        ${userData.lastLoginAt ? `<p><strong>Last Login:</strong> ${new Date(userData.lastLoginAt).toLocaleDateString()}</p>` : ''}
+                    </div>
+                `;
+                document.getElementById('profile-content').innerHTML = content;
+            }
+            document.getElementById('profile-modal').style.display = 'block';
+        }
+
+        function changePassword() {
+            document.getElementById('password-modal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            if (modalId === 'password-modal') {
+                document.getElementById('change-password-form').reset();
+            }
+        }
+
+        // Handle password change
+        async function handlePasswordChange(e) {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            
+            if (!currentPassword || !newPassword) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/users/change-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to change password');
+                }
+                
+                alert('Password changed successfully!');
+                closeModal('password-modal');
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Utility functions
+        function showError(message) {
+            const container = document.getElementById('error-container');
+            container.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        function logout() {
+            // Call logout API
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                fetch(`${API_BASE}/users/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).catch(() => {
+                    // Ignore errors during logout
+                });
+            }
+            
+            // Clear local storage
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('tokenExpiry');
+            localStorage.removeItem('userData');
+            
+            // Redirect to auth page
+            window.location.href = '/auth.html';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('[id$="-modal"]');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

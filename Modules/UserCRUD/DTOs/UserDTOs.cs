@@ -48,12 +48,6 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
         public string? PhoneNumber { get; set; }
 
-        /// <summary>
-        /// Gets or sets the user type ID that determines the user's role and permissions.
-        /// </summary>
-        [Required(ErrorMessage = "User type is required")]
-        [Range(1, int.MaxValue, ErrorMessage = "User type ID must be a positive number")]
-        public int UserTypeId { get; set; }
     }
 
 
