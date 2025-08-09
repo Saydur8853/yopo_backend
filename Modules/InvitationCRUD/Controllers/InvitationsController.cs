@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using YopoBackend.Attributes;
 using YopoBackend.Modules.InvitationCRUD.DTOs;
 using YopoBackend.Modules.InvitationCRUD.Services;
 using YopoBackend.Constants;
+using System.Security.Claims;
 
 namespace YopoBackend.Modules.InvitationCRUD.Controllers
 {
@@ -13,6 +16,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
     [Route("api/invitations")]
     [Produces("application/json")]
     [Tags("02-Invitations")]
+    [Authorize]
+    [RequireModule(ModuleConstants.INVITATION_MODULE_ID)]
     public class InvitationsController : ControllerBase
     {
         private readonly IInvitationService _invitationService;
@@ -30,6 +35,20 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         }
 
         /// <summary>
+        /// Gets the current user ID from the JWT token claims.
+        /// </summary>
+        /// <returns>The current user's ID</returns>
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out int userId))
+            {
+                return userId;
+            }
+            throw new UnauthorizedAccessException("Invalid user ID in token");
+        }
+
+        /// <summary>
         /// Get all invitations
         /// </summary>
         /// <returns>List of all invitations</returns>
@@ -38,7 +57,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<InvitationResponseDTO>>> GetAllInvitations()
         {
-            var invitations = await _invitationService.GetAllInvitationsAsync();
+            var currentUserId = GetCurrentUserId();
+            var invitations = await _invitationService.GetAllInvitationsAsync(currentUserId);
             return Ok(invitations);
         }
 
@@ -54,7 +74,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<InvitationResponseDTO>> GetInvitation(int id)
         {
-            var invitation = await _invitationService.GetInvitationByIdAsync(id);
+            var currentUserId = GetCurrentUserId();
+            var invitation = await _invitationService.GetInvitationByIdAsync(id, currentUserId);
             if (invitation == null)
             {
                 return NotFound($"Invitation with ID {id} not found.");
@@ -96,7 +117,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
                 return BadRequest($"User type with ID {createDto.UserTypeId} is not valid or not active.");
             }
 
-            var invitation = await _invitationService.CreateInvitationAsync(createDto);
+            var currentUserId = GetCurrentUserId();
+            var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
             
             return CreatedAtAction(
                 nameof(GetInvitation), 
@@ -134,7 +156,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
                 }
             }
 
-            var invitation = await _invitationService.UpdateInvitationAsync(id, updateDto);
+            var currentUserId = GetCurrentUserId();
+            var invitation = await _invitationService.UpdateInvitationAsync(id, updateDto, currentUserId);
             if (invitation == null)
             {
                 return NotFound($"Invitation with ID {id} not found.");
@@ -155,7 +178,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteInvitation(int id)
         {
-            var deleted = await _invitationService.DeleteInvitationAsync(id);
+            var currentUserId = GetCurrentUserId();
+            var deleted = await _invitationService.DeleteInvitationAsync(id, currentUserId);
             if (!deleted)
             {
                 return NotFound($"Invitation with ID {id} not found.");
@@ -173,7 +197,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<InvitationResponseDTO>>> GetExpiredInvitations()
         {
-            var expiredInvitations = await _invitationService.GetExpiredInvitationsAsync();
+            var currentUserId = GetCurrentUserId();
+            var expiredInvitations = await _invitationService.GetExpiredInvitationsAsync(currentUserId);
             return Ok(expiredInvitations);
         }
 
@@ -186,7 +211,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<InvitationResponseDTO>>> GetActiveInvitations()
         {
-            var activeInvitations = await _invitationService.GetActiveInvitationsAsync();
+            var currentUserId = GetCurrentUserId();
+            var activeInvitations = await _invitationService.GetActiveInvitationsAsync(currentUserId);
             return Ok(activeInvitations);
         }
 

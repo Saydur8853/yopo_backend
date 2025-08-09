@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
 using YopoBackend.Modules.UserCRUD.Services;
@@ -210,6 +212,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// <response code="401">Unauthorized</response>
         [HttpGet]
         [Authorize]
+        [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(typeof(UserListResponseDTO), 200)]
         [ProducesResponseType(401)]
         public async Task<IActionResult> GetAllUsers(
@@ -219,7 +222,14 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             [FromQuery] int? userTypeId = null,
             [FromQuery] bool? isActive = null)
         {
-            var result = await _userService.GetAllUsersAsync(page, pageSize, searchTerm, userTypeId, isActive);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            var result = await _userService.GetAllUsersAsync(currentUserId, page, pageSize, searchTerm, userTypeId, isActive);
             return Ok(result);
         }
 
@@ -238,7 +248,14 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> GetUserById(int id)
         {
-            var result = await _userService.GetUserByIdAsync(id);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            var result = await _userService.GetUserByIdAsync(id, currentUserId);
 
             if (result == null)
             {
@@ -269,7 +286,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 return Unauthorized(new { message = "Invalid token." });
             }
 
-            var result = await _userService.GetUserByIdAsync(userId);
+            var result = await _userService.GetUserByIdAsync(userId, userId);
 
             if (result == null)
             {
@@ -289,6 +306,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// <response code="401">Unauthorized</response>
         [HttpPost]
         [Authorize]
+        [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(typeof(UserResponseDTO), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
@@ -299,7 +317,14 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 return BadRequest(ModelState);
             }
 
-            var result = await _userService.CreateUserAsync(createRequest);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            var result = await _userService.CreateUserAsync(createRequest, currentUserId);
 
             if (result == null)
             {
@@ -321,6 +346,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// <response code="404">User not found</response>
         [HttpPut("{id}")]
         [Authorize]
+        [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(typeof(UserResponseDTO), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
@@ -332,7 +358,14 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 return BadRequest(ModelState);
             }
 
-            var result = await _userService.UpdateUserAsync(id, updateRequest);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            var result = await _userService.UpdateUserAsync(id, updateRequest, currentUserId);
 
             if (result == null)
             {
@@ -391,6 +424,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// <response code="404">User not found</response>
         [HttpPost("{id}/change-password")]
         [Authorize]
+        [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
@@ -423,6 +457,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// <response code="404">User not found</response>
         [HttpPatch("{id}/status")]
         [Authorize]
+        [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
@@ -449,12 +484,20 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// <response code="404">User not found</response>
         [HttpDelete("{id}")]
         [Authorize]
+        [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            var result = await _userService.DeleteUserAsync(id);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            var result = await _userService.DeleteUserAsync(id, currentUserId);
 
             if (!result)
             {

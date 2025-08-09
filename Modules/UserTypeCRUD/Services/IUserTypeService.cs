@@ -10,45 +10,51 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
     public interface IUserTypeService
     {
         /// <summary>
-        /// Gets all user types.
+        /// Gets all user types with access control.
         /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of user type DTOs.</returns>
-        Task<IEnumerable<UserTypeDto>> GetAllUserTypesAsync();
+        Task<IEnumerable<UserTypeDto>> GetAllUserTypesAsync(int currentUserId);
 
         /// <summary>
-        /// Gets all active user types.
+        /// Gets all active user types with access control.
         /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of active user type DTOs.</returns>
-        Task<IEnumerable<UserTypeDto>> GetActiveUserTypesAsync();
+        Task<IEnumerable<UserTypeDto>> GetActiveUserTypesAsync(int currentUserId);
 
         /// <summary>
-        /// Gets a user type by its ID.
+        /// Gets a user type by its ID with access control.
         /// </summary>
         /// <param name="id">The ID of the user type to retrieve.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the user type DTO if found, otherwise null.</returns>
-        Task<UserTypeDto?> GetUserTypeByIdAsync(int id);
+        Task<UserTypeDto?> GetUserTypeByIdAsync(int id, int currentUserId);
 
         /// <summary>
         /// Creates a new user type.
         /// </summary>
         /// <param name="createUserTypeDto">The data for creating the user type.</param>
+        /// <param name="createdByUserId">The ID of the user creating this user type.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the created user type DTO.</returns>
-        Task<UserTypeDto> CreateUserTypeAsync(CreateUserTypeDto createUserTypeDto);
+        Task<UserTypeDto> CreateUserTypeAsync(CreateUserTypeDto createUserTypeDto, int createdByUserId);
 
         /// <summary>
-        /// Updates an existing user type.
+        /// Updates an existing user type with access control.
         /// </summary>
         /// <param name="id">The ID of the user type to update.</param>
         /// <param name="updateUserTypeDto">The data for updating the user type.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the updated user type DTO if successful, otherwise null.</returns>
-        Task<UserTypeDto?> UpdateUserTypeAsync(int id, UpdateUserTypeDto updateUserTypeDto);
+        Task<UserTypeDto?> UpdateUserTypeAsync(int id, UpdateUserTypeDto updateUserTypeDto, int currentUserId);
 
         /// <summary>
-        /// Deletes a user type.
+        /// Deletes a user type with access control.
         /// </summary>
         /// <param name="id">The ID of the user type to delete.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains true if successful, otherwise false.</returns>
-        Task<bool> DeleteUserTypeAsync(int id);
+        Task<bool> DeleteUserTypeAsync(int id, int currentUserId);
 
         /// <summary>
         /// Gets a list of existing user type names for dropdown/autocomplete functionality.

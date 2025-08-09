@@ -542,6 +542,7 @@
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Description</th>
+                                <th>Data Access</th>
                                 <th>Status</th>
                                 <th>Modules</th>
                                 <th>Created</th>
@@ -554,6 +555,11 @@
                                     <td>${userType.id}</td>
                                     <td><strong>${userType.name}</strong></td>
                                     <td>${userType.description || '-'}</td>
+                                    <td>
+                                        <span class="badge ${userType.dataAccessControl === 'ALL' ? 'badge-success' : 'badge-danger'}">
+                                            ${userType.dataAccessControl === 'ALL' ? 'All Data' : 'Own Data'}
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="badge ${userType.isActive ? 'badge-success' : 'badge-danger'}">
                                             ${userType.isActive ? 'Active' : 'Inactive'}

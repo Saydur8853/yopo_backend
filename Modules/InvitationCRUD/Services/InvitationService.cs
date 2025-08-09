@@ -2,15 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using YopoBackend.Data;
 using YopoBackend.Modules.InvitationCRUD.DTOs;
 using YopoBackend.Modules.InvitationCRUD.Models;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.InvitationCRUD.Services
 {
     /// <summary>
-    /// Implementation of invitation service
+    /// Implementation of invitation service with Data Access Control
     /// </summary>
-    public class InvitationService : IInvitationService
+    public class InvitationService : BaseAccessControlService, IInvitationService
     {
-        private readonly ApplicationDbContext _context;
         private readonly ILogger<InvitationService> _logger;
 
         /// <summary>
@@ -18,38 +18,53 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         /// </summary>
         /// <param name="context">The database context.</param>
         /// <param name="logger">The logger instance.</param>
-        public InvitationService(ApplicationDbContext context, ILogger<InvitationService> logger)
+        public InvitationService(ApplicationDbContext context, ILogger<InvitationService> logger) : base(context)
         {
-            _context = context;
             _logger = logger;
         }
 
         /// <inheritdoc/>
-        public async Task<IEnumerable<InvitationResponseDTO>> GetAllInvitationsAsync()
+        public async Task<IEnumerable<InvitationResponseDTO>> GetAllInvitationsAsync(int currentUserId)
         {
-            var invitations = await _context.Invitations
-                .Include(i => i.UserType)
-                .ToListAsync();
+            var query = _context.Invitations.Include(i => i.UserType).AsQueryable();
+            
+            // Apply access control
+            query = await ApplyAccessControlAsync(query, currentUserId);
+            
+            var invitations = await query.ToListAsync();
             return invitations.Select(MapToResponseDTO);
         }
 
         /// <inheritdoc/>
-        public async Task<InvitationResponseDTO?> GetInvitationByIdAsync(int id)
+        public async Task<InvitationResponseDTO?> GetInvitationByIdAsync(int id, int currentUserId)
         {
             var invitation = await _context.Invitations
                 .Include(i => i.UserType)
                 .FirstOrDefaultAsync(i => i.Id == id);
-            return invitation == null ? null : MapToResponseDTO(invitation);
+            
+            if (invitation == null)
+            {
+                return null;
+            }
+            
+            // Check access control
+            if (!await HasAccessToEntityAsync(invitation, currentUserId))
+            {
+                return null; // User doesn't have access to this invitation
+            }
+            
+            return MapToResponseDTO(invitation);
         }
 
         /// <inheritdoc/>
-        public async Task<InvitationResponseDTO> CreateInvitationAsync(CreateInvitationDTO createDto)
+        public async Task<InvitationResponseDTO> CreateInvitationAsync(CreateInvitationDTO createDto, int createdByUserId)
         {
             var invitation = new Invitation
             {
                 EmailAddress = createDto.EmailAddress.ToLowerInvariant(),
                 UserTypeId = createDto.UserTypeId,
                 ExpiryTime = DateTime.UtcNow.AddDays(createDto.ExpiryDays),
+                CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -67,7 +82,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         }
 
         /// <inheritdoc/>
-        public async Task<InvitationResponseDTO?> UpdateInvitationAsync(int id, UpdateInvitationDTO updateDto)
+        public async Task<InvitationResponseDTO?> UpdateInvitationAsync(int id, UpdateInvitationDTO updateDto, int currentUserId)
         {
             var invitation = await _context.Invitations
                 .Include(i => i.UserType)
@@ -75,6 +90,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             if (invitation == null)
             {
                 return null;
+            }
+            
+            // Check access control
+            if (!await HasAccessToEntityAsync(invitation, currentUserId))
+            {
+                return null; // User doesn't have access to update this invitation
             }
 
             if (!string.IsNullOrEmpty(updateDto.EmailAddress))
@@ -108,12 +129,18 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> DeleteInvitationAsync(int id)
+        public async Task<bool> DeleteInvitationAsync(int id, int currentUserId)
         {
             var invitation = await _context.Invitations.FindAsync(id);
             if (invitation == null)
             {
                 return false;
+            }
+            
+            // Check access control
+            if (!await HasAccessToEntityAsync(invitation, currentUserId))
+            {
+                return false; // User doesn't have access to delete this invitation
             }
 
             _context.Invitations.Remove(invitation);
@@ -124,24 +151,32 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         }
 
         /// <inheritdoc/>
-        public async Task<IEnumerable<InvitationResponseDTO>> GetExpiredInvitationsAsync()
+        public async Task<IEnumerable<InvitationResponseDTO>> GetExpiredInvitationsAsync(int currentUserId)
         {
-            var expiredInvitations = await _context.Invitations
+            var query = _context.Invitations
                 .Include(i => i.UserType)
                 .Where(i => i.ExpiryTime < DateTime.UtcNow)
-                .ToListAsync();
-
+                .AsQueryable();
+            
+            // Apply access control
+            query = await ApplyAccessControlAsync(query, currentUserId);
+            
+            var expiredInvitations = await query.ToListAsync();
             return expiredInvitations.Select(MapToResponseDTO);
         }
 
         /// <inheritdoc/>
-        public async Task<IEnumerable<InvitationResponseDTO>> GetActiveInvitationsAsync()
+        public async Task<IEnumerable<InvitationResponseDTO>> GetActiveInvitationsAsync(int currentUserId)
         {
-            var activeInvitations = await _context.Invitations
+            var query = _context.Invitations
                 .Include(i => i.UserType)
                 .Where(i => i.ExpiryTime >= DateTime.UtcNow)
-                .ToListAsync();
-
+                .AsQueryable();
+            
+            // Apply access control
+            query = await ApplyAccessControlAsync(query, currentUserId);
+            
+            var activeInvitations = await query.ToListAsync();
             return activeInvitations.Select(MapToResponseDTO);
         }
 

@@ -350,24 +350,6 @@
                 </button>
             </form>
 
-            <!-- Information Panel -->
-            <div id="info-panel" style="
-                background: #e3f2fd;
-                border: 1px solid #bbdefb;
-                border-radius: 8px;
-                padding: 1rem;
-                margin-bottom: 1.5rem;
-                font-size: 0.9rem;
-                color: #1565c0;
-                display: none;
-            ">
-                <p><strong>ℹ️ New to Yopo?</strong></p>
-                <p style="margin: 0.5rem 0;">
-                    • If you're the <strong>first user</strong>, you'll automatically become the Super Administrator<br>
-                    • If someone has already registered, you need an <strong>invitation</strong> to join<br>
-                    • Contact your system administrator to request access
-                </p>
-            </div>
 
             <div class="auth-links">
                 <a href="/swagger/index.html">API Documentation</a>
@@ -421,15 +403,12 @@
             document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
             document.getElementById(`${formType}-form`).classList.add('active');
             
-            // Update header text and show/hide info panel
+            // Update header text
             const headerP = document.querySelector('.auth-header p');
-            const infoPanel = document.getElementById('info-panel');
             if (formType === 'login') {
                 headerP.textContent = 'Welcome back! Please sign in to your account';
-                infoPanel.style.display = 'none';
             } else {
                 headerP.textContent = 'Create a new account to get started';
-                infoPanel.style.display = 'block';
             }
             
             // Clear messages
@@ -534,7 +513,9 @@
                 
                 // Redirect to dashboard
                 setTimeout(() => {
-                    window.location.href = '/dashboard.html';
+const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
+                    sessionStorage.removeItem('redirectUrl');
+                    window.location.href = redirectUrl;
                 }, 1500);
                 
             } catch (error) {

@@ -12,9 +12,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
     /// Service for managing users including authentication and CRUD operations.
     /// Module: UserCRUD (Module ID: 3)
     /// </summary>
-    public class UserService : IUserService
+    public class UserService : BaseAccessControlService, IUserService
     {
-        private readonly ApplicationDbContext _context;
         private readonly IJwtService _jwtService;
 
         /// <summary>
@@ -22,9 +21,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// </summary>
         /// <param name="context">The database context.</param>
         /// <param name="jwtService">The JWT service for token generation.</param>
-        public UserService(ApplicationDbContext context, IJwtService jwtService)
+        public UserService(ApplicationDbContext context, IJwtService jwtService) : base(context)
         {
-            _context = context;
             _jwtService = jwtService;
         }
 
@@ -158,10 +156,15 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     UserTypeId = userTypeId,
                     IsActive = true,
                     IsEmailVerified = false,
+                    CreatedBy = 0, // Will be set to the user's own ID after creation
                     CreatedAt = DateTime.UtcNow
                 };
 
                 _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                // Update CreatedBy to the user's own ID for self-registration
+                user.CreatedBy = user.Id;
                 await _context.SaveChangesAsync();
 
                 // Load user type for response
@@ -191,22 +194,26 @@ namespace YopoBackend.Modules.UserCRUD.Services
             }
         }
 
-        // CRUD operations
+        // CRUD operations with access control
 
         /// <summary>
-        /// Gets all users with pagination support.
+        /// Gets all users with pagination support and access control.
         /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <param name="page">The page number (starting from 1).</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <param name="searchTerm">Optional search term to filter users by name or email.</param>
         /// <param name="userTypeId">Optional user type ID to filter users.</param>
         /// <param name="isActive">Optional active status to filter users.</param>
-        /// <returns>A paginated list of users.</returns>
-        public async Task<UserListResponseDTO> GetAllUsersAsync(int page = 1, int pageSize = 10, string? searchTerm = null, int? userTypeId = null, bool? isActive = null)
+        /// <returns>A paginated list of users based on access control.</returns>
+        public async Task<UserListResponseDTO> GetAllUsersAsync(int currentUserId, int page = 1, int pageSize = 10, string? searchTerm = null, int? userTypeId = null, bool? isActive = null)
         {
             try
             {
                 var query = _context.Users.Include(u => u.UserType).AsQueryable();
+
+                // Apply access control
+                query = await ApplyAccessControlAsync(query, currentUserId);
 
                 // Apply filters
                 if (!string.IsNullOrEmpty(searchTerm))
@@ -258,11 +265,12 @@ namespace YopoBackend.Modules.UserCRUD.Services
         }
 
         /// <summary>
-        /// Gets a user by their ID.
+        /// Gets a user by their ID with access control.
         /// </summary>
         /// <param name="id">The user ID.</param>
-        /// <returns>The user if found; otherwise, null.</returns>
-        public async Task<UserResponseDTO?> GetUserByIdAsync(int id)
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>The user if found and accessible; otherwise, null.</returns>
+        public async Task<UserResponseDTO?> GetUserByIdAsync(int id, int currentUserId)
         {
             try
             {
@@ -270,7 +278,18 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                     .FirstOrDefaultAsync(u => u.Id == id);
 
-                return user != null ? MapToUserResponse(user) : null;
+                if (user == null)
+                {
+                    return null;
+                }
+
+                // Check access control
+                if (!await HasAccessToEntityAsync(user, currentUserId))
+                {
+                    return null; // User doesn't have access to this user record
+                }
+
+                return MapToUserResponse(user);
             }
             catch (Exception ex)
             {
@@ -305,8 +324,9 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// Creates a new user.
         /// </summary>
         /// <param name="createRequest">The create user request.</param>
+        /// <param name="createdByUserId">The ID of the user creating this user.</param>
         /// <returns>The created user.</returns>
-        public async Task<UserResponseDTO?> CreateUserAsync(CreateUserRequestDTO createRequest)
+        public async Task<UserResponseDTO?> CreateUserAsync(CreateUserRequestDTO createRequest, int createdByUserId)
         {
             try
             {
@@ -338,6 +358,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     UserTypeId = createRequest.UserTypeId,
                     IsActive = createRequest.IsActive,
                     IsEmailVerified = createRequest.IsEmailVerified,
+                    CreatedBy = createdByUserId,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -357,12 +378,13 @@ namespace YopoBackend.Modules.UserCRUD.Services
         }
 
         /// <summary>
-        /// Updates an existing user.
+        /// Updates an existing user with access control.
         /// </summary>
         /// <param name="id">The user ID to update.</param>
         /// <param name="updateRequest">The update user request.</param>
-        /// <returns>The updated user if successful; otherwise, null.</returns>
-        public async Task<UserResponseDTO?> UpdateUserAsync(int id, UpdateUserRequestDTO updateRequest)
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>The updated user if successful and accessible; otherwise, null.</returns>
+        public async Task<UserResponseDTO?> UpdateUserAsync(int id, UpdateUserRequestDTO updateRequest, int currentUserId)
         {
             try
             {
@@ -370,6 +392,12 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 if (user == null)
                 {
                     return null; // User not found
+                }
+
+                // Check access control
+                if (!await HasAccessToEntityAsync(user, currentUserId))
+                {
+                    return null; // User doesn't have access to update this user record
                 }
 
                 // Check if user type exists
@@ -440,11 +468,12 @@ namespace YopoBackend.Modules.UserCRUD.Services
         }
 
         /// <summary>
-        /// Deletes a user by their ID.
+        /// Deletes a user by their ID with access control.
         /// </summary>
         /// <param name="id">The user ID to delete.</param>
-        /// <returns>True if the user was deleted successfully; otherwise, false.</returns>
-        public async Task<bool> DeleteUserAsync(int id)
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>True if the user was deleted successfully and accessible; otherwise, false.</returns>
+        public async Task<bool> DeleteUserAsync(int id, int currentUserId)
         {
             try
             {
@@ -452,6 +481,12 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 if (user == null)
                 {
                     return false; // User not found
+                }
+
+                // Check access control
+                if (!await HasAccessToEntityAsync(user, currentUserId))
+                {
+                    return false; // User doesn't have access to delete this user record
                 }
 
                 _context.Users.Remove(user);

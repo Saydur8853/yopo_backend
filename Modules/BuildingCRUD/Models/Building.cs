@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.BuildingCRUD.Models
 {
@@ -6,7 +7,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Models
     /// Represents a building entity with basic information and photo.
     /// Module ID: 4 (BuildingCRUD)
     /// </summary>
-    public class Building
+    public class Building : ICreatedByEntity
     {
         /// <summary>
         /// Gets or sets the unique identifier for the building.

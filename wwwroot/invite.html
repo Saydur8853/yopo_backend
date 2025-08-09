@@ -451,6 +451,7 @@
             // Check authentication
             const isAuthenticated = await checkAuthentication();
             if (!isAuthenticated) {
+sessionStorage.setItem('redirectUrl', window.location.href);
                 window.location.href = '/auth.html';
                 return;
             }
@@ -476,18 +477,10 @@
                 return false;
             }
             
-            try {
-                const response = await fetch(`${API_BASE}/users/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (!response.ok) return false;
-                
-                authToken = token;
-                return true;
-            } catch {
-                return false;
-            }
+            // Simple token validation without requiring User module access
+            // We'll validate the token when we try to access invitation endpoints
+            authToken = token;
+            return true;
         }
 
         async function loadCurrentUser() {
@@ -495,17 +488,33 @@
                 const userData = localStorage.getItem('userData');
                 if (userData) {
                     currentUser = JSON.parse(userData);
+                    const userInfo = document.getElementById('user-info');
+                    userInfo.textContent = `Logged in as: ${currentUser.fullName} (${currentUser.userTypeName})`;
                 } else {
-                    const response = await fetch(`${API_BASE}/users/me`, {
-                        headers: { 'Authorization': `Bearer ${authToken}` }
-                    });
-                    currentUser = await response.json();
+                    // Try to fetch from API, but don't fail if User module access is restricted
+                    try {
+                        const response = await fetch(`${API_BASE}/users/me`, {
+                            headers: { 'Authorization': `Bearer ${authToken}` }
+                        });
+                        if (response.ok) {
+                            currentUser = await response.json();
+                            const userInfo = document.getElementById('user-info');
+                            userInfo.textContent = `Logged in as: ${currentUser.fullName} (${currentUser.userTypeName})`;
+                        } else {
+                            // Fallback if User module access is restricted
+                            const userInfo = document.getElementById('user-info');
+                            userInfo.textContent = `Logged in (User details unavailable)`;
+                        }
+                    } catch (error) {
+                        console.warn('Cannot load user details, proceeding with invitation module:', error);
+                        const userInfo = document.getElementById('user-info');
+                        userInfo.textContent = `Logged in (User details unavailable)`;
+                    }
                 }
-                
-                const userInfo = document.getElementById('user-info');
-                userInfo.textContent = `Logged in as: ${currentUser.fullName} (${currentUser.userTypeName})`;
             } catch (error) {
                 console.error('Error loading user:', error);
+                const userInfo = document.getElementById('user-info');
+                userInfo.textContent = `Logged in (User details unavailable)`;
             }
         }
 
@@ -530,11 +539,17 @@
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 
-                if (!response.ok) throw new Error('Failed to load user types');
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        throw new Error('You do not have permission to access the Invitation module');
+                    }
+                    throw new Error(`Failed to load user types (${response.status})`);
+                }
                 
                 availableUserTypes = await response.json();
                 renderUserTypeDropdown();
             } catch (error) {
+                console.error('User types loading error:', error);
                 showMessage('Failed to load user types: ' + error.message, 'error');
             }
         }

@@ -1,12 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using YopoBackend.Modules.UserTypeCRUD.Models;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.InvitationCRUD.Models
 {
     /// <summary>
     /// Invitation entity for module ID: 2
     /// </summary>
-    public class Invitation
+    public class Invitation : ICreatedByEntity
     {
         /// <summary>
         /// Gets or sets the unique identifier for the invitation.
@@ -33,6 +34,11 @@ namespace YopoBackend.Modules.InvitationCRUD.Models
         /// </summary>
         [Required]
         public DateTime ExpiryTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the ID of the user who created this invitation.
+        /// </summary>
+        public int CreatedBy { get; set; }
 
         /// <summary>
         /// Gets or sets the date and time when the invitation was created.

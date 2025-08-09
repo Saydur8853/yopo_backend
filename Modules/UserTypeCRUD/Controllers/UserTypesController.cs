@@ -4,6 +4,7 @@ using YopoBackend.Modules.UserTypeCRUD.DTOs;
 using YopoBackend.Modules.UserTypeCRUD.Services;
 using YopoBackend.Attributes;
 using YopoBackend.Constants;
+using System.Security.Claims;
 
 namespace YopoBackend.Modules.UserTypeCRUD.Controllers
 {
@@ -29,15 +30,35 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         }
 
         /// <summary>
-        /// Gets all user types.
+        /// Gets the current user ID from the JWT token claims.
         /// </summary>
-        /// <returns>A list of all user types.</returns>
+        /// <returns>The current user's ID</returns>
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out int userId))
+            {
+                return userId;
+            }
+            throw new UnauthorizedAccessException("Invalid user ID in token");
+        }
+
+        /// <summary>
+        /// Gets all user types based on current user's access control.
+        /// </summary>
+        /// <returns>A list of all user types the current user has access to.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserTypeDto>>> GetAllUserTypes()
         {
             try
             {
-                var userTypes = await _userTypeService.GetAllUserTypesAsync();
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized(new { message = "Invalid token." });
+                }
+
+                var userTypes = await _userTypeService.GetAllUserTypesAsync(userId);
                 return Ok(userTypes);
             }
             catch (Exception ex)
@@ -47,15 +68,21 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         }
 
         /// <summary>
-        /// Gets all active user types.
+        /// Gets all active user types based on current user's access control.
         /// </summary>
-        /// <returns>A list of all active user types.</returns>
+        /// <returns>A list of all active user types the current user has access to.</returns>
         [HttpGet("active")]
         public async Task<ActionResult<IEnumerable<UserTypeDto>>> GetActiveUserTypes()
         {
             try
             {
-                var userTypes = await _userTypeService.GetActiveUserTypesAsync();
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized(new { message = "Invalid token." });
+                }
+
+                var userTypes = await _userTypeService.GetActiveUserTypesAsync(userId);
                 return Ok(userTypes);
             }
             catch (Exception ex)
@@ -65,19 +92,25 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         }
 
         /// <summary>
-        /// Gets a user type by ID.
+        /// Gets a user type by ID based on current user's access control.
         /// </summary>
         /// <param name="id">The ID of the user type.</param>
-        /// <returns>The user type with the specified ID.</returns>
+        /// <returns>The user type with the specified ID if accessible.</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<UserTypeDto>> GetUserType(int id)
         {
             try
             {
-                var userType = await _userTypeService.GetUserTypeByIdAsync(id);
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized(new { message = "Invalid token." });
+                }
+
+                var userType = await _userTypeService.GetUserTypeByIdAsync(id, userId);
                 if (userType == null)
                 {
-                    return NotFound($"User type with ID {id} not found.");
+                    return NotFound($"User type with ID {id} not found or you don't have access to it.");
                 }
 
                 return Ok(userType);
@@ -98,6 +131,12 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         {
             try
             {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized(new { message = "Invalid token." });
+                }
+
                 // Note: Multiple user types with the same name are allowed
 
                 // Validate module IDs if provided
@@ -109,7 +148,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                     }
                 }
 
-                var createdUserType = await _userTypeService.CreateUserTypeAsync(createUserTypeDto);
+                var createdUserType = await _userTypeService.CreateUserTypeAsync(createUserTypeDto, userId);
                 return CreatedAtAction(nameof(GetUserType), new { id = createdUserType.Id }, createdUserType);
             }
             catch (Exception ex)
@@ -140,7 +179,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                     }
                 }
 
-                var updatedUserType = await _userTypeService.UpdateUserTypeAsync(id, updateUserTypeDto);
+                var currentUserId = GetCurrentUserId();
+                var updatedUserType = await _userTypeService.UpdateUserTypeAsync(id, updateUserTypeDto, currentUserId);
                 if (updatedUserType == null)
                 {
                     return NotFound($"User type with ID {id} not found.");
@@ -164,7 +204,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         {
             try
             {
-                var result = await _userTypeService.DeleteUserTypeAsync(id);
+                var currentUserId = GetCurrentUserId();
+                var result = await _userTypeService.DeleteUserTypeAsync(id, currentUserId);
                 if (!result)
                 {
                     return NotFound($"User type with ID {id} not found.");
@@ -189,7 +230,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
             try
             {
                 // Check if user type exists
-                var userType = await _userTypeService.GetUserTypeByIdAsync(id);
+                var currentUserId = GetCurrentUserId();
+                var userType = await _userTypeService.GetUserTypeByIdAsync(id, currentUserId);
                 if (userType == null)
                 {
                     return NotFound($"User type with ID {id} not found.");
@@ -216,7 +258,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
             try
             {
                 // Check if user type exists
-                var userType = await _userTypeService.GetUserTypeByIdAsync(id);
+                var currentUserId = GetCurrentUserId();
+                var userType = await _userTypeService.GetUserTypeByIdAsync(id, currentUserId);
                 if (userType == null)
                 {
                     return NotFound($"User type with ID {id} not found.");

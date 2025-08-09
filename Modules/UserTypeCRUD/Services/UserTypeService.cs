@@ -4,62 +4,79 @@ using YopoBackend.Data;
 using YopoBackend.Modules.UserTypeCRUD.DTOs;
 using YopoBackend.Modules.UserTypeCRUD.Models;
 using YopoBackend.Models;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.UserTypeCRUD.Services
 {
     /// <summary>
-    /// Service implementation for UserType operations.
+    /// Service implementation for UserType operations with Data Access Control.
     /// Module ID: 1 (UserTypeCRUD)
     /// </summary>
-    public class UserTypeService : IUserTypeService
+    public class UserTypeService : BaseAccessControlService, IUserTypeService
     {
-        private readonly ApplicationDbContext _context;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="UserTypeService"/> class.
         /// </summary>
         /// <param name="context">The application database context.</param>
-        public UserTypeService(ApplicationDbContext context)
+        public UserTypeService(ApplicationDbContext context) : base(context)
         {
-            _context = context;
         }
 
         /// <inheritdoc/>
-        public async Task<IEnumerable<UserTypeDto>> GetAllUserTypesAsync()
+        public async Task<IEnumerable<UserTypeDto>> GetAllUserTypesAsync(int currentUserId)
         {
-            var userTypes = await _context.UserTypes
+            var query = _context.UserTypes
                 .Include(ut => ut.ModulePermissions)
                 .ThenInclude(mp => mp.Module)
-                .ToListAsync();
-
+                .AsQueryable();
+            
+            // Apply access control
+            query = await ApplyAccessControlAsync(query, currentUserId);
+            
+            var userTypes = await query.ToListAsync();
             return userTypes.Select(MapToDto);
         }
 
         /// <inheritdoc/>
-        public async Task<IEnumerable<UserTypeDto>> GetActiveUserTypesAsync()
+        public async Task<IEnumerable<UserTypeDto>> GetActiveUserTypesAsync(int currentUserId)
         {
-            var userTypes = await _context.UserTypes
+            var query = _context.UserTypes
                 .Include(ut => ut.ModulePermissions.Where(mp => mp.IsActive))
                 .ThenInclude(mp => mp.Module)
                 .Where(ut => ut.IsActive)
-                .ToListAsync();
-
+                .AsQueryable();
+            
+            // Apply access control
+            query = await ApplyAccessControlAsync(query, currentUserId);
+            
+            var userTypes = await query.ToListAsync();
             return userTypes.Select(MapToDto);
         }
 
         /// <inheritdoc/>
-        public async Task<UserTypeDto?> GetUserTypeByIdAsync(int id)
+        public async Task<UserTypeDto?> GetUserTypeByIdAsync(int id, int currentUserId)
         {
             var userType = await _context.UserTypes
                 .Include(ut => ut.ModulePermissions.Where(mp => mp.IsActive))
                 .ThenInclude(mp => mp.Module)
                 .FirstOrDefaultAsync(ut => ut.Id == id);
 
-            return userType != null ? MapToDto(userType) : null;
+            if (userType == null)
+            {
+                return null;
+            }
+            
+            // Check access control
+            if (!await HasAccessToEntityAsync(userType, currentUserId))
+            {
+                return null; // User doesn't have access to this user type
+            }
+            
+            return MapToDto(userType);
         }
 
         /// <inheritdoc/>
-        public async Task<UserTypeDto> CreateUserTypeAsync(CreateUserTypeDto createUserTypeDto)
+        public async Task<UserTypeDto> CreateUserTypeAsync(CreateUserTypeDto createUserTypeDto, int createdByUserId)
         {
             var userType = new UserType
             {
@@ -67,6 +84,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 Description = createUserTypeDto.Description,
                 DataAccessControl = createUserTypeDto.DataAccessControl,
                 IsActive = true,
+                CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -79,16 +97,22 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 await UpdateUserTypeModulePermissionsAsync(userType.Id, createUserTypeDto.ModuleIds);
             }
 
-            return await GetUserTypeByIdAsync(userType.Id) ?? throw new InvalidOperationException("Failed to retrieve created user type");
+            return await GetUserTypeByIdAsync(userType.Id, createdByUserId) ?? throw new InvalidOperationException("Failed to retrieve created user type");
         }
 
         /// <inheritdoc/>
-        public async Task<UserTypeDto?> UpdateUserTypeAsync(int id, UpdateUserTypeDto updateUserTypeDto)
+        public async Task<UserTypeDto?> UpdateUserTypeAsync(int id, UpdateUserTypeDto updateUserTypeDto, int currentUserId)
         {
             var userType = await _context.UserTypes.FindAsync(id);
             if (userType == null)
             {
                 return null;
+            }
+            
+            // Check access control
+            if (!await HasAccessToEntityAsync(userType, currentUserId))
+            {
+                return null; // User doesn't have access to update this user type
             }
 
             userType.Name = updateUserTypeDto.Name;
@@ -103,16 +127,22 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             // Update module permissions
             await UpdateUserTypeModulePermissionsAsync(id, updateUserTypeDto.ModuleIds);
 
-            return await GetUserTypeByIdAsync(id);
+            return await GetUserTypeByIdAsync(id, currentUserId);
         }
 
         /// <inheritdoc/>
-        public async Task<bool> DeleteUserTypeAsync(int id)
+        public async Task<bool> DeleteUserTypeAsync(int id, int currentUserId)
         {
             var userType = await _context.UserTypes.FindAsync(id);
             if (userType == null)
             {
                 return false;
+            }
+            
+            // Check access control
+            if (!await HasAccessToEntityAsync(userType, currentUserId))
+            {
+                return false; // User doesn't have access to delete this user type
             }
 
             // First, remove all module permissions
@@ -355,6 +385,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 Id = userType.Id,
                 Name = userType.Name,
                 Description = userType.Description,
+                DataAccessControl = userType.DataAccessControl,
                 IsActive = userType.IsActive,
                 CreatedAt = userType.CreatedAt,
                 UpdatedAt = userType.UpdatedAt,

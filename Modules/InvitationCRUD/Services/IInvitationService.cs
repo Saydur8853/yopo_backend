@@ -9,51 +9,58 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
     public interface IInvitationService
     {
         /// <summary>
-        /// Gets all invitations asynchronously.
+        /// Gets all invitations asynchronously with access control.
         /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of invitation response DTOs.</returns>
-        Task<IEnumerable<InvitationResponseDTO>> GetAllInvitationsAsync();
+        Task<IEnumerable<InvitationResponseDTO>> GetAllInvitationsAsync(int currentUserId);
         
         /// <summary>
-        /// Gets an invitation by its ID asynchronously.
+        /// Gets an invitation by its ID asynchronously with access control.
         /// </summary>
         /// <param name="id">The invitation ID.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the invitation response DTO, or null if not found.</returns>
-        Task<InvitationResponseDTO?> GetInvitationByIdAsync(int id);
+        Task<InvitationResponseDTO?> GetInvitationByIdAsync(int id, int currentUserId);
         
         /// <summary>
         /// Creates a new invitation asynchronously.
         /// </summary>
         /// <param name="createDto">The invitation creation data.</param>
+        /// <param name="createdByUserId">The ID of the user creating this invitation.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the created invitation response DTO.</returns>
-        Task<InvitationResponseDTO> CreateInvitationAsync(CreateInvitationDTO createDto);
+        Task<InvitationResponseDTO> CreateInvitationAsync(CreateInvitationDTO createDto, int createdByUserId);
         
         /// <summary>
-        /// Updates an existing invitation asynchronously.
+        /// Updates an existing invitation asynchronously with access control.
         /// </summary>
         /// <param name="id">The invitation ID to update.</param>
         /// <param name="updateDto">The invitation update data.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the updated invitation response DTO, or null if not found.</returns>
-        Task<InvitationResponseDTO?> UpdateInvitationAsync(int id, UpdateInvitationDTO updateDto);
+        Task<InvitationResponseDTO?> UpdateInvitationAsync(int id, UpdateInvitationDTO updateDto, int currentUserId);
         
         /// <summary>
-        /// Deletes an invitation asynchronously.
+        /// Deletes an invitation asynchronously with access control.
         /// </summary>
         /// <param name="id">The invitation ID to delete.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result indicates whether the deletion was successful.</returns>
-        Task<bool> DeleteInvitationAsync(int id);
+        Task<bool> DeleteInvitationAsync(int id, int currentUserId);
         
         /// <summary>
-        /// Gets all expired invitations asynchronously.
+        /// Gets all expired invitations asynchronously with access control.
         /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of expired invitation response DTOs.</returns>
-        Task<IEnumerable<InvitationResponseDTO>> GetExpiredInvitationsAsync();
+        Task<IEnumerable<InvitationResponseDTO>> GetExpiredInvitationsAsync(int currentUserId);
         
         /// <summary>
-        /// Gets all active (non-expired) invitations asynchronously.
+        /// Gets all active (non-expired) invitations asynchronously with access control.
         /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of active invitation response DTOs.</returns>
-        Task<IEnumerable<InvitationResponseDTO>> GetActiveInvitationsAsync();
+        Task<IEnumerable<InvitationResponseDTO>> GetActiveInvitationsAsync(int currentUserId);
         
         /// <summary>
         /// Checks if an invitation exists asynchronously.

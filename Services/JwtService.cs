@@ -83,6 +83,7 @@ namespace YopoBackend.Services
                 IsRevoked = false,
                 DeviceInfo = deviceInfo,
                 IpAddress = ipAddress,
+                CreatedBy = user.Id, // Tokens are created by the user themselves
                 CreatedAt = DateTime.UtcNow
             };
 

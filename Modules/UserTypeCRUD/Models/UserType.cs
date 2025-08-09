@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using YopoBackend.Models;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.UserTypeCRUD.Models
 {
@@ -7,7 +8,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Models
     /// Represents a user type with associated module permissions.
     /// Module ID: 1 (UserTypeCRUD)
     /// </summary>
-    public class UserType
+    public class UserType : ICreatedByEntity
     {
         /// <summary>
         /// Gets or sets the unique identifier for the user type.
@@ -32,6 +33,11 @@ namespace YopoBackend.Modules.UserTypeCRUD.Models
         /// Gets or sets whether this user type is active.
         /// </summary>
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the ID of the user who created this user type.
+        /// </summary>
+        public int CreatedBy { get; set; }
 
         /// <summary>
         /// Gets or sets when the user type was created.

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using YopoBackend.Modules.UserTypeCRUD.Models;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.UserCRUD.Models
 {
@@ -9,7 +10,7 @@ namespace YopoBackend.Modules.UserCRUD.Models
     /// Module: UserCRUD (Module ID: 3)
     /// </summary>
     [Table("Users")]
-    public class User
+    public class User : ICreatedByEntity
     {
         /// <summary>
         /// Gets or sets the unique identifier for the user.
@@ -88,6 +89,13 @@ namespace YopoBackend.Modules.UserCRUD.Models
         /// </summary>
         [Column("LastLoginAt")]
         public DateTime? LastLoginAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the ID of the user who created this user record.
+        /// For self-registration, this will be set to the same user's ID after creation.
+        /// </summary>
+        [Column("CreatedBy")]
+        public int CreatedBy { get; set; }
 
         /// <summary>
         /// Gets or sets the date and time when the user was created.

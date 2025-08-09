@@ -4,6 +4,7 @@ using YopoBackend.Modules.BuildingCRUD.DTOs;
 using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Modules.UserTypeCRUD.Models;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.BuildingCRUD.Services
 {
@@ -11,17 +12,14 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
     /// Service implementation for Building operations.
     /// Module ID: 4 (BuildingCRUD)
     /// </summary>
-    public class BuildingService : IBuildingService
+    public class BuildingService : BaseAccessControlService, IBuildingService
     {
-        private readonly ApplicationDbContext _context;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="BuildingService"/> class.
         /// </summary>
         /// <param name="context">The application database context.</param>
-        public BuildingService(ApplicationDbContext context)
+        public BuildingService(ApplicationDbContext context) : base(context)
         {
-            _context = context;
         }
 
         /// <inheritdoc/>
@@ -41,28 +39,19 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// <inheritdoc/>
         public async Task<BuildingDto?> GetBuildingByIdAsync(int id, int userId)
         {
-            // Get user with their user type information
-            var user = await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user?.UserType == null)
+            var building = await _context.Buildings.FirstOrDefaultAsync(b => b.Id == id);
+            if (building == null)
             {
-                return null; // No access if user or user type not found
+                return null;
             }
 
-            var query = _context.Buildings.AsQueryable();
-
-            // Apply access control based on user type's DataAccessControl setting
-            if (user.UserType.DataAccessControl == "OWN")
+            // Check access control using base class method
+            if (!await HasAccessToEntityAsync(building, userId))
             {
-                // User can only see buildings they created
-                query = query.Where(b => b.CreatedBy == userId);
+                return null; // User doesn't have access to this building
             }
-            // If DataAccessControl is "ALL", user can see all buildings (no additional filtering needed)
 
-            var building = await query.FirstOrDefaultAsync(b => b.Id == id);
-            return building != null ? MapToDto(building) : null;
+            return MapToDto(building);
         }
 
         /// <inheritdoc/>
@@ -87,30 +76,16 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// <inheritdoc/>
         public async Task<BuildingDto?> UpdateBuildingAsync(int id, UpdateBuildingDto updateBuildingDto, int userId)
         {
-            // Get user with their user type information
-            var user = await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user?.UserType == null)
-            {
-                return null; // No access if user or user type not found
-            }
-
-            var query = _context.Buildings.AsQueryable();
-
-            // Apply access control based on user type's DataAccessControl setting
-            if (user.UserType.DataAccessControl == "OWN")
-            {
-                // User can only update buildings they created
-                query = query.Where(b => b.CreatedBy == userId);
-            }
-            // If DataAccessControl is "ALL", user can update all buildings (no additional filtering needed)
-
-            var building = await query.FirstOrDefaultAsync(b => b.Id == id);
+            var building = await _context.Buildings.FirstOrDefaultAsync(b => b.Id == id);
             if (building == null)
             {
                 return null;
+            }
+
+            // Check access control using base class method
+            if (!await HasAccessToEntityAsync(building, userId))
+            {
+                return null; // User doesn't have access to update this building
             }
 
             building.Name = updateBuildingDto.Name;
@@ -128,30 +103,16 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// <inheritdoc/>
         public async Task<bool> DeleteBuildingAsync(int id, int userId)
         {
-            // Get user with their user type information
-            var user = await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user?.UserType == null)
-            {
-                return false; // No access if user or user type not found
-            }
-
-            var query = _context.Buildings.AsQueryable();
-
-            // Apply access control based on user type's DataAccessControl setting
-            if (user.UserType.DataAccessControl == "OWN")
-            {
-                // User can only delete buildings they created
-                query = query.Where(b => b.CreatedBy == userId);
-            }
-            // If DataAccessControl is "ALL", user can delete all buildings (no additional filtering needed)
-
-            var building = await query.FirstOrDefaultAsync(b => b.Id == id);
+            var building = await _context.Buildings.FirstOrDefaultAsync(b => b.Id == id);
             if (building == null)
             {
                 return false;
+            }
+
+            // Check access control using base class method
+            if (!await HasAccessToEntityAsync(building, userId))
+            {
+                return false; // User doesn't have access to delete this building
             }
 
             _context.Buildings.Remove(building);
@@ -335,25 +296,10 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// <returns>List of buildings the user has access to.</returns>
         private async Task<List<Building>> GetBuildingsBasedOnUserAccess(int userId, bool includeInactive)
         {
-            // Get user with their user type information
-            var user = await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user?.UserType == null)
-            {
-                return new List<Building>(); // No access if user or user type not found
-            }
-
             var query = _context.Buildings.AsQueryable();
 
-            // Apply access control based on user type's DataAccessControl setting
-            if (user.UserType.DataAccessControl == "OWN")
-            {
-                // User can only see buildings they created
-                query = query.Where(b => b.CreatedBy == userId);
-            }
-            // If DataAccessControl is "ALL", user can see all buildings (no additional filtering needed)
+            // Apply access control using base class method
+            query = await ApplyAccessControlAsync(query, userId);
 
             // Apply active/inactive filter
             if (!includeInactive)

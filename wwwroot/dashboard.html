@@ -210,6 +210,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Check authentication
             if (!isAuthenticated()) {
+sessionStorage.setItem('redirectUrl', window.location.href);
                 window.location.href = '/auth.html';
                 return;
             }

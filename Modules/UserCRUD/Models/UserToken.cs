@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.UserCRUD.Models
 {
@@ -8,7 +9,7 @@ namespace YopoBackend.Modules.UserCRUD.Models
     /// Used for token management, blacklisting, and refresh token functionality.
     /// </summary>
     [Table("UserTokens")]
-    public class UserToken
+    public class UserToken : ICreatedByEntity
     {
         /// <summary>
         /// Gets or sets the unique identifier for the token record.
@@ -88,6 +89,13 @@ namespace YopoBackend.Modules.UserCRUD.Models
         /// </summary>
         [Column("RevokedAt")]
         public DateTime? RevokedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the ID of the user who created this token.
+        /// This is typically the same as UserId for self-created tokens.
+        /// </summary>
+        [Column("CreatedBy")]
+        public int CreatedBy { get; set; }
 
         // Navigation properties
 

@@ -28,22 +28,24 @@ namespace YopoBackend.Modules.UserCRUD.Services
         // CRUD operations
 
         /// <summary>
-        /// Gets all users with pagination support.
+        /// Gets all users with pagination support and access control.
         /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <param name="page">The page number (starting from 1).</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <param name="searchTerm">Optional search term to filter users by name or email.</param>
         /// <param name="userTypeId">Optional user type ID to filter users.</param>
         /// <param name="isActive">Optional active status to filter users.</param>
-        /// <returns>A paginated list of users.</returns>
-        Task<UserListResponseDTO> GetAllUsersAsync(int page = 1, int pageSize = 10, string? searchTerm = null, int? userTypeId = null, bool? isActive = null);
+        /// <returns>A paginated list of users based on access control.</returns>
+        Task<UserListResponseDTO> GetAllUsersAsync(int currentUserId, int page = 1, int pageSize = 10, string? searchTerm = null, int? userTypeId = null, bool? isActive = null);
 
         /// <summary>
-        /// Gets a user by their ID.
+        /// Gets a user by their ID with access control.
         /// </summary>
         /// <param name="id">The user ID.</param>
-        /// <returns>The user if found; otherwise, null.</returns>
-        Task<UserResponseDTO?> GetUserByIdAsync(int id);
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>The user if found and accessible; otherwise, null.</returns>
+        Task<UserResponseDTO?> GetUserByIdAsync(int id, int currentUserId);
 
         /// <summary>
         /// Gets a user by their email address.
@@ -56,16 +58,18 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// Creates a new user.
         /// </summary>
         /// <param name="createRequest">The create user request.</param>
+        /// <param name="createdByUserId">The ID of the user creating this user.</param>
         /// <returns>The created user.</returns>
-        Task<UserResponseDTO?> CreateUserAsync(CreateUserRequestDTO createRequest);
+        Task<UserResponseDTO?> CreateUserAsync(CreateUserRequestDTO createRequest, int createdByUserId);
 
         /// <summary>
-        /// Updates an existing user.
+        /// Updates an existing user with access control.
         /// </summary>
         /// <param name="id">The user ID to update.</param>
         /// <param name="updateRequest">The update user request.</param>
-        /// <returns>The updated user if successful; otherwise, null.</returns>
-        Task<UserResponseDTO?> UpdateUserAsync(int id, UpdateUserRequestDTO updateRequest);
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>The updated user if successful and accessible; otherwise, null.</returns>
+        Task<UserResponseDTO?> UpdateUserAsync(int id, UpdateUserRequestDTO updateRequest, int currentUserId);
 
         /// <summary>
         /// Changes a user's password.
@@ -76,11 +80,12 @@ namespace YopoBackend.Modules.UserCRUD.Services
         Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequestDTO changePasswordRequest);
 
         /// <summary>
-        /// Deletes a user by their ID.
+        /// Deletes a user by their ID with access control.
         /// </summary>
         /// <param name="id">The user ID to delete.</param>
-        /// <returns>True if the user was deleted successfully; otherwise, false.</returns>
-        Task<bool> DeleteUserAsync(int id);
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>True if the user was deleted successfully and accessible; otherwise, false.</returns>
+        Task<bool> DeleteUserAsync(int id, int currentUserId);
 
         /// <summary>
         /// Activates or deactivates a user account.
