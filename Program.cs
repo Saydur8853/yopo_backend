@@ -147,17 +147,34 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// TEMPORARY: Enable Swagger unconditionally for debugging
+var enableSwaggerEnvVar = Environment.GetEnvironmentVariable("ENABLE_SWAGGER");
+var enableSwagger = true; // Force enable for debugging
+
+// Log Swagger configuration for debugging
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
+logger.LogInformation("ENABLE_SWAGGER Environment Variable: '{EnableSwaggerVar}'", enableSwaggerEnvVar ?? "null");
+logger.LogInformation("Swagger Enabled: {SwaggerEnabled}", enableSwagger);
+
+// Configure Swagger BEFORE static files
+if (enableSwagger)
 {
-    app.UseSwagger();
+    logger.LogInformation("Configuring Swagger middleware...");
+    app.UseSwagger(c =>
+    {
+        c.RouteTemplate = "swagger/{documentname}/swagger.json";
+    });
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Yopo Backend API V1");
         c.RoutePrefix = "swagger"; // Set Swagger UI at /swagger path
+        c.DocumentTitle = "Yopo Backend API Documentation";
     });
+    logger.LogInformation("Swagger middleware configured successfully.");
 }
 
-// Configure default files (index.html) - must come before UseStaticFiles
+// Configure default files (index.html) - must come after Swagger
 app.UseDefaultFiles();
 
 // Enable static files serving
@@ -176,28 +193,40 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Ensure database is created and initialize default data
+// Ensure database is migrated and initialize default data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var dbLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     
     try
     {
-        // For development: Drop and recreate database to handle schema changes
-        // COMMENTED OUT: This was causing data loss on every run
-        // if (app.Environment.IsDevelopment())
-        // {
-        //     context.Database.EnsureDeleted();
-        //     Console.WriteLine("Development mode: Dropped existing database");
-        // }
+        if (app.Environment.IsProduction())
+        {
+            // In production (AWS), use migrations for proper schema management
+            dbLogger.LogInformation("Production environment detected. Running database migrations...");
+            await context.Database.MigrateAsync();
+            dbLogger.LogInformation("Database migrations completed successfully!");
+        }
+        else
+        {
+            // For development: Use EnsureCreated for simplicity
+            // COMMENTED OUT: This was causing data loss on every run
+            // if (app.Environment.IsDevelopment())
+            // {
+            //     context.Database.EnsureDeleted();
+            //     Console.WriteLine("Development mode: Dropped existing database");
+            // }
+            
+            context.Database.EnsureCreated();
+            dbLogger.LogInformation("Development database connection established successfully!");
+        }
         
-        context.Database.EnsureCreated();
-        Console.WriteLine("Database connection established successfully!");
-        Console.WriteLine("Available tables: Modules, UserTypes, UserTypeModulePermissions, Invitations, Buildings");
+        dbLogger.LogInformation("Available tables: Modules, UserTypes, UserTypeModulePermissions, Invitations, Users, UserTokens, Buildings");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database connection failed: {ex.Message}");
+        dbLogger.LogError(ex, "Database initialization failed: {Message}", ex.Message);
         throw;
     }
 }

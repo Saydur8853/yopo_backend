@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yopo Backend API - Production</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 3rem;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 600px;
+        }
+        
+        .status {
+            display: inline-block;
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+        
+        .links {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .link {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .link:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .info-card {
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: left;
+        }
+        
+        .info-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-value {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Yopo Backend API</h1>
+        <div class="status">✅ Production Ready</div>
+        
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-label">Environment</div>
+                <div class="info-value">Production</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">Framework</div>
+                <div class="info-value">.NET 9</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">Platform</div>
+                <div class="info-value">AWS Elastic Beanstalk</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">Database</div>
+                <div class="info-value">MySQL (AWS RDS)</div>
+            </div>
+        </div>
+
+        <div class="links">
+            <a href="/swagger" class="link">📖 API Documentation</a>
+            <a href="/api/modules" class="link">🔧 Modules Endpoint</a>
+            <a href="/auth.html" class="link">🔑 Admin Panel</a>
+        </div>
+
+        <p style="font-size: 0.9rem; margin-top: 2rem; opacity: 0.7;">
+            This API supports JWT authentication, automatic database migrations, and modular architecture.
+        </p>
+    </div>
+</body>
+</html>
