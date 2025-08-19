@@ -86,6 +86,26 @@ namespace YopoBackend.Constants
         public const string BUILDING_MODULE_VERSION = "1.0.0";
 
         /// <summary>
+        /// Module ID for the TenantCRUD module.
+        /// </summary>
+        public const int TENANT_MODULE_ID = 5;
+
+        /// <summary>
+        /// Module name for the TenantCRUD module.
+        /// </summary>
+        public const string TENANT_MODULE_NAME = "TenantCRUD";
+
+        /// <summary>
+        /// Module description for the TenantCRUD module.
+        /// </summary>
+        public const string TENANT_MODULE_DESCRIPTION = "Module for managing tenants with CRUD operations";
+
+        /// <summary>
+        /// Current version of the TenantCRUD module.
+        /// </summary>
+        public const string TENANT_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
         /// Gets all module information as a dictionary for easy access.
         /// </summary>
         public static readonly Dictionary<int, ModuleInfo> Modules = new()
@@ -131,6 +151,17 @@ namespace YopoBackend.Constants
                     Name = BUILDING_MODULE_NAME,
                     Description = BUILDING_MODULE_DESCRIPTION,
                     Version = BUILDING_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                TENANT_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = TENANT_MODULE_ID,
+                    Name = TENANT_MODULE_NAME,
+                    Description = TENANT_MODULE_DESCRIPTION,
+                    Version = TENANT_MODULE_VERSION,
                     IsActive = true
                 }
             }

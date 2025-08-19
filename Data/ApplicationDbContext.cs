@@ -3,6 +3,7 @@ using YopoBackend.Modules.InvitationCRUD.Models;
 using YopoBackend.Modules.UserTypeCRUD.Models;
 using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Modules.BuildingCRUD.Models;
+using YopoBackend.Modules.TenantCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -58,6 +59,12 @@ namespace YopoBackend.Data
         /// Gets or sets the Buildings DbSet for managing building entities.
         /// </summary>
         public DbSet<Building> Buildings { get; set; }
+
+        // Module: TenantCRUD (Module ID: 5)
+        /// <summary>
+        /// Gets or sets the Tenants DbSet for managing tenant entities.
+        /// </summary>
+        public DbSet<Tenant> Tenants { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -206,9 +213,43 @@ namespace YopoBackend.Data
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt)
                     .HasColumnType("datetime");
+                entity.Property(e => e.DateStartOperation)
+                    .HasColumnType("datetime(6)");
                 entity.Property(e => e.Name).HasMaxLength(200);
                 entity.Property(e => e.Address).HasMaxLength(500);
                 entity.Property(e => e.Photo).HasMaxLength(1000);
+                entity.Property(e => e.Type).HasMaxLength(100);
+                entity.Property(e => e.Developer).HasMaxLength(200);
+                entity.Property(e => e.Color).HasMaxLength(50);
+            });
+            
+            // Configure Tenant entity (Module ID: 5)
+            modelBuilder.Entity<Tenant>(entity =>
+            {
+                entity.HasKey(e => e.TenantId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => new { e.BuildingId, e.UnitNo }).IsUnique(); // Ensure unique unit per building
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.ContractStartDate)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.ContractEndDate)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.Type).HasMaxLength(50);
+                entity.Property(e => e.UnitNo).HasMaxLength(20);
+                entity.Property(e => e.Contact).HasMaxLength(500);
+                entity.Property(e => e.MemberType).HasMaxLength(50);
+                entity.Property(e => e.Files).HasColumnType("json");
+                
+                // Configure foreign key relationship with Building
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Restrict); // Prevent deleting Building if it has tenants
             });
         }
     }

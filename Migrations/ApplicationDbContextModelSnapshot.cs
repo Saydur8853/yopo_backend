@@ -72,6 +72,13 @@ namespace YopoBackend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
+                    b.Property<string>("Color")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int?>("CommercialUnit")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -79,6 +86,28 @@ namespace YopoBackend.Migrations
 
                     b.Property<int>("CreatedBy")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("DateStartOperation")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Developer")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int?>("Floors")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("HasGym")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasReception")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasSauna")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasSwimpool")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
@@ -88,9 +117,22 @@ namespace YopoBackend.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
+                    b.Property<int?>("ParkingFloor")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ParkingSpace")
+                        .HasColumnType("int");
+
                     b.Property<string>("Photo")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("Units")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime");
@@ -140,6 +182,80 @@ namespace YopoBackend.Migrations
                     b.HasIndex("UserTypeId");
 
                     b.ToTable("Invitations");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.TenantCRUD.Models.Tenant", b =>
+                {
+                    b.Property<int>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("TenantId"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Contact")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("ContractEndDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime>("ContractStartDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Files")
+                        .HasColumnType("json");
+
+                    b.Property<int>("Floor")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MemberType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("Paid")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("ParkingSpace")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("UnitNo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("TenantId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("BuildingId", "UnitNo")
+                        .IsUnique();
+
+                    b.ToTable("Tenants");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.User", b =>
@@ -379,6 +495,17 @@ namespace YopoBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("UserType");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.TenantCRUD.Models.Tenant", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Building");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.User", b =>
