@@ -4,6 +4,8 @@ using YopoBackend.Modules.UserTypeCRUD.Models;
 using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Modules.TenantCRUD.Models;
+using YopoBackend.Modules.CustomerCRUD.Models;
+using YopoBackend.Modules.InvoiceCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -65,6 +67,18 @@ namespace YopoBackend.Data
         /// Gets or sets the Tenants DbSet for managing tenant entities.
         /// </summary>
         public DbSet<Tenant> Tenants { get; set; }
+
+        // Module: CustomerCRUD (Module ID: 6)
+        /// <summary>
+        /// Gets or sets the Customers DbSet for managing customer entities.
+        /// </summary>
+        public DbSet<Customer> Customers { get; set; }
+
+        // Module: InvoiceCRUD (Module ID: 7)
+        /// <summary>
+        /// Gets or sets the Invoices DbSet for managing invoice entities.
+        /// </summary>
+        public DbSet<Invoice> Invoices { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -250,6 +264,29 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.BuildingId)
                     .OnDelete(DeleteBehavior.Restrict); // Prevent deleting Building if it has tenants
+            });
+            
+            // Configure Customer entity (Module ID: 6)
+            modelBuilder.Entity<Customer>(entity =>
+            {
+                entity.HasKey(e => e.CustomerId);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.Name);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.Address).HasMaxLength(500);
+                entity.Property(e => e.CompanyLicense).HasMaxLength(100);
+                entity.Property(e => e.Type).HasMaxLength(50);
+                
+                // Configure foreign key relationship with User
+                entity.HasOne(e => e.User)
+                    .WithMany(u => u.Customers)
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Restrict); // Prevent deleting User if it has customers
             });
         }
     }

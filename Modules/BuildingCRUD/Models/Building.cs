@@ -122,5 +122,12 @@ namespace YopoBackend.Modules.BuildingCRUD.Models
         /// Gets or sets when the building was last updated.
         /// </summary>
         public DateTime? UpdatedAt { get; set; }
+
+        // Navigation properties
+
+        /// <summary>
+        /// Navigation property to the invoices created for this building.
+        /// </summary>
+        public virtual ICollection<YopoBackend.Modules.InvoiceCRUD.Models.Invoice> Invoices { get; set; } = new List<YopoBackend.Modules.InvoiceCRUD.Models.Invoice>();
     }
 }

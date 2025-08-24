@@ -145,6 +145,71 @@ namespace YopoBackend.Migrations
                     b.ToTable("Buildings");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.CustomerCRUD.Models.Customer", b =>
+                {
+                    b.Property<int>("CustomerId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("CustomerId"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("CompanyLicense")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsTrial")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("NumberOfTowers")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NumberOfUnits")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Paid")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CustomerId");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Customers");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.InvitationCRUD.Models.Invitation", b =>
                 {
                     b.Property<int>("Id")
@@ -486,6 +551,17 @@ namespace YopoBackend.Migrations
                     b.ToTable("UserTypeModulePermissions");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.CustomerCRUD.Models.Customer", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "User")
+                        .WithMany("Customers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.InvitationCRUD.Models.Invitation", b =>
                 {
                     b.HasOne("YopoBackend.Modules.UserTypeCRUD.Models.UserType", "UserType")
@@ -547,6 +623,11 @@ namespace YopoBackend.Migrations
                     b.Navigation("Module");
 
                     b.Navigation("UserType");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.User", b =>
+                {
+                    b.Navigation("Customers");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UserTypeCRUD.Models.UserType", b =>

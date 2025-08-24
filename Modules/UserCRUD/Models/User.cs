@@ -118,6 +118,11 @@ namespace YopoBackend.Modules.UserCRUD.Models
         public virtual UserType? UserType { get; set; }
 
         /// <summary>
+        /// Gets or sets the customers managed by this user.
+        /// </summary>
+        public virtual ICollection<YopoBackend.Modules.CustomerCRUD.Models.Customer> Customers { get; set; } = new List<YopoBackend.Modules.CustomerCRUD.Models.Customer>();
+
+        /// <summary>
         /// Gets the full name of the user (combination of first and last name).
         /// </summary>
         [NotMapped]
