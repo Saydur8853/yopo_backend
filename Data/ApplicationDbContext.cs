@@ -288,6 +288,25 @@ namespace YopoBackend.Data
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Restrict); // Prevent deleting User if it has customers
             });
+            
+            // Configure Invoice entity (Module ID: 7)
+            modelBuilder.Entity<Invoice>(entity =>
+            {
+                entity.HasKey(e => e.InvoiceId);
+                entity.HasIndex(e => e.CustomerId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => new { e.CustomerId, e.Month, e.Year, e.BuildingId }).IsUnique(); // Ensure unique invoice per customer/building/month/year
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.DueDate)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Status).HasMaxLength(50);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+            });
         }
     }
 }

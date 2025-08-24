@@ -94,13 +94,11 @@ namespace YopoBackend.Modules.InvoiceCRUD.Models
         /// <summary>
         /// Navigation property to the customer associated with this invoice.
         /// </summary>
-        [ForeignKey(nameof(CustomerId))]
         public virtual YopoBackend.Modules.CustomerCRUD.Models.Customer? Customer { get; set; }
 
         /// <summary>
         /// Navigation property to the building associated with this invoice.
         /// </summary>
-        [ForeignKey(nameof(BuildingId))]
         public virtual YopoBackend.Modules.BuildingCRUD.Models.Building? Building { get; set; }
     }
 }

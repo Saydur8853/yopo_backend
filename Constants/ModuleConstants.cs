@@ -106,6 +106,46 @@ namespace YopoBackend.Constants
         public const string TENANT_MODULE_VERSION = "1.0.0";
 
         /// <summary>
+        /// Module ID for the CustomerCRUD module.
+        /// </summary>
+        public const int CUSTOMER_MODULE_ID = 6;
+
+        /// <summary>
+        /// Module name for the CustomerCRUD module.
+        /// </summary>
+        public const string CUSTOMER_MODULE_NAME = "CustomerCRUD";
+
+        /// <summary>
+        /// Module description for the CustomerCRUD module.
+        /// </summary>
+        public const string CUSTOMER_MODULE_DESCRIPTION = "Module for managing customers with CRUD operations";
+
+        /// <summary>
+        /// Current version of the CustomerCRUD module.
+        /// </summary>
+        public const string CUSTOMER_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
+        /// Module ID for the InvoiceCRUD module.
+        /// </summary>
+        public const int INVOICE_MODULE_ID = 7;
+
+        /// <summary>
+        /// Module name for the InvoiceCRUD module.
+        /// </summary>
+        public const string INVOICE_MODULE_NAME = "InvoiceCRUD";
+
+        /// <summary>
+        /// Module description for the InvoiceCRUD module.
+        /// </summary>
+        public const string INVOICE_MODULE_DESCRIPTION = "Module for managing invoices with CRUD operations";
+
+        /// <summary>
+        /// Current version of the InvoiceCRUD module.
+        /// </summary>
+        public const string INVOICE_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
         /// Gets all module information as a dictionary for easy access.
         /// </summary>
         public static readonly Dictionary<int, ModuleInfo> Modules = new()
@@ -162,6 +202,28 @@ namespace YopoBackend.Constants
                     Name = TENANT_MODULE_NAME,
                     Description = TENANT_MODULE_DESCRIPTION,
                     Version = TENANT_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                CUSTOMER_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = CUSTOMER_MODULE_ID,
+                    Name = CUSTOMER_MODULE_NAME,
+                    Description = CUSTOMER_MODULE_DESCRIPTION,
+                    Version = CUSTOMER_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                INVOICE_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = INVOICE_MODULE_ID,
+                    Name = INVOICE_MODULE_NAME,
+                    Description = INVOICE_MODULE_DESCRIPTION,
+                    Version = INVOICE_MODULE_VERSION,
                     IsActive = true
                 }
             }
