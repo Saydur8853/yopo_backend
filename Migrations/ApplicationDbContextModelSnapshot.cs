@@ -145,6 +145,92 @@ namespace YopoBackend.Migrations
                     b.ToTable("Buildings");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.CCTVcrud.Models.CCTV", b =>
+                {
+                    b.Property<int>("CctvId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("CctvId"));
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<bool>("HasNightVision")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasPTZ")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("InstallationDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("LastMaintenanceDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Size")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Stream")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("CctvId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("BuildingId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("CCTVs");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.CustomerCRUD.Models.Customer", b =>
                 {
                     b.Property<int>("CustomerId")
@@ -208,6 +294,115 @@ namespace YopoBackend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.IntercomCRUD.Models.Intercom", b =>
+                {
+                    b.Property<int>("IntercomId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("IntercomId"));
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DateInstalled")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("FirmwareVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<bool>("HasCCTV")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasRemoteAccess")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasTouchScreen")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsInstalled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsPinPad")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("MacAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("OperatingSystem")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("ServiceDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Size")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("WarrantyExpiryDate")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("IntercomId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("BuildingId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Intercoms");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.InvitationCRUD.Models.Invitation", b =>
@@ -612,6 +807,24 @@ namespace YopoBackend.Migrations
                     b.ToTable("UserTypeModulePermissions");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.CCTVcrud.Models.CCTV", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.TenantCRUD.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Building");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.CustomerCRUD.Models.Customer", b =>
                 {
                     b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "User")
@@ -621,6 +834,17 @@ namespace YopoBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.IntercomCRUD.Models.Intercom", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Building");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.InvitationCRUD.Models.Invitation", b =>

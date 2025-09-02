@@ -6,6 +6,8 @@ using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Modules.TenantCRUD.Models;
 using YopoBackend.Modules.CustomerCRUD.Models;
 using YopoBackend.Modules.InvoiceCRUD.Models;
+using YopoBackend.Modules.CCTVcrud.Models;
+using YopoBackend.Modules.IntercomCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -79,6 +81,18 @@ namespace YopoBackend.Data
         /// Gets or sets the Invoices DbSet for managing invoice entities.
         /// </summary>
         public DbSet<Invoice> Invoices { get; set; }
+
+        // Module: CCTVcrud (Module ID: 8)
+        /// <summary>
+        /// Gets or sets the CCTVs DbSet for managing CCTV camera entities.
+        /// </summary>
+        public DbSet<CCTV> CCTVs { get; set; }
+
+        // Module: IntercomCRUD (Module ID: 9)
+        /// <summary>
+        /// Gets or sets the Intercoms DbSet for managing intercom system entities.
+        /// </summary>
+        public DbSet<Intercom> Intercoms { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -306,6 +320,80 @@ namespace YopoBackend.Data
                 entity.Property(e => e.Status).HasMaxLength(50);
                 entity.Property(e => e.Description).HasMaxLength(1000);
                 entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+            });
+            
+            // Configure CCTV entity (Module ID: 8)
+            modelBuilder.Entity<CCTV>(entity =>
+            {
+                entity.HasKey(e => e.CctvId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => new { e.BuildingId, e.Name }).IsUnique(); // Ensure unique name per building
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.InstallationDate)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.LastMaintenanceDate)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.Model).HasMaxLength(100);
+                entity.Property(e => e.Size).HasMaxLength(50);
+                entity.Property(e => e.Location).HasMaxLength(500);
+                entity.Property(e => e.Stream).HasMaxLength(1000);
+                entity.Property(e => e.Resolution).HasMaxLength(50);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                
+                // Configure foreign key relationship with Building
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Restrict); // Prevent deleting Building if it has CCTVs
+                
+                // Configure foreign key relationship with Tenant (optional)
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.SetNull); // Set null when tenant is deleted
+            });
+            
+            // Configure Intercom entity (Module ID: 9)
+            modelBuilder.Entity<Intercom>(entity =>
+            {
+                entity.HasKey(e => e.IntercomId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => new { e.BuildingId, e.Name }).IsUnique(); // Ensure unique name per building
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.DateInstalled)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.ServiceDate)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.WarrantyExpiryDate)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.Model).HasMaxLength(100);
+                entity.Property(e => e.Type).HasMaxLength(50);
+                entity.Property(e => e.Size).HasMaxLength(50);
+                entity.Property(e => e.Color).HasMaxLength(50);
+                entity.Property(e => e.OperatingSystem).HasMaxLength(100);
+                entity.Property(e => e.Location).HasMaxLength(500);
+                entity.Property(e => e.IpAddress).HasMaxLength(50);
+                entity.Property(e => e.MacAddress).HasMaxLength(50);
+                entity.Property(e => e.FirmwareVersion).HasMaxLength(50);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+                
+                // Configure foreign key relationship with Building
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Restrict); // Prevent deleting Building if it has intercoms
             });
         }
     }

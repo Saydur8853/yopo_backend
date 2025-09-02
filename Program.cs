@@ -12,6 +12,8 @@ using YopoBackend.Modules.BuildingCRUD.Services;
 using YopoBackend.Modules.TenantCRUD.Services;
 using YopoBackend.Modules.CustomerCRUD.Services;
 using YopoBackend.Modules.InvoiceCRUD.Services;
+using YopoBackend.Modules.CCTVcrud.Services;
+using YopoBackend.Modules.IntercomCRUD.Services;
 using YopoBackend.Services;
 using YopoBackend.Constants;
 using YopoBackend.Middleware;
@@ -50,6 +52,12 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 // Module: InvoiceCRUD (Module ID: 7)
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+
+// Module: CCTVcrud (Module ID: 8)
+builder.Services.AddScoped<ICCTVService, CCTVService>();
+
+// Module: IntercomCRUD (Module ID: 9)
+builder.Services.AddScoped<IIntercomService, IntercomService>();
 
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
@@ -144,6 +152,8 @@ static string GetControllerDisplayOrder(string? controllerName)
         "tenants" => "06-Tenants",
         "customers" => "07-Customers",
         "invoices" => "08-Invoices",
+        "cctvs" => "09-CCTVs",
+        "intercoms" => "10-Intercoms",
         _ => $"99-{controllerName}"
     };
 }

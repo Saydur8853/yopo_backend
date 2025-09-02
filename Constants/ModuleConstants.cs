@@ -146,6 +146,46 @@ namespace YopoBackend.Constants
         public const string INVOICE_MODULE_VERSION = "1.0.0";
 
         /// <summary>
+        /// Module ID for the CCTVcrud module.
+        /// </summary>
+        public const int CCTVcrudModuleId = 8;
+
+        /// <summary>
+        /// Module name for the CCTVcrud module.
+        /// </summary>
+        public const string CCTV_MODULE_NAME = "CCTVcrud";
+
+        /// <summary>
+        /// Module description for the CCTVcrud module.
+        /// </summary>
+        public const string CCTV_MODULE_DESCRIPTION = "Module for managing CCTV cameras with CRUD operations and monitoring capabilities";
+
+        /// <summary>
+        /// Current version of the CCTVcrud module.
+        /// </summary>
+        public const string CCTV_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
+        /// Module ID for the IntercomCRUD module.
+        /// </summary>
+        public const int INTERCOM_MODULE_ID = 9;
+
+        /// <summary>
+        /// Module name for the IntercomCRUD module.
+        /// </summary>
+        public const string INTERCOM_MODULE_NAME = "IntercomCRUD";
+
+        /// <summary>
+        /// Module description for the IntercomCRUD module.
+        /// </summary>
+        public const string INTERCOM_MODULE_DESCRIPTION = "Module for managing intercom systems with CRUD operations and maintenance tracking";
+
+        /// <summary>
+        /// Current version of the IntercomCRUD module.
+        /// </summary>
+        public const string INTERCOM_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
         /// Gets all module information as a dictionary for easy access.
         /// </summary>
         public static readonly Dictionary<int, ModuleInfo> Modules = new()
@@ -224,6 +264,28 @@ namespace YopoBackend.Constants
                     Name = INVOICE_MODULE_NAME,
                     Description = INVOICE_MODULE_DESCRIPTION,
                     Version = INVOICE_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                CCTVcrudModuleId,
+                new ModuleInfo
+                {
+                    Id = CCTVcrudModuleId,
+                    Name = CCTV_MODULE_NAME,
+                    Description = CCTV_MODULE_DESCRIPTION,
+                    Version = CCTV_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                INTERCOM_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = INTERCOM_MODULE_ID,
+                    Name = INTERCOM_MODULE_NAME,
+                    Description = INTERCOM_MODULE_DESCRIPTION,
+                    Version = INTERCOM_MODULE_VERSION,
                     IsActive = true
                 }
             }
