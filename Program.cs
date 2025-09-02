@@ -59,6 +59,9 @@ builder.Services.AddScoped<ICCTVService, CCTVService>();
 // Module: IntercomCRUD (Module ID: 9)
 builder.Services.AddScoped<IIntercomService, IntercomService>();
 
+// Module: VirtualKeyCRUD (Module ID: 10)
+builder.Services.AddScoped<YopoBackend.Modules.VirtualKeyCRUD.Services.IVirtualKeyService, YopoBackend.Modules.VirtualKeyCRUD.Services.VirtualKeyService>();
+
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
@@ -154,6 +157,7 @@ static string GetControllerDisplayOrder(string? controllerName)
         "invoices" => "08-Invoices",
         "cctvs" => "09-CCTVs",
         "intercoms" => "10-Intercoms",
+        "virtualkeys" => "11-VirtualKeys",
         _ => $"99-{controllerName}"
     };
 }

@@ -8,6 +8,7 @@ using YopoBackend.Modules.CustomerCRUD.Models;
 using YopoBackend.Modules.InvoiceCRUD.Models;
 using YopoBackend.Modules.CCTVcrud.Models;
 using YopoBackend.Modules.IntercomCRUD.Models;
+using YopoBackend.Modules.VirtualKeyCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -93,6 +94,12 @@ namespace YopoBackend.Data
         /// Gets or sets the Intercoms DbSet for managing intercom system entities.
         /// </summary>
         public DbSet<Intercom> Intercoms { get; set; }
+
+        // Module: VirtualKeyCRUD (Module ID: 10)
+        /// <summary>
+        /// Gets or sets the VirtualKeys DbSet for managing virtual key entities.
+        /// </summary>
+        public DbSet<VirtualKey> VirtualKeys { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -394,6 +401,50 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.BuildingId)
                     .OnDelete(DeleteBehavior.Restrict); // Prevent deleting Building if it has intercoms
+            });
+            
+            // Configure VirtualKey entity (Module ID: 10)
+            modelBuilder.Entity<VirtualKey>(entity =>
+            {
+                entity.HasKey(e => e.KeyId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.IntercomId);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.PinCode); // For faster lookups
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.DateCreated)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.DateExpired)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.Type).HasMaxLength(50);
+                entity.Property(e => e.Status).HasMaxLength(20);
+                entity.Property(e => e.AccessLocation).HasMaxLength(500);
+                entity.Property(e => e.PinCode).HasMaxLength(20);
+                entity.Property(e => e.QrCode).HasMaxLength(1000);
+                
+                // Configure foreign key relationship with Building
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Restrict); // Prevent deleting Building if it has virtual keys
+                
+                // Configure foreign key relationship with Tenant (optional)
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.SetNull); // Set null when tenant is deleted
+                
+                // Configure foreign key relationship with Intercom (optional)
+                entity.HasOne(e => e.Intercom)
+                    .WithMany()
+                    .HasForeignKey(e => e.IntercomId)
+                    .OnDelete(DeleteBehavior.SetNull); // Set null when intercom is deleted
             });
         }
     }

@@ -186,6 +186,26 @@ namespace YopoBackend.Constants
         public const string INTERCOM_MODULE_VERSION = "1.0.0";
 
         /// <summary>
+        /// Module ID for the VirtualKeyCRUD module.
+        /// </summary>
+        public const int VIRTUAL_KEY_MODULE_ID = 10;
+
+        /// <summary>
+        /// Module name for the VirtualKeyCRUD module.
+        /// </summary>
+        public const string VIRTUAL_KEY_MODULE_NAME = "VirtualKeyCRUD";
+
+        /// <summary>
+        /// Module description for the VirtualKeyCRUD module.
+        /// </summary>
+        public const string VIRTUAL_KEY_MODULE_DESCRIPTION = "Module for managing virtual keys with CRUD operations and access control";
+
+        /// <summary>
+        /// Current version of the VirtualKeyCRUD module.
+        /// </summary>
+        public const string VIRTUAL_KEY_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
         /// Gets all module information as a dictionary for easy access.
         /// </summary>
         public static readonly Dictionary<int, ModuleInfo> Modules = new()
@@ -286,6 +306,17 @@ namespace YopoBackend.Constants
                     Name = INTERCOM_MODULE_NAME,
                     Description = INTERCOM_MODULE_DESCRIPTION,
                     Version = INTERCOM_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                VIRTUAL_KEY_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = VIRTUAL_KEY_MODULE_ID,
+                    Name = VIRTUAL_KEY_MODULE_NAME,
+                    Description = VIRTUAL_KEY_MODULE_DESCRIPTION,
+                    Version = VIRTUAL_KEY_MODULE_VERSION,
                     IsActive = true
                 }
             }

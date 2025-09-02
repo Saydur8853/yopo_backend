@@ -17,8 +17,9 @@ namespace YopoBackend.Modules.VirtualKeyCRUD.DTOs
         /// <summary>
         /// Gets or sets the type of the virtual key (e.g., Temporary, Permanent, Guest).
         /// </summary>
+        [Required]
         [StringLength(50)]
-        public string? Type { get; set; }
+        public string Type { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the status of the virtual key (e.g., Active, Inactive, Expired).

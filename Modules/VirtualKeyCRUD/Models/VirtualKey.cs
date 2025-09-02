@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.VirtualKeyCRUD.Models
 {
@@ -8,7 +9,7 @@ namespace YopoBackend.Modules.VirtualKeyCRUD.Models
     /// Module: VirtualKeyCRUD (Module ID: 10)
     /// </summary>
     [Table("VirtualKeys")]
-    public class VirtualKey
+    public class VirtualKey : ICreatedByEntity
     {
         /// <summary>
         /// Gets or sets the unique identifier for the virtual key.
@@ -99,6 +100,11 @@ namespace YopoBackend.Modules.VirtualKeyCRUD.Models
         /// </summary>
         [Column("IsActive")]
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the ID of the user who created this virtual key record.
+        /// </summary>
+        public int CreatedBy { get; set; }
 
         /// <summary>
         /// Gets or sets the creation timestamp.
