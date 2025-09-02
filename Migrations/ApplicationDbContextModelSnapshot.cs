@@ -534,6 +534,9 @@ namespace YopoBackend.Migrations
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
                     b.Property<string>("Files")
                         .HasColumnType("json");
 
@@ -807,6 +810,99 @@ namespace YopoBackend.Migrations
                     b.ToTable("UserTypeModulePermissions");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.VirtualKeyCRUD.Models.VirtualKey", b =>
+                {
+                    b.Property<int>("KeyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("KeyId");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("KeyId"));
+
+                    b.Property<string>("AccessLocation")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("AccessLocation");
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int")
+                        .HasColumnName("BuildingId");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DateCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("DateCreated")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime?>("DateExpired")
+                        .HasColumnType("datetime")
+                        .HasColumnName("DateExpired");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("Description");
+
+                    b.Property<int?>("IntercomId")
+                        .HasColumnType("int")
+                        .HasColumnName("IntercomId");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IsActive");
+
+                    b.Property<string>("PinCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("PinCode");
+
+                    b.Property<string>("QrCode")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("QrCode");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("Status");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int")
+                        .HasColumnName("TenantId");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Type");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("UpdatedAt");
+
+                    b.HasKey("KeyId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("IntercomId");
+
+                    b.HasIndex("PinCode");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("VirtualKeys");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.CCTVcrud.Models.CCTV", b =>
                 {
                     b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
@@ -927,6 +1023,31 @@ namespace YopoBackend.Migrations
                     b.Navigation("Module");
 
                     b.Navigation("UserType");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.VirtualKeyCRUD.Models.VirtualKey", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", "Intercom")
+                        .WithMany()
+                        .HasForeignKey("IntercomId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("YopoBackend.Modules.TenantCRUD.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Building");
+
+                    b.Navigation("Intercom");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.BuildingCRUD.Models.Building", b =>

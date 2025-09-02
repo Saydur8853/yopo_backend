@@ -41,10 +41,10 @@ public class DiagnosticController : ControllerBase
             Timestamp = DateTime.UtcNow,
             AllEnvironmentVariables = Environment.GetEnvironmentVariables()
                 .Cast<System.Collections.DictionaryEntry>()
-                .Where(e => e.Key.ToString().StartsWith("ENABLE_") || 
-                           e.Key.ToString().StartsWith("ASPNETCORE_") || 
-                           e.Key.ToString().StartsWith("yopo_"))
-                .ToDictionary(e => e.Key.ToString(), e => e.Value?.ToString() ?? "null")
+                .Where(e => e.Key.ToString()!.StartsWith("ENABLE_") || 
+                           e.Key.ToString()!.StartsWith("ASPNETCORE_") || 
+                           e.Key.ToString()!.StartsWith("yopo_"))
+                .ToDictionary(e => e.Key.ToString()!, e => e.Value?.ToString() ?? "null")
         };
 
         _logger.LogInformation("Diagnostic info requested: {@DiagnosticInfo}", info);

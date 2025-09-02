@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using YopoBackend.Services;
 
 namespace YopoBackend.Modules.TenantCRUD.Models
 {
@@ -8,7 +9,7 @@ namespace YopoBackend.Modules.TenantCRUD.Models
     /// Module: TenantCRUD (Module ID: 5)
     /// </summary>
     [Table("Tenants")]
-    public class Tenant
+    public class Tenant : ICreatedByEntity
     {
         /// <summary>
         /// Gets or sets the unique identifier for the tenant.
@@ -106,6 +107,12 @@ namespace YopoBackend.Modules.TenantCRUD.Models
         /// Gets or sets the last update timestamp.
         /// </summary>
         public DateTime? UpdatedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the ID of the user who created this tenant.
+        /// </summary>
+        [Required]
+        public int CreatedBy { get; set; }
 
         /// <summary>
         /// Navigation property to the building this tenant belongs to.

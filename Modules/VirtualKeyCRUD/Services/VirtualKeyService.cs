@@ -222,7 +222,7 @@ namespace YopoBackend.Modules.VirtualKeyCRUD.Services
             }
 
             virtualKey.Description = updateVirtualKeyDto.Description;
-            virtualKey.Type = updateVirtualKeyDto.Type;
+            virtualKey.Type = updateVirtualKeyDto.Type ?? virtualKey.Type;
             virtualKey.Status = updateVirtualKeyDto.Status;
             virtualKey.DateExpired = updateVirtualKeyDto.DateExpired;
             virtualKey.AccessLocation = updateVirtualKeyDto.AccessLocation;
@@ -358,7 +358,7 @@ namespace YopoBackend.Modules.VirtualKeyCRUD.Services
         /// <inheritdoc/>
         public async Task<bool> ValidateTenantAccessAsync(int tenantId, int userId)
         {
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
+            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.TenantId == tenantId);
             if (tenant == null)
             {
                 return false;
@@ -370,7 +370,7 @@ namespace YopoBackend.Modules.VirtualKeyCRUD.Services
         /// <inheritdoc/>
         public async Task<bool> ValidateIntercomAccessAsync(int intercomId, int userId)
         {
-            var intercom = await _context.Intercoms.FirstOrDefaultAsync(i => i.Id == intercomId);
+            var intercom = await _context.Intercoms.FirstOrDefaultAsync(i => i.IntercomId == intercomId);
             if (intercom == null)
             {
                 return false;
@@ -481,7 +481,7 @@ namespace YopoBackend.Modules.VirtualKeyCRUD.Services
                 UpdatedAt = virtualKey.UpdatedAt,
                 BuildingName = virtualKey.Building?.Name,
                 IntercomName = virtualKey.Intercom?.Name,
-                TenantName = virtualKey.Tenant?.FirstName + " " + virtualKey.Tenant?.LastName
+                TenantName = virtualKey.Tenant?.Name
             };
         }
     }
