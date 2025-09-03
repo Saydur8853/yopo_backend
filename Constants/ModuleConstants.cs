@@ -206,6 +206,46 @@ namespace YopoBackend.Constants
         public const string VIRTUAL_KEY_MODULE_VERSION = "1.0.0";
 
         /// <summary>
+        /// Module ID for the DoorCRUD module.
+        /// </summary>
+        public const int DOOR_MODULE_ID = 12;
+
+        /// <summary>
+        /// Module name for the DoorCRUD module.
+        /// </summary>
+        public const string DOOR_MODULE_NAME = "DoorCRUD";
+
+        /// <summary>
+        /// Module description for the DoorCRUD module.
+        /// </summary>
+        public const string DOOR_MODULE_DESCRIPTION = "Module for managing doors with CRUD operations and access control";
+
+        /// <summary>
+        /// Current version of the DoorCRUD module.
+        /// </summary>
+        public const string DOOR_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
+        /// Module ID for the NotificationCRUD module.
+        /// </summary>
+        public const int NOTIFICATION_CRUD = 14;
+
+        /// <summary>
+        /// Module name for the NotificationCRUD module.
+        /// </summary>
+        public const string NOTIFICATION_MODULE_NAME = "NotificationCRUD";
+
+        /// <summary>
+        /// Module description for the NotificationCRUD module.
+        /// </summary>
+        public const string NOTIFICATION_MODULE_DESCRIPTION = "Module for managing notifications with CRUD operations and delivery tracking";
+
+        /// <summary>
+        /// Current version of the NotificationCRUD module.
+        /// </summary>
+        public const string NOTIFICATION_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
         /// Gets all module information as a dictionary for easy access.
         /// </summary>
         public static readonly Dictionary<int, ModuleInfo> Modules = new()
@@ -317,6 +357,28 @@ namespace YopoBackend.Constants
                     Name = VIRTUAL_KEY_MODULE_NAME,
                     Description = VIRTUAL_KEY_MODULE_DESCRIPTION,
                     Version = VIRTUAL_KEY_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                DOOR_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = DOOR_MODULE_ID,
+                    Name = DOOR_MODULE_NAME,
+                    Description = DOOR_MODULE_DESCRIPTION,
+                    Version = DOOR_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                NOTIFICATION_CRUD,
+                new ModuleInfo
+                {
+                    Id = NOTIFICATION_CRUD,
+                    Name = NOTIFICATION_MODULE_NAME,
+                    Description = NOTIFICATION_MODULE_DESCRIPTION,
+                    Version = NOTIFICATION_MODULE_VERSION,
                     IsActive = true
                 }
             }

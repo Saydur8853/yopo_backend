@@ -62,6 +62,12 @@ builder.Services.AddScoped<IIntercomService, IntercomService>();
 // Module: VirtualKeyCRUD (Module ID: 10)
 builder.Services.AddScoped<YopoBackend.Modules.VirtualKeyCRUD.Services.IVirtualKeyService, YopoBackend.Modules.VirtualKeyCRUD.Services.VirtualKeyService>();
 
+// Module: DoorCRUD (Module ID: 12)
+builder.Services.AddScoped<YopoBackend.Modules.DoorCRUD.Services.IDoorService, YopoBackend.Modules.DoorCRUD.Services.DoorService>();
+
+// Module: NotificationCRUD (Module ID: 14)
+builder.Services.AddScoped<YopoBackend.Modules.NotificationCRUD.Services.INotificationService, YopoBackend.Modules.NotificationCRUD.Services.NotificationService>();
+
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
@@ -158,6 +164,8 @@ static string GetControllerDisplayOrder(string? controllerName)
         "cctvs" => "09-CCTVs",
         "intercoms" => "10-Intercoms",
         "virtualkeys" => "11-VirtualKeys",
+        "doors" => "12-Doors",
+        "notifications" => "14-Notifications",
         _ => $"99-{controllerName}"
     };
 }
@@ -262,6 +270,15 @@ using (var scope = app.Services.CreateScope())
 
 // 🚀 AUTOMATIC INITIALIZATION: This ensures Super Admin always has ALL module access!
 // Every time you add new modules, Super Admin will automatically get access
+
+// Add module checking before initialization
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var moduleChecker = new YopoBackend.ModuleChecker(context);
+    await moduleChecker.CheckModulesAsync();
+}
+
 await app.TryInitializeDefaultDataAsync();
 
 app.Run();

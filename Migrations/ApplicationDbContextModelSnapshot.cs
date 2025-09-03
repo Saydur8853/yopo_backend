@@ -296,6 +296,116 @@ namespace YopoBackend.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.DoorCRUD.Models.Door", b =>
+                {
+                    b.Property<int>("DoorId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("DoorId"));
+
+                    b.Property<string>("AccessLevel")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("AutoLockDelay")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CCTVId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("CanOpenByWatchCommand")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DateCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<bool>("FireExit")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("Floor")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("HasAutoLock")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasBiometricAccess")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasCardAccess")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("IntercomId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCarPark")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsMonitored")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int?>("LockoutDuration")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaxPinAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("OperatingHours")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool>("PinOnly")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("DoorId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("CCTVId");
+
+                    b.HasIndex("IntercomId");
+
+                    b.HasIndex("BuildingId", "Type", "Location");
+
+                    b.ToTable("Doors");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.IntercomCRUD.Models.Intercom", b =>
                 {
                     b.Property<int>("IntercomId")
@@ -503,6 +613,146 @@ namespace YopoBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("Invoices");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.NotificationCRUD.Models.Notification", b =>
+                {
+                    b.Property<int>("NotificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("NotificationId"));
+
+                    b.Property<int?>("BuildingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("File")
+                        .HasColumnType("json");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsUrgent")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("json");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("ReadCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecipientCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequiresAcknowledgment")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("ScheduledAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("SendEmail")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("SendFrom")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool>("SendInApp")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("SendPush")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("SendSMS")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("SentTo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("WarningLevel")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("NotificationId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("IsUrgent");
+
+                    b.HasIndex("Priority");
+
+                    b.HasIndex("ScheduledAt");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("Type", "Status");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.TenantCRUD.Models.Tenant", b =>
@@ -932,6 +1182,31 @@ namespace YopoBackend.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.DoorCRUD.Models.Door", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.CCTVcrud.Models.CCTV", "CCTV")
+                        .WithMany()
+                        .HasForeignKey("CCTVId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", "Intercom")
+                        .WithMany()
+                        .HasForeignKey("IntercomId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Building");
+
+                    b.Navigation("CCTV");
+
+                    b.Navigation("Intercom");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.IntercomCRUD.Models.Intercom", b =>
                 {
                     b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
@@ -971,6 +1246,38 @@ namespace YopoBackend.Migrations
                     b.Navigation("Building");
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.NotificationCRUD.Models.Notification", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.CustomerCRUD.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("YopoBackend.Modules.TenantCRUD.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Building");
+
+                    b.Navigation("Creator");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.TenantCRUD.Models.Tenant", b =>

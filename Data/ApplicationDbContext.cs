@@ -9,6 +9,8 @@ using YopoBackend.Modules.InvoiceCRUD.Models;
 using YopoBackend.Modules.CCTVcrud.Models;
 using YopoBackend.Modules.IntercomCRUD.Models;
 using YopoBackend.Modules.VirtualKeyCRUD.Models;
+using YopoBackend.Modules.DoorCRUD.Models;
+using YopoBackend.Modules.NotificationCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -100,6 +102,18 @@ namespace YopoBackend.Data
         /// Gets or sets the VirtualKeys DbSet for managing virtual key entities.
         /// </summary>
         public DbSet<VirtualKey> VirtualKeys { get; set; }
+
+// Module: DoorCRUD (Module ID: 12)
+        /// <summary>
+        /// Gets or sets the Doors DbSet for managing door entities.
+        /// </summary>
+        public DbSet<Door> Doors { get; set; }
+
+        // Module: NotificationCRUD (Module ID: 14)
+        /// <summary>
+        /// Gets or sets the Notifications DbSet for managing notification entities.
+        /// </summary>
+        public DbSet<Notification> Notifications { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -445,6 +459,112 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.IntercomId)
                     .OnDelete(DeleteBehavior.SetNull); // Set null when intercom is deleted
+            });
+            
+            // Configure Door entity (Module ID: 12)
+            modelBuilder.Entity<Door>(entity =>
+            {
+                entity.HasKey(e => e.DoorId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.IntercomId);
+                entity.HasIndex(e => e.CCTVId);
+                entity.HasIndex(e => new { e.BuildingId, e.Type, e.Location }); // For efficient filtering
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.DateCreated)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.Type).HasMaxLength(100);
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.Location).HasMaxLength(500);
+                entity.Property(e => e.AccessLevel).HasMaxLength(50);
+                entity.Property(e => e.OperatingHours).HasMaxLength(100);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                
+                // Configure foreign key relationship with Building
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Restrict); // Prevent deleting Building if it has doors
+                
+                // Configure foreign key relationship with Intercom (optional)
+                entity.HasOne(e => e.Intercom)
+                    .WithMany()
+                    .HasForeignKey(e => e.IntercomId)
+                    .OnDelete(DeleteBehavior.SetNull); // Set null when intercom is deleted
+                
+                // Configure foreign key relationship with CCTV (optional)
+                entity.HasOne(e => e.CCTV)
+                    .WithMany()
+                    .HasForeignKey(e => e.CCTVId)
+                    .OnDelete(DeleteBehavior.SetNull); // Set null when CCTV is deleted
+            });
+            
+            // Configure Notification entity (Module ID: 14)
+            modelBuilder.Entity<Notification>(entity =>
+            {
+                entity.HasKey(e => e.NotificationId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.CustomerId);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.CreatedBy);
+                entity.HasIndex(e => new { e.Type, e.Status }); // For efficient filtering
+                entity.HasIndex(e => e.Priority); // For priority-based queries
+                entity.HasIndex(e => e.IsUrgent); // For urgent notification queries
+                entity.HasIndex(e => e.ScheduledAt); // For scheduled notification queries
+                entity.HasIndex(e => e.IsActive); // For active/inactive filtering
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.ScheduledAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.SentAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.DeliveredAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.ReadAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.ExpiresAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Title).HasMaxLength(300);
+                entity.Property(e => e.Description).HasMaxLength(2000);
+                entity.Property(e => e.Type).HasMaxLength(50);
+                entity.Property(e => e.SentTo).HasMaxLength(100);
+                entity.Property(e => e.SendFrom).HasMaxLength(100);
+                entity.Property(e => e.Status).HasMaxLength(50);
+                entity.Property(e => e.WarningLevel).HasMaxLength(20);
+                entity.Property(e => e.Category).HasMaxLength(100);
+                entity.Property(e => e.File).HasColumnType("json");
+                entity.Property(e => e.Metadata).HasColumnType("json");
+                
+                // Configure foreign key relationship with Building (optional)
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.SetNull); // Set null when building is deleted
+                
+                // Configure foreign key relationship with Customer (optional)
+                entity.HasOne(e => e.Customer)
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.SetNull); // Set null when customer is deleted
+                
+                // Configure foreign key relationship with Tenant (optional)
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.SetNull); // Set null when tenant is deleted
+                
+                // Configure foreign key relationship with Creator (required)
+                entity.HasOne(e => e.Creator)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict); // Prevent deleting user if they have created notifications
             });
         }
     }
