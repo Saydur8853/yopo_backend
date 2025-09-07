@@ -61,12 +61,6 @@ namespace YopoBackend.Modules.CustomerCRUD.DTOs
         [Range(0, int.MaxValue, ErrorMessage = "Number of towers must be non-negative.")]
         public int NumberOfTowers { get; set; } = 0;
 
-        /// <summary>
-        /// Gets or sets the user ID who manages this customer account.
-        /// </summary>
-        [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "User ID must be a positive integer.")]
-        public int UserId { get; set; }
     }
 
     /// <summary>
@@ -128,12 +122,6 @@ namespace YopoBackend.Modules.CustomerCRUD.DTOs
         [Range(0, int.MaxValue, ErrorMessage = "Number of towers must be non-negative.")]
         public int NumberOfTowers { get; set; } = 0;
 
-        /// <summary>
-        /// Gets or sets the user ID who manages this customer account.
-        /// </summary>
-        [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "User ID must be a positive integer.")]
-        public int UserId { get; set; }
     }
 
     /// <summary>

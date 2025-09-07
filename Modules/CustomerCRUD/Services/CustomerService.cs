@@ -114,11 +114,14 @@ namespace YopoBackend.Modules.CustomerCRUD.Services
         /// <inheritdoc/>
         public async Task<CustomerResponseDTO> CreateCustomerAsync(CreateCustomerDTO createCustomerDto, int createdByUserId)
         {
-            // Verify that the assigned user exists
-            var userExists = await _context.Users.AnyAsync(u => u.Id == createCustomerDto.UserId);
+            // Customer is always assigned to the current logged-in user
+            var assignedUserId = createdByUserId;
+            
+            // Verify that the user exists
+            var userExists = await _context.Users.AnyAsync(u => u.Id == assignedUserId);
             if (!userExists)
             {
-                throw new ArgumentException($"User with ID {createCustomerDto.UserId} does not exist.");
+                throw new ArgumentException($"User with ID {assignedUserId} does not exist.");
             }
 
             var customer = new Customer
@@ -132,7 +135,7 @@ namespace YopoBackend.Modules.CustomerCRUD.Services
                 Paid = createCustomerDto.Paid,
                 Type = createCustomerDto.Type,
                 NumberOfTowers = createCustomerDto.NumberOfTowers,
-                UserId = createCustomerDto.UserId,
+                UserId = assignedUserId,
                 CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow
             };
@@ -152,16 +155,6 @@ namespace YopoBackend.Modules.CustomerCRUD.Services
                 return null;
             }
 
-            // Verify that the assigned user exists if it's being changed
-            if (customer.UserId != updateCustomerDto.UserId)
-            {
-                var userExists = await _context.Users.AnyAsync(u => u.Id == updateCustomerDto.UserId);
-                if (!userExists)
-                {
-                    throw new ArgumentException($"User with ID {updateCustomerDto.UserId} does not exist.");
-                }
-            }
-
             // Update customer properties
             customer.Name = updateCustomerDto.Name;
             customer.Address = updateCustomerDto.Address;
@@ -172,7 +165,6 @@ namespace YopoBackend.Modules.CustomerCRUD.Services
             customer.Paid = updateCustomerDto.Paid;
             customer.Type = updateCustomerDto.Type;
             customer.NumberOfTowers = updateCustomerDto.NumberOfTowers;
-            customer.UserId = updateCustomerDto.UserId;
             customer.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
