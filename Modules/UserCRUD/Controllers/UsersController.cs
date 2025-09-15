@@ -8,6 +8,7 @@ using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
 using YopoBackend.Modules.UserCRUD.Services;
 using YopoBackend.Services;
+using YopoBackend.Utils;
 
 namespace YopoBackend.Modules.UserCRUD.Controllers
 {
@@ -742,6 +743,163 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 isFirstUser = false,
                 message = "You are not invited. Please contact with Authority."
             });
+        }
+
+        // Profile Photo Management Endpoints
+
+        /// <summary>
+        /// Updates the current user's profile photo.
+        /// </summary>
+        /// <param name="request">The profile photo update request containing base64 encoded image.</param>
+        /// <returns>Success status with updated user information.</returns>
+        /// <response code="200">Profile photo updated successfully</response>
+        /// <response code="400">Invalid image format or size</response>
+        /// <response code="401">Unauthorized</response>
+        [HttpPost("me/profile-photo")]
+        [Authorize]
+        [ProducesResponseType(typeof(UserResponseDTO), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> UpdateCurrentUserProfilePhoto([FromBody] UpdateProfilePhotoRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            try
+            {
+                // Validate the image if provided
+                if (!string.IsNullOrEmpty(request.ProfilePhotoBase64))
+                {
+                    var validationResult = ImageUtils.ValidateBase64Image(request.ProfilePhotoBase64);
+                    if (!validationResult.IsValid)
+                    {
+                        return BadRequest(new { message = validationResult.ErrorMessage });
+                    }
+                }
+
+                // Get current user
+                var currentUser = await _context.Users.FindAsync(userId);
+                if (currentUser == null)
+                {
+                    return NotFound(new { message = "User not found." });
+                }
+
+                // Update profile photo
+                if (!string.IsNullOrEmpty(request.ProfilePhotoBase64))
+                {
+                    var validationResult = ImageUtils.ValidateBase64Image(request.ProfilePhotoBase64);
+                    currentUser.ProfilePhoto = validationResult.ImageBytes;
+                    currentUser.ProfilePhotoMimeType = validationResult.MimeType;
+                }
+                else if (request.ProfilePhotoBase64 == string.Empty) // Explicitly removing photo
+                {
+                    currentUser.ProfilePhoto = null;
+                    currentUser.ProfilePhotoMimeType = null;
+                }
+
+                currentUser.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                // Return updated user information
+                var updatedUser = await _userService.GetUserByIdAsync(userId, userId);
+                return Ok(new { 
+                    message = "Profile photo updated successfully.", 
+                    user = updatedUser 
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error updating profile photo: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Removes the current user's profile photo.
+        /// </summary>
+        /// <returns>Success status.</returns>
+        /// <response code="200">Profile photo removed successfully</response>
+        /// <response code="401">Unauthorized</response>
+        /// <response code="404">User not found</response>
+        [HttpDelete("me/profile-photo")]
+        [Authorize]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> RemoveCurrentUserProfilePhoto()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            try
+            {
+                var currentUser = await _context.Users.FindAsync(userId);
+                if (currentUser == null)
+                {
+                    return NotFound(new { message = "User not found." });
+                }
+
+                // Remove profile photo
+                currentUser.ProfilePhoto = null;
+                currentUser.ProfilePhotoMimeType = null;
+                currentUser.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Profile photo removed successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error removing profile photo: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Gets a user's profile photo by user ID (returns the raw image data).
+        /// </summary>
+        /// <param name="id">The user ID.</param>
+        /// <returns>The profile photo as raw image data or 404 if not found.</returns>
+        /// <response code="200">Profile photo retrieved successfully</response>
+        /// <response code="404">User not found or no profile photo</response>
+        [HttpGet("{id}/profile-photo")]
+        [AllowAnonymous]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetUserProfilePhoto(int id)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Where(u => u.Id == id)
+                    .Select(u => new { u.ProfilePhoto, u.ProfilePhotoMimeType })
+                    .FirstOrDefaultAsync();
+
+                if (user == null || user.ProfilePhoto == null || user.ProfilePhoto.Length == 0)
+                {
+                    return NotFound(new { message = "Profile photo not found." });
+                }
+
+                // Return the raw image data with proper content type
+                return File(user.ProfilePhoto, user.ProfilePhotoMimeType ?? "image/jpeg");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error retrieving profile photo: {ex.Message}" });
+            }
         }
     }
 }

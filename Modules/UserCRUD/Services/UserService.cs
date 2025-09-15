@@ -6,6 +6,7 @@ using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Services;
 using YopoBackend.Constants;
+using YopoBackend.Utils;
 
 namespace YopoBackend.Modules.UserCRUD.Services
 {
@@ -373,6 +374,22 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 // Hash password
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(createRequest.Password);
 
+                // Process profile photo if provided
+                byte[]? profilePhotoBytes = null;
+                string? profilePhotoMimeType = null;
+                
+                if (!string.IsNullOrEmpty(createRequest.ProfilePhotoBase64))
+                {
+                    var validationResult = ImageUtils.ValidateBase64Image(createRequest.ProfilePhotoBase64);
+                    if (!validationResult.IsValid)
+                    {
+                        throw new ArgumentException($"Invalid profile photo: {validationResult.ErrorMessage}");
+                    }
+                    
+                    profilePhotoBytes = validationResult.ImageBytes;
+                    profilePhotoMimeType = validationResult.MimeType;
+                }
+
                 // Create new user
                 var user = new User
                 {
@@ -381,7 +398,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     FirstName = createRequest.FirstName,
                     LastName = createRequest.LastName,
                     PhoneNumber = createRequest.PhoneNumber,
-                    ProfilePhoto = createRequest.ProfilePhoto,
+                    ProfilePhoto = profilePhotoBytes,
+                    ProfilePhotoMimeType = profilePhotoMimeType,
                     UserTypeId = createRequest.UserTypeId,
                     IsActive = createRequest.IsActive,
                     IsEmailVerified = createRequest.IsEmailVerified,
@@ -440,11 +458,29 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     return null; // Invalid user type
                 }
 
+                // Process profile photo if provided
+                if (!string.IsNullOrEmpty(updateRequest.ProfilePhotoBase64))
+                {
+                    var validationResult = ImageUtils.ValidateBase64Image(updateRequest.ProfilePhotoBase64);
+                    if (!validationResult.IsValid)
+                    {
+                        throw new ArgumentException($"Invalid profile photo: {validationResult.ErrorMessage}");
+                    }
+                    
+                    user.ProfilePhoto = validationResult.ImageBytes;
+                    user.ProfilePhotoMimeType = validationResult.MimeType;
+                }
+                else if (updateRequest.ProfilePhotoBase64 == string.Empty) // Explicitly removing photo
+                {
+                    user.ProfilePhoto = null;
+                    user.ProfilePhotoMimeType = null;
+                }
+                // If ProfilePhotoBase64 is null, don't change the existing photo
+
                 // Update user properties
                 user.FirstName = updateRequest.FirstName;
                 user.LastName = updateRequest.LastName;
                 user.PhoneNumber = updateRequest.PhoneNumber;
-                user.ProfilePhoto = updateRequest.ProfilePhoto;
                 user.UserTypeId = updateRequest.UserTypeId;
                 user.IsActive = updateRequest.IsActive;
                 user.IsEmailVerified = updateRequest.IsEmailVerified;
@@ -746,7 +782,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 LastName = user.LastName,
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
-                ProfilePhoto = user.ProfilePhoto,
+                ProfilePhotoBase64 = ImageUtils.ConvertToBase64DataUrl(user.ProfilePhoto, user.ProfilePhotoMimeType),
                 UserTypeId = user.UserTypeId,
                 UserTypeName = user.UserType?.Name ?? string.Empty,
                 IsActive = user.IsActive,

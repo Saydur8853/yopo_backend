@@ -122,6 +122,15 @@
             color: white;
             font-weight: 600;
             font-size: 1.2rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
         }
 
         .user-info h3 {
@@ -461,6 +470,7 @@
         </div>
     </div>
 
+    <script src="/js/avatar-utils.js"></script>
     <script>
         // API Configuration
         const API_BASE = '/api';
@@ -585,9 +595,14 @@
                     </div>`;
                 }
                 
+                // Generate avatar HTML with profile photo or initials fallback
+                const avatarHtml = user.profilePhotoBase64 
+                    ? `<img src="${user.profilePhotoBase64}" alt="${fullName} profile photo" onerror="this.parentNode.innerHTML='${initials}'">` 
+                    : initials;
+
                 return `
                     <div class="user-item">
-                        <div class="user-avatar">${initials}</div>
+                        <div class="user-avatar">${avatarHtml}</div>
                         <div class="user-info">
                             <h3>${fullName}</h3>
                             <p>📧 ${user.emailAddress}</p>

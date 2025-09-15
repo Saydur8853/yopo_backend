@@ -59,11 +59,18 @@ namespace YopoBackend.Modules.UserCRUD.Models
         public string? PhoneNumber { get; set; }
 
         /// <summary>
-        /// Gets or sets the profile photo URL/path of the user.
+        /// Gets or sets the profile photo binary data of the user.
+        /// Stores the image as binary data (LONGBLOB/VARBINARY(MAX)) in the database.
         /// </summary>
-        [MaxLength(1000)]
-        [Column("ProfilePhoto")]
-        public string? ProfilePhoto { get; set; }
+        [Column("ProfilePhoto", TypeName = "LONGBLOB")]
+        public byte[]? ProfilePhoto { get; set; }
+
+        /// <summary>
+        /// Gets or sets the MIME type of the profile photo (e.g., 'image/jpeg', 'image/png').
+        /// </summary>
+        [MaxLength(50)]
+        [Column("ProfilePhotoMimeType")]
+        public string? ProfilePhotoMimeType { get; set; }
 
         /// <summary>
         /// Gets or sets the user type ID that determines the user's role and permissions.

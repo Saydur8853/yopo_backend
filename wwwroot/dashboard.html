@@ -49,6 +49,15 @@
             justify-content: center;
             font-weight: 600;
             font-size: 1.1rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
         }
 
         .user-details h3 {
@@ -171,7 +180,17 @@
         <div class="quick-actions">
             <h3>Quick Actions</h3>
             <div class="actions-grid">
-                <!-- All buttons are dynamically added based on module permissions -->
+                <!-- Core user actions available to all users -->
+                <button class="action-btn" onclick="editProfile()">
+                    👤 Edit Profile
+                </button>
+                <button class="action-btn" onclick="changePassword()">
+                    🔑 Change Password
+                </button>
+                <a href="/swagger/index.html" target="_blank" class="action-btn">
+                    📖 API Documentation
+                </a>
+                <!-- Module-specific buttons are dynamically added based on permissions -->
             </div>
         </div>
 
@@ -199,6 +218,7 @@
         </div>
     </div>
 
+    <script src="/js/avatar-utils.js"></script>
     <script>
         // API Configuration
         const API_BASE = '/api';
@@ -255,11 +275,36 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             document.getElementById('user-name').textContent = user.fullName || `${user.firstName} ${user.lastName}`;
             document.getElementById('user-type').textContent = user.userTypeName || 'Member';
             
-            // Avatar with first letter of first name
-            const avatar = document.getElementById('user-avatar');
-            avatar.textContent = user.firstName ? user.firstName.charAt(0).toUpperCase() : 'U';
+            // Avatar with profile photo or initials fallback
+            updateUserAvatar(user);
             
             // Buttons are now handled dynamically by module permissions
+        }
+
+        // Update user avatar with profile photo or initials fallback
+        function updateUserAvatar(user) {
+            const avatar = document.getElementById('user-avatar');
+            
+            if (user.profilePhotoBase64) {
+                // Show profile photo
+                avatar.innerHTML = `<img src="${user.profilePhotoBase64}" alt="Profile photo" onerror="showAvatarFallback(this, '${getInitials(user.firstName, user.lastName)}')">`;
+            } else {
+                // Show initials fallback
+                const initials = getInitials(user.firstName, user.lastName);
+                avatar.innerHTML = initials;
+            }
+        }
+
+        // Get user initials
+        function getInitials(firstName, lastName) {
+            const first = firstName ? firstName.charAt(0).toUpperCase() : '';
+            const last = lastName ? lastName.charAt(0).toUpperCase() : '';
+            return first + last || 'U';
+        }
+
+        // Fallback function when image fails to load
+        function showAvatarFallback(img, initials) {
+            img.parentNode.innerHTML = initials;
         }
 
         // Load user modules and update Quick Actions accordingly
@@ -484,6 +529,12 @@ sessionStorage.setItem('redirectUrl', window.location.href);
         function manageUsers() {
             // Redirect to the dedicated user management page
             window.location.href = '/users.html';
+        }
+
+        // Edit profile function
+        function editProfile() {
+            // Redirect to the profile edit page
+            window.location.href = '/profile.html';
         }
 
         // Close modals when clicking outside

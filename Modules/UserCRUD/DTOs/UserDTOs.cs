@@ -112,10 +112,11 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public string? PhoneNumber { get; set; }
 
         /// <summary>
-        /// Gets or sets the profile photo URL/path of the user.
+        /// Gets or sets the profile photo as a base64 encoded string.
+        /// Maximum size: 5MB (after base64 encoding: ~6.7MB)
+        /// Supported formats: JPEG, PNG, GIF, BMP, WebP
         /// </summary>
-        [MaxLength(1000, ErrorMessage = "Profile photo path cannot exceed 1000 characters")]
-        public string? ProfilePhoto { get; set; }
+        public string? ProfilePhotoBase64 { get; set; }
 
         /// <summary>
         /// Gets or sets the user type ID that determines the user's role and permissions.
@@ -161,10 +162,11 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public string? PhoneNumber { get; set; }
 
         /// <summary>
-        /// Gets or sets the profile photo URL/path of the user.
+        /// Gets or sets the profile photo as a base64 encoded string.
+        /// Maximum size: 5MB (after base64 encoding: ~6.7MB)
+        /// Supported formats: JPEG, PNG, GIF, BMP, WebP
         /// </summary>
-        [MaxLength(1000, ErrorMessage = "Profile photo path cannot exceed 1000 characters")]
-        public string? ProfilePhoto { get; set; }
+        public string? ProfilePhotoBase64 { get; set; }
 
         /// <summary>
         /// Gets or sets the user type ID that determines the user's role and permissions.
@@ -288,9 +290,10 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public string? PhoneNumber { get; set; }
 
         /// <summary>
-        /// Gets or sets the profile photo URL/path of the user.
+        /// Gets or sets the profile photo as a base64 encoded string.
+        /// Will be null if no profile photo is set.
         /// </summary>
-        public string? ProfilePhoto { get; set; }
+        public string? ProfilePhotoBase64 { get; set; }
 
         /// <summary>
         /// Gets or sets the user type ID that determines the user's role and permissions.

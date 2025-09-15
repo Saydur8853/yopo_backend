@@ -891,10 +891,15 @@ namespace YopoBackend.Migrations
                         .HasColumnType("varchar(20)")
                         .HasColumnName("PhoneNumber");
 
-                    b.Property<string>("ProfilePhoto")
+                    b.Property<byte[]>("ProfilePhoto")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)")
+                        .HasColumnType("LONGBLOB")
                         .HasColumnName("ProfilePhoto");
+
+                    b.Property<string>("ProfilePhotoMimeType")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("ProfilePhotoMimeType");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime")
@@ -912,6 +917,47 @@ namespace YopoBackend.Migrations
                     b.HasIndex("UserTypeId");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.UserBuildingPermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int")
+                        .HasColumnName("BuildingId");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IsActive");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("UpdatedAt");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("UserId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("UserId", "BuildingId")
+                        .IsUnique();
+
+                    b.ToTable("UserBuildingPermissions");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.UserToken", b =>
@@ -1302,6 +1348,25 @@ namespace YopoBackend.Migrations
                     b.Navigation("UserType");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.UserBuildingPermission", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "User")
+                        .WithMany("BuildingPermissions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Building");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.UserToken", b =>
                 {
                     b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "User")
@@ -1369,6 +1434,8 @@ namespace YopoBackend.Migrations
 
             modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.User", b =>
                 {
+                    b.Navigation("BuildingPermissions");
+
                     b.Navigation("Customers");
                 });
 
