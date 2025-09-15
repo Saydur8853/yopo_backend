@@ -468,6 +468,65 @@ namespace YopoBackend.Modules.UserCRUD.Services
         }
 
         /// <summary>
+        /// Resets a user's password - Super Admin can reset any password, users can reset their own.
+        /// </summary>
+        /// <param name="userId">The user ID whose password to reset.</param>
+        /// <param name="resetPasswordRequest">The reset password request.</param>
+        /// <param name="currentUserId">The ID of the user performing the reset.</param>
+        /// <returns>True if the password was reset successfully; otherwise, false.</returns>
+        public async Task<bool> ResetPasswordAsync(int userId, ResetPasswordRequestDTO resetPasswordRequest, int currentUserId)
+        {
+            try
+            {
+                // Get current user information
+                var currentUser = await _context.Users
+                    .Include(u => u.UserType)
+                    .FirstOrDefaultAsync(u => u.Id == currentUserId);
+
+                if (currentUser == null)
+                {
+                    Console.WriteLine($"Password reset denied: Current user {currentUserId} not found");
+                    return false;
+                }
+
+                // Check permissions: Super Admin can reset any password, users can reset their own
+                bool isSuperAdmin = currentUser.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+                bool isOwnPassword = currentUserId == userId;
+                
+                if (!isSuperAdmin && !isOwnPassword)
+                {
+                    Console.WriteLine($"Password reset denied: User {currentUserId} can only reset their own password");
+                    return false;
+                }
+
+                // Find the target user
+                var targetUser = await _context.Users.FindAsync(userId);
+                if (targetUser == null)
+                {
+                    Console.WriteLine($"Password reset failed: User {userId} not found");
+                    return false; // User not found
+                }
+
+                // Hash new password
+                var oldPasswordHash = targetUser.PasswordHash;
+                targetUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(resetPasswordRequest.NewPassword);
+                targetUser.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                
+                string action = isOwnPassword ? "self-reset" : "admin-reset";
+                Console.WriteLine($"Password reset successful: {action} by {currentUser.EmailAddress} for user {targetUser.EmailAddress} (ID: {userId})");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Reset password error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Deletes a user by their ID with access control.
         /// </summary>
         /// <param name="id">The user ID to delete.</param>

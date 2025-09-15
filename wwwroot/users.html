@@ -100,7 +100,7 @@
             border-radius: 8px;
             padding: 1rem;
             display: grid;
-            grid-template-columns: auto 1fr auto;
+            grid-template-columns: auto 1fr auto auto;
             align-items: center;
             gap: 1rem;
             transition: all 0.2s ease;
@@ -178,6 +178,155 @@
             font-size: 1.2rem;
         }
 
+        .user-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-direction: column;
+            align-items: end;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-reset {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #ff5252;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .password-requirements {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .password-requirements ul {
+            margin: 0.5rem 0 0 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 0 1rem;
@@ -228,12 +377,98 @@
         </div>
     </div>
 
+    <!-- Change Password Modal (for current user) -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔑 Change Your Password</h3>
+                <span class="close" onclick="closeChangePasswordModal()">&times;</span>
+            </div>
+            <div id="change-modal-success-container"></div>
+            <div id="change-modal-error-container"></div>
+            
+            <div class="form-group">
+                <label for="changeUserDisplayName">User:</label>
+                <input type="text" id="changeUserDisplayName" readonly style="background: #f8f9fa; color: #666;">
+            </div>
+            
+            <div class="form-group">
+                <label for="changeNewPassword">New Password:</label>
+                <input type="password" id="changeNewPassword" placeholder="Enter new password" required>
+                <div class="password-requirements">
+                    <strong>Password requirements:</strong>
+                    <ul>
+                        <li>At least 8 characters long</li>
+                        <li>At least one uppercase letter</li>
+                        <li>At least one lowercase letter</li>
+                        <li>At least one number</li>
+                        <li>At least one special character</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmNewPassword">Confirm New Password:</label>
+                <input type="password" id="confirmNewPassword" placeholder="Confirm new password" required>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="closeChangePasswordModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitPasswordChange()">Change Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Reset Modal (for Super Admin) -->
+    <div id="resetPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔑 Reset User Password</h3>
+                <span class="close" onclick="closeResetPasswordModal()">&times;</span>
+            </div>
+            <div id="reset-modal-success-container"></div>
+            <div id="reset-modal-error-container"></div>
+            
+            <div class="form-group">
+                <label for="resetUserDisplayName">User:</label>
+                <input type="text" id="resetUserDisplayName" readonly style="background: #f8f9fa; color: #666;">
+            </div>
+            
+            <div class="form-group">
+                <label for="resetNewPassword">New Password:</label>
+                <input type="password" id="resetNewPassword" placeholder="Enter new password" required>
+                <div class="password-requirements">
+                    <strong>Password requirements:</strong>
+                    <ul>
+                        <li>At least 8 characters long</li>
+                        <li>At least one uppercase letter</li>
+                        <li>At least one lowercase letter</li>
+                        <li>At least one number</li>
+                        <li>At least one special character</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmResetPassword">Confirm New Password:</label>
+                <input type="password" id="confirmResetPassword" placeholder="Confirm new password" required>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="closeResetPasswordModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitPasswordReset()">Reset Password</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // API Configuration
         const API_BASE = '/api';
         
         // Global state
         let users = [];
+        let currentUser = null;
+        let selectedUserId = null;
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
@@ -243,6 +478,7 @@
                 return;
             }
             
+            loadCurrentUser();
             loadUsers();
         });
 
@@ -254,6 +490,32 @@
             if (!token || !expiry) return false;
             
             return new Date() < new Date(expiry);
+        }
+
+        // Load current user information
+        async function loadCurrentUser() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/auth.html';
+                        return;
+                    }
+                    throw new Error('Failed to fetch current user');
+                }
+                
+                currentUser = await response.json();
+                console.log('Current user loaded:', currentUser);
+                
+            } catch (error) {
+                console.error('Error loading current user:', error);
+            }
         }
 
         // Load users from API
@@ -302,6 +564,27 @@
                 const initials = getInitials(user.firstName, user.lastName);
                 const fullName = `${user.firstName} ${user.lastName}`.trim();
                 
+                // Check if current user is Super Admin (userTypeId = 1)
+                const isSuperAdmin = currentUser && currentUser.userTypeId === 1;
+                const isCurrentUser = currentUser && currentUser.id === user.id;
+                
+                let actionButtons = '';
+                if (isCurrentUser) {
+                    // Show "Change Password" button for current user
+                    actionButtons = `<div class="user-actions">
+                        <button class="btn-small btn-reset" onclick="openChangePasswordModal(${user.id}, '${fullName}')">
+                            🔑 Change Password
+                        </button>
+                    </div>`;
+                } else if (isSuperAdmin) {
+                    // Show "Reset Password" button for Super Admin on other users
+                    actionButtons = `<div class="user-actions">
+                        <button class="btn-small btn-reset" onclick="openResetPasswordModal(${user.id}, '${fullName}')">
+                            🔑 Reset Password
+                        </button>
+                    </div>`;
+                }
+                
                 return `
                     <div class="user-item">
                         <div class="user-avatar">${initials}</div>
@@ -315,6 +598,7 @@
                         <div class="user-status ${user.isActive ? 'status-active' : 'status-inactive'}">
                             ${user.isActive ? 'Active' : 'Inactive'}
                         </div>
+                        ${actionButtons}
                     </div>
                 `;
             }).join('');
@@ -333,6 +617,245 @@
         function showError(message) {
             const container = document.getElementById('error-container');
             container.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const container = document.getElementById('error-container');
+            container.innerHTML = `<div class="success-message">${message}</div>`;
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 3000);
+        }
+
+        // Password validation functions (borrowed from registration form)
+        function validateChangePasswordMatch() {
+            const password = document.getElementById('changeNewPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword');
+            
+            if (confirmPassword.value && password !== confirmPassword.value) {
+                confirmPassword.style.borderColor = '#dc3545';
+                confirmPassword.style.background = '#fdf2f2';
+            } else {
+                confirmPassword.style.borderColor = '#e9ecef';
+                confirmPassword.style.background = '#fff';
+            }
+        }
+
+        function validateResetPasswordMatch() {
+            const password = document.getElementById('resetNewPassword').value;
+            const confirmPassword = document.getElementById('confirmResetPassword');
+            
+            if (confirmPassword.value && password !== confirmPassword.value) {
+                confirmPassword.style.borderColor = '#dc3545';
+                confirmPassword.style.background = '#fdf2f2';
+            } else {
+                confirmPassword.style.borderColor = '#e9ecef';
+                confirmPassword.style.background = '#fff';
+            }
+        }
+
+        function validatePassword(password) {
+            const minLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            const hasSpecial = /[^A-Za-z0-9]/.test(password);
+            
+            return minLength && hasUpper && hasLower && hasNumber && hasSpecial;
+        }
+
+        // Modal functions for Change Password (current user)
+        function openChangePasswordModal(userId, userFullName) {
+            selectedUserId = userId;
+            document.getElementById('changeUserDisplayName').value = userFullName;
+            document.getElementById('changeNewPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+            document.getElementById('change-modal-success-container').innerHTML = '';
+            document.getElementById('change-modal-error-container').innerHTML = '';
+            document.getElementById('changePasswordModal').style.display = 'block';
+            
+            // Add event listener for password confirmation validation
+            const confirmPasswordField = document.getElementById('confirmNewPassword');
+            confirmPasswordField.addEventListener('input', validateChangePasswordMatch);
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'none';
+            selectedUserId = null;
+        }
+
+        // Modal functions for Reset Password (Super Admin)
+        function openResetPasswordModal(userId, userFullName) {
+            selectedUserId = userId;
+            document.getElementById('resetUserDisplayName').value = userFullName;
+            document.getElementById('resetNewPassword').value = '';
+            document.getElementById('confirmResetPassword').value = '';
+            document.getElementById('reset-modal-success-container').innerHTML = '';
+            document.getElementById('reset-modal-error-container').innerHTML = '';
+            document.getElementById('resetPasswordModal').style.display = 'block';
+            
+            // Add event listener for password confirmation validation
+            const confirmPasswordField = document.getElementById('confirmResetPassword');
+            confirmPasswordField.addEventListener('input', validateResetPasswordMatch);
+        }
+
+        function closeResetPasswordModal() {
+            document.getElementById('resetPasswordModal').style.display = 'none';
+            selectedUserId = null;
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const changeModal = document.getElementById('changePasswordModal');
+            const resetModal = document.getElementById('resetPasswordModal');
+            
+            if (event.target == changeModal) {
+                closeChangePasswordModal();
+            } else if (event.target == resetModal) {
+                closeResetPasswordModal();
+            }
+        }
+
+        // Submit password change (for current user)
+        async function submitPasswordChange() {
+            const newPassword = document.getElementById('changeNewPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            const modalSuccessContainer = document.getElementById('change-modal-success-container');
+            const modalErrorContainer = document.getElementById('change-modal-error-container');
+            
+            // Clear previous messages
+            modalSuccessContainer.innerHTML = '';
+            modalErrorContainer.innerHTML = '';
+            
+            // Validate inputs
+            if (!newPassword) {
+                modalErrorContainer.innerHTML = '<div class="error-message">Please enter a new password.</div>';
+                return;
+            }
+            
+            if (!confirmPassword) {
+                modalErrorContainer.innerHTML = '<div class="error-message">Please confirm your new password.</div>';
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                modalErrorContainer.innerHTML = '<div class="error-message">Passwords do not match.</div>';
+                return;
+            }
+            
+            // Validate password requirements
+            if (!validatePassword(newPassword)) {
+                modalErrorContainer.innerHTML = '<div class="error-message">New password must meet all requirements listed below.</div>';
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/users/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        newPassword: newPassword
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    modalErrorContainer.innerHTML = `<div class="error-message">${errorData.message || 'Failed to change password'}</div>`;
+                    return;
+                }
+                
+                const data = await response.json();
+                modalSuccessContainer.innerHTML = '<div class="success-message">Password changed successfully!</div>';
+                
+                // Auto-close modal after success
+                setTimeout(() => {
+                    closeChangePasswordModal();
+                    showSuccess('Your password has been changed successfully.');
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error changing password:', error);
+                modalErrorContainer.innerHTML = '<div class="error-message">Network error. Please try again.</div>';
+            }
+        }
+
+        // Submit password reset (for Super Admin)
+        async function submitPasswordReset() {
+            const newPassword = document.getElementById('resetNewPassword').value;
+            const confirmPassword = document.getElementById('confirmResetPassword').value;
+            const modalSuccessContainer = document.getElementById('reset-modal-success-container');
+            const modalErrorContainer = document.getElementById('reset-modal-error-container');
+            
+            // Clear previous messages
+            modalSuccessContainer.innerHTML = '';
+            modalErrorContainer.innerHTML = '';
+            
+            // Validate password
+            if (!newPassword) {
+                modalErrorContainer.innerHTML = '<div class="error-message">Please enter a new password.</div>';
+                return;
+            }
+            
+            if (!confirmPassword) {
+                modalErrorContainer.innerHTML = '<div class="error-message">Please confirm the new password.</div>';
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                modalErrorContainer.innerHTML = '<div class="error-message">Passwords do not match.</div>';
+                return;
+            }
+            
+            // Validate password requirements
+            if (!validatePassword(newPassword)) {
+                modalErrorContainer.innerHTML = '<div class="error-message">Password must meet all requirements listed below.</div>';
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/users/${selectedUserId}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        newPassword: newPassword
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (response.status === 403) {
+                        modalErrorContainer.innerHTML = '<div class="error-message">Only Super Admin can reset user passwords.</div>';
+                    } else if (response.status === 404) {
+                        modalErrorContainer.innerHTML = '<div class="error-message">User not found.</div>';
+                    } else {
+                        modalErrorContainer.innerHTML = `<div class="error-message">${errorData.message || 'Failed to reset password'}</div>`;
+                    }
+                    return;
+                }
+                
+                const data = await response.json();
+                modalSuccessContainer.innerHTML = '<div class="success-message">Password reset successfully!</div>';
+                
+                // Auto-close modal after success
+                setTimeout(() => {
+                    closeResetPasswordModal();
+                    showSuccess('User password has been reset successfully.');
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error resetting password:', error);
+                modalErrorContainer.innerHTML = '<div class="error-message">Network error. Please try again.</div>';
+            }
         }
     </script>
 </body>

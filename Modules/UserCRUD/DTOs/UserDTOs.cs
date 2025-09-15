@@ -207,6 +207,23 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public string NewPassword { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// DTO for resetting user password (Super Admin only).
+    /// </summary>
+    public class ResetPasswordRequestDTO
+    {
+        /// <summary>
+        /// Gets or sets the new password of the user.
+        /// Must contain at least 8 characters with uppercase, lowercase, number and special character.
+        /// </summary>
+        [Required(ErrorMessage = "New password is required")]
+        [MinLength(8, ErrorMessage = "New password must be at least 8 characters long")]
+        [MaxLength(100, ErrorMessage = "New password cannot exceed 100 characters")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$", 
+            ErrorMessage = "New password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")]
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
     // Response DTOs
 
     /// <summary>

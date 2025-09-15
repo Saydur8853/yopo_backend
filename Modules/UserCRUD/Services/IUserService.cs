@@ -80,6 +80,15 @@ namespace YopoBackend.Modules.UserCRUD.Services
         Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequestDTO changePasswordRequest);
 
         /// <summary>
+        /// Resets a user's password (Super Admin only - doesn't require current password).
+        /// </summary>
+        /// <param name="userId">The user ID whose password to reset.</param>
+        /// <param name="resetPasswordRequest">The reset password request.</param>
+        /// <param name="currentUserId">The ID of the user performing the reset (must be Super Admin).</param>
+        /// <returns>True if the password was reset successfully; otherwise, false.</returns>
+        Task<bool> ResetPasswordAsync(int userId, ResetPasswordRequestDTO resetPasswordRequest, int currentUserId);
+
+        /// <summary>
         /// Deletes a user by their ID with access control.
         /// </summary>
         /// <param name="id">The user ID to delete.</param>

@@ -413,6 +413,43 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         }
 
         /// <summary>
+        /// Resets the current user's own password (doesn't require current password).
+        /// </summary>
+        /// <param name="resetPasswordRequest">The reset password request.</param>
+        /// <returns>Success status.</returns>
+        /// <response code="200">Password reset successfully</response>
+        /// <response code="400">Invalid request data</response>
+        /// <response code="401">Unauthorized</response>
+        [HttpPost("reset-password")]
+        [Authorize]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> ResetOwnPassword([FromBody] ResetPasswordRequestDTO resetPasswordRequest)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            var result = await _userService.ResetPasswordAsync(userId, resetPasswordRequest, userId);
+
+            if (!result)
+            {
+                return BadRequest(new { message = "Password reset failed." });
+            }
+
+            return Ok(new { message = "Password reset successfully." });
+        }
+
+        /// <summary>
         /// Changes another user's password (admin function).
         /// </summary>
         /// <param name="id">The user ID whose password to change.</param>
@@ -444,6 +481,59 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             }
 
             return Ok(new { message = "Password changed successfully." });
+        }
+
+        /// <summary>
+        /// Resets another user's password (Super Admin only - doesn't require current password).
+        /// </summary>
+        /// <param name="id">The user ID whose password to reset.</param>
+        /// <param name="resetPasswordRequest">The reset password request.</param>
+        /// <returns>Success status.</returns>
+        /// <response code="200">Password reset successfully</response>
+        /// <response code="400">Invalid request data</response>
+        /// <response code="401">Unauthorized</response>
+        /// <response code="403">Forbidden - Only Super Admin can reset passwords</response>
+        /// <response code="404">User not found</response>
+        [HttpPost("{id}/reset-password")]
+        [Authorize]
+        [RequireModule(ModuleConstants.USER_MODULE_ID)]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ResetUserPassword(int id, [FromBody] ResetPasswordRequestDTO resetPasswordRequest)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+            {
+                return Unauthorized(new { message = "Invalid token." });
+            }
+
+            var result = await _userService.ResetPasswordAsync(id, resetPasswordRequest, currentUserId);
+
+            if (!result)
+            {
+                // Check if the current user is Super Admin to determine the error message
+                var currentUser = await _context.Users
+                    .Include(u => u.UserType)
+                    .FirstOrDefaultAsync(u => u.Id == currentUserId);
+                
+                if (currentUser == null || currentUser.UserTypeId != UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
+                {
+                    return StatusCode(403, new { message = "Only Super Admin can reset user passwords." });
+                }
+                
+                return NotFound(new { message = "User not found." });
+            }
+
+            return Ok(new { message = "Password reset successfully." });
         }
 
         /// <summary>
