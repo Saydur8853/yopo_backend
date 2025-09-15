@@ -326,6 +326,27 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Gets or sets the date and time when the user was last updated.
         /// </summary>
         public DateTime? UpdatedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of modules that the user has access to based on their user type.
+        /// </summary>
+        public List<PermittedModuleDto> PermittedModules { get; set; } = new();
+    }
+
+    /// <summary>
+    /// DTO for representing a module permission.
+    /// </summary>
+    public class PermittedModuleDto
+    {
+        /// <summary>
+        /// Gets or sets the module ID.
+        /// </summary>
+        public string ModuleId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the module name.
+        /// </summary>
+        public string ModuleName { get; set; } = string.Empty;
     }
 
     /// <summary>

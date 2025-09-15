@@ -46,6 +46,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                 var user = await _context.Users
                     .Include(u => u.UserType)
+                        .ThenInclude(ut => ut!.ModulePermissions)
+                            .ThenInclude(mp => mp.Module)
                     .FirstOrDefaultAsync(u => u.EmailAddress.ToLower() == loginRequest.EmailAddress.ToLower());
 
                 if (user == null)
@@ -167,11 +169,17 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 user.CreatedBy = user.Id;
                 await _context.SaveChangesAsync();
 
-                // Load user type for response
-                user.UserType = userType;
+                // Reload user with full relationships for response
+                var registeredUser = await _context.Users
+                    .Include(u => u.UserType)
+                        .ThenInclude(ut => ut!.ModulePermissions)
+                            .ThenInclude(mp => mp.Module)
+                    .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+                if (registeredUser == null) return null;
 
                 // Generate JWT token
-                var (token, expiresAt) = await _jwtService.GenerateTokenAsync(user);
+                var (token, expiresAt) = await _jwtService.GenerateTokenAsync(registeredUser);
 
                 var message = isFirstUser ? "Registration successful - You are now the Super Administrator!" : "Registration successful";
                 
@@ -179,7 +187,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 {
                     Token = token,
                     ExpiresAt = expiresAt,
-                    User = MapToUserResponse(user),
+                    User = MapToUserResponse(registeredUser),
                     Message = message
                 };
             }
@@ -210,7 +218,11 @@ namespace YopoBackend.Modules.UserCRUD.Services
         {
             try
             {
-                var query = _context.Users.Include(u => u.UserType).AsQueryable();
+                var query = _context.Users
+                    .Include(u => u.UserType)
+                        .ThenInclude(ut => ut!.ModulePermissions)
+                            .ThenInclude(mp => mp.Module)
+                    .AsQueryable();
 
                 // Apply access control
                 query = await ApplyAccessControlAsync(query, currentUserId);
@@ -276,6 +288,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
             {
                 var user = await _context.Users
                     .Include(u => u.UserType)
+                        .ThenInclude(ut => ut!.ModulePermissions)
+                            .ThenInclude(mp => mp.Module)
                     .FirstOrDefaultAsync(u => u.Id == id);
 
                 if (user == null)
@@ -309,6 +323,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
             {
                 var user = await _context.Users
                     .Include(u => u.UserType)
+                        .ThenInclude(ut => ut!.ModulePermissions)
+                            .ThenInclude(mp => mp.Module)
                     .FirstOrDefaultAsync(u => u.EmailAddress.ToLower() == emailAddress.ToLower());
 
                 return user != null ? MapToUserResponse(user) : null;
@@ -365,10 +381,14 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
 
-                // Load user type for response
-                user.UserType = userType;
+                // Reload user with full relationships for response
+                var createdUser = await _context.Users
+                    .Include(u => u.UserType)
+                        .ThenInclude(ut => ut!.ModulePermissions)
+                            .ThenInclude(mp => mp.Module)
+                    .FirstOrDefaultAsync(u => u.Id == user.Id);
 
-                return MapToUserResponse(user);
+                return createdUser != null ? MapToUserResponse(createdUser) : null;
             }
             catch (Exception ex)
             {
@@ -419,10 +439,14 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                 await _context.SaveChangesAsync();
 
-                // Load user type for response
-                user.UserType = userType;
+                // Reload user with full relationships for response
+                var updatedUser = await _context.Users
+                    .Include(u => u.UserType)
+                        .ThenInclude(ut => ut!.ModulePermissions)
+                            .ThenInclude(mp => mp.Module)
+                    .FirstOrDefaultAsync(u => u.Id == user.Id);
 
-                return MapToUserResponse(user);
+                return updatedUser != null ? MapToUserResponse(updatedUser) : null;
             }
             catch (Exception ex)
             {
@@ -649,6 +673,21 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// <returns>The mapped UserResponseDTO.</returns>
         private static UserResponseDTO MapToUserResponse(User user)
         {
+            // Get permitted modules from user type
+            var permittedModules = new List<PermittedModuleDto>();
+            if (user.UserType?.ModulePermissions != null)
+            {
+                permittedModules = user.UserType.ModulePermissions
+                    .Where(utmp => utmp.IsActive && utmp.Module.IsActive)
+                    .Select(utmp => new PermittedModuleDto
+                    {
+                        ModuleId = utmp.Module.Id.ToString(),
+                        ModuleName = utmp.Module.Name
+                    })
+                    .OrderBy(pm => pm.ModuleId)
+                    .ToList();
+            }
+
             return new UserResponseDTO
             {
                 Id = user.Id,
@@ -664,7 +703,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 IsEmailVerified = user.IsEmailVerified,
                 LastLoginAt = user.LastLoginAt,
                 CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt
+                UpdatedAt = user.UpdatedAt,
+                PermittedModules = permittedModules
             };
         }
     }
