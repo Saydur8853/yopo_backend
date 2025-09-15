@@ -123,6 +123,11 @@ namespace YopoBackend.Modules.UserCRUD.Models
         public virtual ICollection<YopoBackend.Modules.CustomerCRUD.Models.Customer> Customers { get; set; } = new List<YopoBackend.Modules.CustomerCRUD.Models.Customer>();
 
         /// <summary>
+        /// Gets or sets the building permissions for this user.
+        /// </summary>
+        public virtual ICollection<UserBuildingPermission> BuildingPermissions { get; set; } = new List<UserBuildingPermission>();
+
+        /// <summary>
         /// Gets the full name of the user (combination of first and last name).
         /// </summary>
         [NotMapped]

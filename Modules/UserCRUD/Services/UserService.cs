@@ -3,6 +3,7 @@ using BCrypt.Net;
 using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
 using YopoBackend.Modules.UserCRUD.Models;
+using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Services;
 using YopoBackend.Constants;
 
@@ -48,6 +49,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
+                    .Include(u => u.BuildingPermissions)
+                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.EmailAddress.ToLower() == loginRequest.EmailAddress.ToLower());
 
                 if (user == null)
@@ -174,6 +177,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
+                    .Include(u => u.BuildingPermissions)
+                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.Id == user.Id);
 
                 if (registeredUser == null) return null;
@@ -222,6 +227,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
+                    .Include(u => u.BuildingPermissions)
+                        .ThenInclude(bp => bp.Building)
                     .AsQueryable();
 
                 // Apply access control
@@ -290,6 +297,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
+                    .Include(u => u.BuildingPermissions)
+                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.Id == id);
 
                 if (user == null)
@@ -325,6 +334,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
+                    .Include(u => u.BuildingPermissions)
+                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.EmailAddress.ToLower() == emailAddress.ToLower());
 
                 return user != null ? MapToUserResponse(user) : null;
@@ -386,6 +397,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
+                    .Include(u => u.BuildingPermissions)
+                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.Id == user.Id);
 
                 return createdUser != null ? MapToUserResponse(createdUser) : null;
@@ -444,6 +457,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
+                    .Include(u => u.BuildingPermissions)
+                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.Id == user.Id);
 
                 return updatedUser != null ? MapToUserResponse(updatedUser) : null;
@@ -671,7 +686,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// </summary>
         /// <param name="user">The user entity to map.</param>
         /// <returns>The mapped UserResponseDTO.</returns>
-        private static UserResponseDTO MapToUserResponse(User user)
+        private UserResponseDTO MapToUserResponse(User user)
         {
             // Get permitted modules from user type
             var permittedModules = new List<PermittedModuleDto>();
@@ -686,6 +701,41 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     })
                     .OrderBy(pm => pm.ModuleId)
                     .ToList();
+            }
+
+            // Get buildings - Super Admin sees all buildings, others see only their permitted buildings
+            var buildings = new List<UserBuildingDto>();
+            
+            // Check if user is Super Admin
+            if (user.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
+            {
+                // Super Admin gets ALL buildings
+                var allBuildings = _context.Buildings
+                    .Where(b => b.IsActive)
+                    .Select(b => new UserBuildingDto
+                    {
+                        Id = b.Id.ToString(),
+                        Name = b.Name
+                    })
+                    .OrderBy(b => b.Name)
+                    .ToList();
+                buildings = allBuildings;
+            }
+            else
+            {
+                // Regular users get only buildings they have explicit permissions for
+                if (user.BuildingPermissions != null)
+                {
+                    buildings = user.BuildingPermissions
+                        .Where(ubp => ubp.IsActive && ubp.Building != null && ubp.Building.IsActive)
+                        .Select(ubp => new UserBuildingDto
+                        {
+                            Id = ubp.Building!.Id.ToString(),
+                            Name = ubp.Building!.Name
+                        })
+                        .OrderBy(b => b.Name)
+                        .ToList();
+                }
             }
 
             return new UserResponseDTO
@@ -704,7 +754,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 LastLoginAt = user.LastLoginAt,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt,
-                PermittedModules = permittedModules
+                PermittedModules = permittedModules,
+                Buildings = buildings
             };
         }
     }

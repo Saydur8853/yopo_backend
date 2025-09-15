@@ -280,6 +280,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                         Name = userTypeInfo.Value.Name,
                         Description = userTypeInfo.Value.Description,
                         IsActive = userTypeInfo.Value.IsActive,
+                        // Super Admin should always have ALL data access control
+                        DataAccessControl = userTypeInfo.Value.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID ? "ALL" : "ALL",
                         CreatedAt = DateTime.UtcNow
                     };
 
@@ -312,6 +314,13 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                     if (existingUserType.IsActive != userTypeInfo.Value.IsActive)
                     {
                         existingUserType.IsActive = userTypeInfo.Value.IsActive;
+                        hasChanges = true;
+                    }
+
+                    // Ensure Super Admin always has ALL data access control
+                    if (userTypeInfo.Value.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID && existingUserType.DataAccessControl != "ALL")
+                    {
+                        existingUserType.DataAccessControl = "ALL";
                         hasChanges = true;
                     }
 

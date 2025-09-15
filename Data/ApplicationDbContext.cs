@@ -61,6 +61,11 @@ namespace YopoBackend.Data
         /// </summary>
         public DbSet<UserToken> UserTokens { get; set; }
 
+        /// <summary>
+        /// Gets or sets the UserBuildingPermissions DbSet for managing user building access permissions.
+        /// </summary>
+        public DbSet<UserBuildingPermission> UserBuildingPermissions { get; set; }
+
         // Module: BuildingCRUD (Module ID: 4)
         /// <summary>
         /// Gets or sets the Buildings DbSet for managing building entities.
@@ -250,6 +255,31 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade); // Delete tokens when user is deleted
+            });
+            
+            // Configure UserBuildingPermission entity (Module ID: 3)
+            modelBuilder.Entity<UserBuildingPermission>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => new { e.UserId, e.BuildingId }).IsUnique(); // Ensure unique permission per user/building
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                
+                // Configure foreign key relationship with User
+                entity.HasOne(e => e.User)
+                    .WithMany(u => u.BuildingPermissions)
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade); // Delete permissions when user is deleted
+                
+                // Configure foreign key relationship with Building
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Cascade); // Delete permissions when building is deleted
             });
             
             // Configure Building entity (Module ID: 4)

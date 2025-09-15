@@ -331,6 +331,11 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Gets or sets the list of modules that the user has access to based on their user type.
         /// </summary>
         public List<PermittedModuleDto> PermittedModules { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the list of buildings that the user has access to.
+        /// </summary>
+        public List<UserBuildingDto> Buildings { get; set; } = new();
     }
 
     /// <summary>
@@ -347,6 +352,22 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Gets or sets the module name.
         /// </summary>
         public string ModuleName { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO for representing a building in user response.
+    /// </summary>
+    public class UserBuildingDto
+    {
+        /// <summary>
+        /// Gets or sets the building ID.
+        /// </summary>
+        public string Id { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the building name.
+        /// </summary>
+        public string Name { get; set; } = string.Empty;
     }
 
     /// <summary>

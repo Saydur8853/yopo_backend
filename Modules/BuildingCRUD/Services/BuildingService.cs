@@ -5,6 +5,7 @@ using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Modules.UserTypeCRUD.Models;
 using YopoBackend.Services;
+using YopoBackend.Constants;
 
 namespace YopoBackend.Modules.BuildingCRUD.Services
 {
@@ -45,8 +46,8 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 return null;
             }
 
-            // Check access control using base class method
-            if (!await HasAccessToEntityAsync(building, userId))
+            // Check access control considering Super Admin status
+            if (!await HasAccessToBuildingAsync(id, userId))
             {
                 return null; // User doesn't have access to this building
             }
@@ -83,6 +84,18 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             _context.Buildings.Add(building);
             await _context.SaveChangesAsync();
 
+            // Automatically create a user-building permission for the creator
+            var userBuildingPermission = new UserBuildingPermission
+            {
+                UserId = createdByUserId,
+                BuildingId = building.Id,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            
+            _context.UserBuildingPermissions.Add(userBuildingPermission);
+            await _context.SaveChangesAsync();
+
             return MapToDto(building);
         }
 
@@ -95,8 +108,8 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 return null;
             }
 
-            // Check access control using base class method
-            if (!await HasAccessToEntityAsync(building, userId))
+            // Check access control considering Super Admin status
+            if (!await HasAccessToBuildingAsync(id, userId))
             {
                 return null; // User doesn't have access to update this building
             }
@@ -135,8 +148,8 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 return false;
             }
 
-            // Check access control using base class method
-            if (!await HasAccessToEntityAsync(building, userId))
+            // Check access control considering Super Admin status
+            if (!await HasAccessToBuildingAsync(id, userId))
             {
                 return false; // User doesn't have access to delete this building
             }
@@ -170,6 +183,8 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
 
         /// <summary>
         /// Gets buildings based on user's access control settings.
+        /// Super Admin users get access to all buildings, bypassing all access control.
+        /// Other users are subject to both DataAccessControl (OWN/ALL) and user-building permissions.
         /// </summary>
         /// <param name="userId">The ID of the user requesting access.</param>
         /// <param name="includeInactive">Whether to include inactive buildings.</param>
@@ -178,16 +193,87 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         {
             var query = _context.Buildings.AsQueryable();
 
-            // Apply access control using base class method
-            query = await ApplyAccessControlAsync(query, userId);
-
-            // Apply active/inactive filter
-            if (!includeInactive)
+            // Check if user is Super Admin - if so, bypass ALL access control
+            if (await IsUserSuperAdminAsync(userId))
             {
-                query = query.Where(b => b.IsActive);
+                Console.WriteLine($"Super Admin access: User {userId} bypassing all access control for buildings");
+                // Super Admin gets access to ALL buildings with NO filtering except active/inactive
+                if (!includeInactive)
+                {
+                    query = query.Where(b => b.IsActive);
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Regular user access: User {userId} applying access control for buildings");
+                // For non-super admin users, apply both DataAccessControl and user-building permissions
+                
+                // First, apply standard access control based on DataAccessControl setting ("OWN" vs "ALL")
+                query = await ApplyAccessControlAsync(query, userId);
+
+                // Then, apply user-building permission filtering
+                query = await ApplyUserBuildingPermissionFilterAsync(query, userId);
+
+                // Finally, apply active/inactive filter
+                if (!includeInactive)
+                {
+                    query = query.Where(b => b.IsActive);
+                }
             }
 
             return await query.OrderByDescending(b => b.CreatedAt).ToListAsync();
+        }
+
+        /// <summary>
+        /// Checks if a user is a Super Admin.
+        /// </summary>
+        /// <param name="userId">The ID of the user to check.</param>
+        /// <returns>True if the user is a Super Admin, false otherwise.</returns>
+        private async Task<bool> IsUserSuperAdminAsync(int userId)
+        {
+            var user = await _context.Users
+                .Include(u => u.UserType)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            return user?.UserType?.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+        }
+
+        /// <summary>
+        /// Applies user-building permission filtering to the query.
+        /// Only returns buildings the user has explicit permission to access.
+        /// </summary>
+        /// <param name="query">The buildings query to filter.</param>
+        /// <param name="userId">The ID of the user.</param>
+        /// <returns>Filtered query with user-building permission restrictions.</returns>
+        private async Task<IQueryable<Building>> ApplyUserBuildingPermissionFilterAsync(IQueryable<Building> query, int userId)
+        {
+            // Get building IDs that the user has permission to access
+            var permittedBuildingIds = await _context.UserBuildingPermissions
+                .Where(ubp => ubp.UserId == userId && ubp.IsActive)
+                .Select(ubp => ubp.BuildingId)
+                .ToListAsync();
+
+            // Filter buildings by user permissions
+            return query.Where(b => permittedBuildingIds.Contains(b.Id));
+        }
+
+        /// <summary>
+        /// Checks if a user has access to a specific building, considering Super Admin status.
+        /// </summary>
+        /// <param name="buildingId">The ID of the building.</param>
+        /// <param name="userId">The ID of the user.</param>
+        /// <returns>True if the user has access to the building, false otherwise.</returns>
+        private async Task<bool> HasAccessToBuildingAsync(int buildingId, int userId)
+        {
+            // Super Admin has access to all buildings
+            if (await IsUserSuperAdminAsync(userId))
+            {
+                return true;
+            }
+
+            // Check if user has explicit permission to this building
+            return await _context.UserBuildingPermissions
+                .AnyAsync(ubp => ubp.UserId == userId && ubp.BuildingId == buildingId && ubp.IsActive);
         }
 
         /// <summary>
