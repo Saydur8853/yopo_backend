@@ -39,9 +39,10 @@ namespace YopoBackend.Modules.CustomerCRUD.Models
         public string? CompanyLicense { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of units this customer manages.
+        /// Gets or sets the company name.
         /// </summary>
-        public int NumberOfUnits { get; set; } = 0;
+        [StringLength(250)]
+        public string? CompanyName { get; set; }
 
         /// <summary>
         /// Gets or sets whether the customer account is active.
@@ -65,10 +66,6 @@ namespace YopoBackend.Modules.CustomerCRUD.Models
         [StringLength(50)]
         public string Type { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the number of towers/buildings this customer manages.
-        /// </summary>
-        public int NumberOfTowers { get; set; } = 0;
 
         /// <summary>
         /// Gets or sets the user ID who manages this customer account.

@@ -28,10 +28,10 @@ namespace YopoBackend.Modules.CustomerCRUD.DTOs
         public string? CompanyLicense { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of units this customer manages.
+        /// Gets or sets the company name.
         /// </summary>
-        [Range(0, int.MaxValue, ErrorMessage = "Number of units must be non-negative.")]
-        public int NumberOfUnits { get; set; } = 0;
+        [StringLength(250, ErrorMessage = "Company name must not exceed 250 characters.")]
+        public string? CompanyName { get; set; }
 
         /// <summary>
         /// Gets or sets whether the customer account is active.
@@ -55,11 +55,6 @@ namespace YopoBackend.Modules.CustomerCRUD.DTOs
         [StringLength(50, ErrorMessage = "Type must not exceed 50 characters.")]
         public string Type { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the number of towers/buildings this customer manages.
-        /// </summary>
-        [Range(0, int.MaxValue, ErrorMessage = "Number of towers must be non-negative.")]
-        public int NumberOfTowers { get; set; } = 0;
 
     }
 
@@ -89,10 +84,10 @@ namespace YopoBackend.Modules.CustomerCRUD.DTOs
         public string? CompanyLicense { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of units this customer manages.
+        /// Gets or sets the company name.
         /// </summary>
-        [Range(0, int.MaxValue, ErrorMessage = "Number of units must be non-negative.")]
-        public int NumberOfUnits { get; set; } = 0;
+        [StringLength(250, ErrorMessage = "Company name must not exceed 250 characters.")]
+        public string? CompanyName { get; set; }
 
         /// <summary>
         /// Gets or sets whether the customer account is active.
@@ -116,11 +111,6 @@ namespace YopoBackend.Modules.CustomerCRUD.DTOs
         [StringLength(50, ErrorMessage = "Type must not exceed 50 characters.")]
         public string Type { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the number of towers/buildings this customer manages.
-        /// </summary>
-        [Range(0, int.MaxValue, ErrorMessage = "Number of towers must be non-negative.")]
-        public int NumberOfTowers { get; set; } = 0;
 
     }
 
@@ -150,9 +140,9 @@ namespace YopoBackend.Modules.CustomerCRUD.DTOs
         public string? CompanyLicense { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of units this customer manages.
+        /// Gets or sets the company name.
         /// </summary>
-        public int NumberOfUnits { get; set; }
+        public string? CompanyName { get; set; }
 
         /// <summary>
         /// Gets or sets whether the customer account is active.
@@ -174,10 +164,6 @@ namespace YopoBackend.Modules.CustomerCRUD.DTOs
         /// </summary>
         public string Type { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the number of towers/buildings this customer manages.
-        /// </summary>
-        public int NumberOfTowers { get; set; }
 
         /// <summary>
         /// Gets or sets the user ID who manages this customer account.

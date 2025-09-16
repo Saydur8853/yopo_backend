@@ -60,12 +60,11 @@ namespace YopoBackend.Modules.CustomerCRUD.Services
                     Name = c.Name,
                     Address = c.Address,
                     CompanyLicense = c.CompanyLicense,
-                    NumberOfUnits = c.NumberOfUnits,
+                    CompanyName = c.CompanyName,
                     Active = c.Active,
                     IsTrial = c.IsTrial,
                     Paid = c.Paid,
                     Type = c.Type,
-                    NumberOfTowers = c.NumberOfTowers,
                     UserId = c.UserId,
                     UserName = c.User != null ? $"{c.User.FirstName} {c.User.LastName}".Trim() : null,
                     CreatedAt = c.CreatedAt,
@@ -95,12 +94,11 @@ namespace YopoBackend.Modules.CustomerCRUD.Services
                     Name = c.Name,
                     Address = c.Address,
                     CompanyLicense = c.CompanyLicense,
-                    NumberOfUnits = c.NumberOfUnits,
+                    CompanyName = c.CompanyName,
                     Active = c.Active,
                     IsTrial = c.IsTrial,
                     Paid = c.Paid,
                     Type = c.Type,
-                    NumberOfTowers = c.NumberOfTowers,
                     UserId = c.UserId,
                     UserName = c.User != null ? $"{c.User.FirstName} {c.User.LastName}".Trim() : null,
                     CreatedAt = c.CreatedAt,
@@ -129,12 +127,11 @@ namespace YopoBackend.Modules.CustomerCRUD.Services
                 Name = createCustomerDto.Name,
                 Address = createCustomerDto.Address,
                 CompanyLicense = createCustomerDto.CompanyLicense,
-                NumberOfUnits = createCustomerDto.NumberOfUnits,
+                CompanyName = createCustomerDto.CompanyName,
                 Active = createCustomerDto.Active,
                 IsTrial = createCustomerDto.IsTrial,
                 Paid = createCustomerDto.Paid,
                 Type = createCustomerDto.Type,
-                NumberOfTowers = createCustomerDto.NumberOfTowers,
                 UserId = assignedUserId,
                 CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow
@@ -159,12 +156,11 @@ namespace YopoBackend.Modules.CustomerCRUD.Services
             customer.Name = updateCustomerDto.Name;
             customer.Address = updateCustomerDto.Address;
             customer.CompanyLicense = updateCustomerDto.CompanyLicense;
-            customer.NumberOfUnits = updateCustomerDto.NumberOfUnits;
+            customer.CompanyName = updateCustomerDto.CompanyName;
             customer.Active = updateCustomerDto.Active;
             customer.IsTrial = updateCustomerDto.IsTrial;
             customer.Paid = updateCustomerDto.Paid;
             customer.Type = updateCustomerDto.Type;
-            customer.NumberOfTowers = updateCustomerDto.NumberOfTowers;
             customer.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

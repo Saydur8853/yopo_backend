@@ -251,6 +251,10 @@ namespace YopoBackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<string>("CompanyName")
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -266,12 +270,6 @@ namespace YopoBackend.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
-
-                    b.Property<int>("NumberOfTowers")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NumberOfUnits")
-                        .HasColumnType("int");
 
                     b.Property<bool>("Paid")
                         .HasColumnType("tinyint(1)");
