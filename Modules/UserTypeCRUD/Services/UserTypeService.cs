@@ -280,8 +280,9 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                         Name = userTypeInfo.Value.Name,
                         Description = userTypeInfo.Value.Description,
                         IsActive = userTypeInfo.Value.IsActive,
-                        // Super Admin should always have ALL data access control
-                        DataAccessControl = userTypeInfo.Value.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID ? "ALL" : "ALL",
+                        // Super Admin should always have ALL data access control, Property Manager should have OWN
+                        DataAccessControl = userTypeInfo.Value.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID ? "ALL" : 
+                                          userTypeInfo.Value.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID ? "OWN" : "ALL",
                         CreatedAt = DateTime.UtcNow
                     };
 
@@ -321,6 +322,13 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                     if (userTypeInfo.Value.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID && existingUserType.DataAccessControl != "ALL")
                     {
                         existingUserType.DataAccessControl = "ALL";
+                        hasChanges = true;
+                    }
+                    
+                    // Ensure Property Manager always has OWN data access control
+                    if (userTypeInfo.Value.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && existingUserType.DataAccessControl != "OWN")
+                    {
+                        existingUserType.DataAccessControl = "OWN";
                         hasChanges = true;
                     }
 
