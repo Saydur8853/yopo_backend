@@ -52,7 +52,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Models
         /// <summary>
         /// Gets or sets the data access control type for this user type.
         /// "OWN" = Users can only access their own created data
-        /// "ALL" = Users can access all data for their user type
+        /// "ALL" = Users can access all data (Super Admin level)
+        /// "PM" = Property Manager ecosystem isolation - users can access data within their PM's ecosystem
         /// </summary>
         [MaxLength(10)]
         public string DataAccessControl { get; set; } = "ALL";

@@ -78,11 +78,25 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         /// <inheritdoc/>
         public async Task<UserTypeDto> CreateUserTypeAsync(CreateUserTypeDto createUserTypeDto, int createdByUserId)
         {
+            // Check if the creator is a Property Manager
+            var creatorUser = await _context.Users
+                .Include(u => u.UserType)
+                .FirstOrDefaultAsync(u => u.Id == createdByUserId);
+
+            string dataAccessControl = createUserTypeDto.DataAccessControl;
+            
+            // If created by Property Manager, automatically set DataAccessControl to "PM"
+            if (creatorUser?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                dataAccessControl = UserTypeConstants.DATA_ACCESS_PM;
+                Console.WriteLine($"UserType '{createUserTypeDto.Name}' created by Property Manager - automatically setting DataAccessControl to 'PM'");
+            }
+
             var userType = new UserType
             {
                 Name = createUserTypeDto.Name,
                 Description = createUserTypeDto.Description,
-                DataAccessControl = createUserTypeDto.DataAccessControl,
+                DataAccessControl = dataAccessControl,
                 IsActive = true,
                 CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow

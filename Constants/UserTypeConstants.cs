@@ -40,6 +40,21 @@ namespace YopoBackend.Constants
         public const string PROPERTY_MANAGER_USER_TYPE_DESCRIPTION = "Property manager with access to all modules but limited to managing only their own created data";
 
         /// <summary>
+        /// Data Access Control type: Users can access all data (Super Admin level)
+        /// </summary>
+        public const string DATA_ACCESS_ALL = "ALL";
+
+        /// <summary>
+        /// Data Access Control type: Users can only access their own created data
+        /// </summary>
+        public const string DATA_ACCESS_OWN = "OWN";
+
+        /// <summary>
+        /// Data Access Control type: Property Manager ecosystem isolation - users can access data within their PM's ecosystem
+        /// </summary>
+        public const string DATA_ACCESS_PM = "PM";
+
+        /// <summary>
         /// Gets all default user type information as a dictionary for easy access.
         /// </summary>
         public static readonly Dictionary<int, UserTypeInfo> DefaultUserTypes = new()
