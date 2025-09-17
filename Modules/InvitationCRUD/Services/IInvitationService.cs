@@ -78,9 +78,15 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         
         /// <summary>
         /// Gets all available user types for invitation dropdown selection with access control.
+        /// 
+        /// **Security Note:** This method only returns user types that are allowed for invitations:
+        /// - Super Admin (full system access)
+        /// - Property Manager (limited access with own data control)
+        /// 
+        /// The restriction is enforced at the service level for security purposes.
         /// </summary>
         /// <param name="currentUserId">The ID of the current user making the request.</param>
-        /// <returns>A task that represents the asynchronous operation. The task result contains a collection of available user types.</returns>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a collection of available user types (filtered to allowed types only).</returns>
         Task<IEnumerable<UserTypeDropdownDTO>> GetAvailableUserTypesAsync(int currentUserId);
         
         /// <summary>

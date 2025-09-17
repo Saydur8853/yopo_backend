@@ -52,6 +52,11 @@ namespace YopoBackend.Data
         /// </summary>
         public DbSet<UserToken> UserTokens { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Customers DbSet for managing customer entities (property managers).
+        /// </summary>
+        public DbSet<Customer> Customers { get; set; }
+
 
 
         /// <summary>
@@ -187,6 +192,31 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade); // Delete tokens when user is deleted
+            });
+            
+            // Configure Customer entity (Module ID: 3)
+            modelBuilder.Entity<Customer>(entity =>
+            {
+                entity.HasKey(e => e.CustomerId);
+                entity.Property(e => e.CustomerId).ValueGeneratedNever(); // CustomerId is manually set to User.Id
+                entity.HasIndex(e => e.CustomerName);
+                entity.HasIndex(e => e.CompanyName);
+                entity.HasIndex(e => e.CompanyLicense).IsUnique(); // Company license should be unique if provided
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.CustomerName).HasMaxLength(200);
+                entity.Property(e => e.CompanyName).HasMaxLength(300);
+                entity.Property(e => e.CompanyAddress).HasMaxLength(500);
+                entity.Property(e => e.CompanyLicense).HasMaxLength(100);
+                
+                // Configure foreign key relationship with User (one-to-one relationship)
+                entity.HasOne(e => e.User)
+                    .WithOne()
+                    .HasForeignKey<Customer>(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.Cascade); // Delete customer when user is deleted
             });
             
         }

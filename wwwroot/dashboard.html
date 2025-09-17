@@ -670,6 +670,53 @@
             </div>
         </div>
 
+        <!-- User Type Management Box - Only visible to Super Admin -->
+        <div id="user-type-section" class="invitation-box" style="display: none;">
+            <h3>👥 User Type Management</h3>
+            <div id="user-type-message"></div>
+            
+            <!-- Create User Type Form -->
+            <form id="user-type-form" class="invitation-form">
+                <div class="form-group">
+                    <label for="user-type-name">User Type Name</label>
+                    <input type="text" id="user-type-name" class="form-control" required placeholder="Enter user type name" maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label for="user-type-description">Description</label>
+                    <input type="text" id="user-type-description" class="form-control" placeholder="Enter description" maxlength="500">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="user-type-status" class="form-control" required>
+                        <option value="true" selected>Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary" id="user-type-btn">
+                        ➕ Create User Type
+                    </button>
+                </div>
+            </form>
+            
+            <!-- User Types List -->
+            <div class="invitations-list-section">
+                <div class="list-header">
+                    <h4>📋 User Types</h4>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="loadUserTypesList()">
+                        🔄 Refresh
+                    </button>
+                </div>
+                <div id="user-types-loading" class="loading-state" style="display: none;">
+                    <span class="spinner"></span> Loading user types...
+                </div>
+                <div id="user-types-list-container">
+                    <!-- User types will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+
     </div>
 
 
@@ -708,6 +755,12 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             if (invitationForm) {
                 invitationForm.addEventListener('submit', handleInvitationSubmit);
             }
+            
+            // Setup user type form
+            const userTypeForm = document.getElementById('user-type-form');
+            if (userTypeForm) {
+                userTypeForm.addEventListener('submit', handleUserTypeSubmit);
+            }
         });
 
         // Authentication check
@@ -739,6 +792,9 @@ sessionStorage.setItem('redirectUrl', window.location.href);
 
         // Display user information
         function displayUserInfo(user) {
+            console.log('displayUserInfo called with user:', user);
+            console.log('User type name:', user.userTypeName);
+            
             // Header
             document.getElementById('user-name').textContent = user.name || 'User';
             document.getElementById('user-type').textContent = user.userTypeName || 'Member';
@@ -746,13 +802,18 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             // Avatar with profile photo or initials fallback
             updateUserAvatar(user);
             
-            // Show invitation box only for Super Admin
+            // Show invitation box and user type management only for Super Admin
             if (user.userTypeName === 'Super Admin') {
+                console.log('User is Super Admin - showing all sections');
                 document.getElementById('invitation-section').style.display = 'block';
+                document.getElementById('user-type-section').style.display = 'block';
                 loadUserTypesForInvitation();
                 loadInvitationsList();
+                loadUserTypesList();
             } else {
+                console.log('User is not Super Admin - hiding admin sections');
                 document.getElementById('invitation-section').style.display = 'none';
+                document.getElementById('user-type-section').style.display = 'none';
             }
         }
 
@@ -822,16 +883,29 @@ sessionStorage.setItem('redirectUrl', window.location.href);
         }
 
         function logout() {
+            console.log('Logout function called');
+            
             // Call logout API
             const token = localStorage.getItem('authToken');
+            console.log('Token found:', token ? 'Yes' : 'No');
+            
             if (token) {
-                fetch(`${API_BASE}/users/logout`, {
+                fetch(`${API_BASE}/users/session/logout`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     }
-                }).catch(() => {
-                    // Ignore errors during logout
+                })
+                .then(response => {
+                    console.log('Logout API response:', response.status);
+                    return response.json().catch(() => ({}));
+                })
+                .then(data => {
+                    console.log('Logout API data:', data);
+                })
+                .catch(error => {
+                    console.log('Logout API error (ignored):', error);
                 });
             }
             
@@ -839,8 +913,10 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             localStorage.removeItem('authToken');
             localStorage.removeItem('tokenExpiry');
             localStorage.removeItem('userData');
+            console.log('LocalStorage cleared');
             
             // Redirect to auth page
+            console.log('Redirecting to auth page');
             window.location.href = '/auth.html';
         }
 
@@ -1159,19 +1235,16 @@ sessionStorage.setItem('redirectUrl', window.location.href);
         function populateUserTypeDropdown() {
             const dropdown = document.getElementById('invite-role');
             
-            // Filter to only show Super Admin and Property Manager
-            const allowedTypes = availableUserTypes.filter(type => 
-                type.name === 'Super Admin' || type.name === 'Property Manager'
-            );
-            
-            if (allowedTypes.length === 0) {
+            // Backend API now handles filtering to only return allowed user types
+            // (Super Admin and Property Manager) so no frontend filtering needed
+            if (availableUserTypes.length === 0) {
                 dropdown.innerHTML = '<option value="">No available roles</option>';
                 return;
             }
             
             dropdown.innerHTML = [
                 '<option value="">Select a role...</option>',
-                ...allowedTypes.map(type => 
+                ...availableUserTypes.map(type => 
                     `<option value="${type.id}">${type.name}</option>`
                 )
             ].join('');
@@ -1420,6 +1493,229 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             } else {
                 // Show full date for older dates
                 return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
+        }
+        
+        // User Type Management Functions
+        let isUserTypeLoading = false;
+        
+        async function handleUserTypeSubmit(e) {
+            e.preventDefault();
+            
+            if (isUserTypeLoading) return;
+            
+            const name = document.getElementById('user-type-name').value.trim();
+            const description = document.getElementById('user-type-description').value.trim();
+            const isActive = document.getElementById('user-type-status').value === 'true';
+            
+            if (!name) {
+                showUserTypeMessage('Please enter a user type name', 'error');
+                return;
+            }
+            
+            setUserTypeLoading(true);
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/usertypes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description || null,
+                        isActive: isActive
+                    })
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = 'Failed to create user type';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData || errorMessage;
+                    } catch (e) {
+                        const errorText = await response.text();
+                        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                showUserTypeMessage(`\u2713 User type "${name}" created successfully!`, 'success');
+                document.getElementById('user-type-form').reset();
+                document.getElementById('user-type-status').value = 'true'; // Reset to Active
+                
+                // Refresh the user types list after successful creation
+                loadUserTypesList();
+                
+            } catch (error) {
+                console.error('Error creating user type:', error);
+                showUserTypeMessage(error.message || 'Failed to create user type', 'error');
+            } finally {
+                setUserTypeLoading(false);
+            }
+        }
+        
+        function showUserTypeMessage(message, type = 'error') {
+            const messageContainer = document.getElementById('user-type-message');
+            messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 5000);
+        }
+        
+        function setUserTypeLoading(loading) {
+            isUserTypeLoading = loading;
+            const btn = document.getElementById('user-type-btn');
+            const nameInput = document.getElementById('user-type-name');
+            const descInput = document.getElementById('user-type-description');
+            const statusInput = document.getElementById('user-type-status');
+            
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span>Creating...';
+                nameInput.disabled = true;
+                descInput.disabled = true;
+                statusInput.disabled = true;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '\u2795 Create User Type';
+                nameInput.disabled = false;
+                descInput.disabled = false;
+                statusInput.disabled = false;
+            }
+        }
+        
+        // User Types List Management Functions
+        async function loadUserTypesList() {
+            const loadingElement = document.getElementById('user-types-loading');
+            const containerElement = document.getElementById('user-types-list-container');
+            
+            try {
+                loadingElement.style.display = 'block';
+                containerElement.innerHTML = '';
+                
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/usertypes`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load user types');
+                }
+                
+                const result = await response.json();
+                const userTypes = result.userTypes || result; // Handle both paginated and direct array responses
+                displayUserTypesList(userTypes);
+                
+            } catch (error) {
+                console.error('Error loading user types:', error);
+                containerElement.innerHTML = `
+                    <div class="empty-invitations">
+                        <h5>\u26a0\ufe0f Error Loading User Types</h5>
+                        <p>${error.message || 'Failed to load user types'}</p>
+                        <button class="btn btn-primary btn-small" onclick="loadUserTypesList()">Try Again</button>
+                    </div>
+                `;
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        }
+        
+        function displayUserTypesList(userTypes) {
+            const container = document.getElementById('user-types-list-container');
+            
+            if (!userTypes || userTypes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-invitations">
+                        <h5>\ud83d\udc65 No User Types Yet</h5>
+                        <p>User types you create will appear here.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const tableHTML = `
+                <table class="invitations-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Module Access</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${userTypes.map(userType => `
+                            <tr>
+                                <td><strong>${userType.name}</strong></td>
+                                <td>${userType.description || 'No description'}</td>
+                                <td>
+                                    <span class="status-badge ${userType.isActive ? 'status-active' : 'status-expired'}">
+                                        ${userType.isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                </td>
+                                <td>${userType.modulePermissions?.length || 0} modules</td>
+                                <td>${formatDateTime(userType.createdAt)}</td>
+                                <td>
+                                    ${userType.name !== 'Super Admin' ? `
+                                        <button class="btn btn-danger" onclick="deleteUserType(${userType.id}, '${userType.name}')" title="Delete User Type">
+                                            \ud83d\uddd1\ufe0f Delete
+                                        </button>
+                                    ` : `
+                                        <span style="color: #666; font-size: 0.8rem;">Protected</span>
+                                    `}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+        
+        async function deleteUserType(userTypeId, name) {
+            const confirmMessage = `Are you sure you want to delete the user type "${name}"? This action cannot be undone.`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/usertypes/${userTypeId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = 'Failed to delete user type';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData || errorMessage;
+                    } catch (e) {
+                        const errorText = await response.text();
+                        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                showUserTypeMessage(`\u2713 User type "${name}" deleted successfully!`, 'success');
+                loadUserTypesList(); // Refresh the list
+                
+            } catch (error) {
+                console.error('Error deleting user type:', error);
+                showUserTypeMessage(error.message || 'Failed to delete user type', 'error');
             }
         }
     </script>

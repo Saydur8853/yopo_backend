@@ -213,7 +213,20 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 .OrderBy(ut => ut.Name)
                 .ToListAsync();
 
-            return userTypes;
+            // API-level restriction: Only allow Super Admin and Property Manager for invitations
+            // This ensures security even if frontend filtering is removed
+            // 
+            // BUSINESS LOGIC: For security and system integrity, invitations are restricted to:
+            // - Super Admin: Full system access, can manage everything
+            // - Property Manager: Limited access with OWN data access control
+            // 
+            // This prevents unauthorized creation of custom user types through invitations
+            // and maintains the intended user hierarchy in the system.
+            var allowedUserTypes = userTypes.Where(ut => 
+                ut.Name == "Super Admin" || ut.Name == "Property Manager"
+            ).ToList();
+
+            return allowedUserTypes;
         }
 
         /// <inheritdoc/>

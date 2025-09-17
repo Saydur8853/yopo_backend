@@ -92,6 +92,30 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         /// <response code="201">Returns the newly created invitation</response>
         /// <response code="400">If the invitation data is invalid</response>
         /// <response code="409">If email is already invited and active</response>
+        /// <remarks>
+        /// **User Type Restrictions:**
+        /// 
+        /// Only the following user types are allowed for invitations:
+        /// - **Super Admin** (ID: 1): Full system access
+        /// - **Property Manager** (ID: 2): Limited access with own data control
+        /// 
+        /// Use the `/api/invitations/user-types` endpoint to get the exact IDs and available user types.
+        /// 
+        /// **Validation Rules:**
+        /// - Email must be unique (no active invitations for the same email)
+        /// - UserTypeId must be valid and active
+        /// - UserTypeId must be one of the allowed types (Super Admin or Property Manager)
+        /// - ExpiryDays must be between 1-7 days
+        /// 
+        /// **Example Request:**
+        /// ```json
+        /// {
+        ///   "emailAddress": "user@example.com",
+        ///   "userTypeId": 2,
+        ///   "expiryDays": 7
+        /// }
+        /// ```
+        /// </remarks>
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -240,8 +264,40 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         /// <summary>
         /// Get available user types for invitation dropdown
         /// </summary>
-        /// <returns>List of available user types</returns>
-        /// <response code="200">Returns the list of available user types</response>
+        /// <returns>List of available user types for invitations</returns>
+        /// <response code="200">Returns the list of available user types for invitations</response>
+        /// <remarks>
+        /// **Important Security Note:**
+        /// 
+        /// This endpoint is specifically designed for invitation purposes and only returns user types that can be invited:
+        /// - **Super Admin**: Full system access with all module permissions
+        /// - **Property Manager**: Limited access with own data access control
+        /// 
+        /// **Business Rules:**
+        /// - Only these two user types are allowed for invitations to maintain system security
+        /// - The restriction is enforced at the API level, not just frontend
+        /// - Other user types in the system are not available for invitation purposes
+        /// 
+        /// **Access Control:**
+        /// - Users with "ALL" access control can see all allowed user types
+        /// - Users with "OWN" access control can only see user types they created (if any match the allowed list)
+        /// 
+        /// **Example Response:**
+        /// ```json
+        /// [
+        ///   {
+        ///     "id": 1,
+        ///     "name": "Super Admin",
+        ///     "isActive": true
+        ///   },
+        ///   {
+        ///     "id": 2,
+        ///     "name": "Property Manager",
+        ///     "isActive": true
+        ///   }
+        /// ]
+        /// ```
+        /// </remarks>
         [HttpGet("user-types")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<UserTypeDropdownDTO>>> GetAvailableUserTypes()

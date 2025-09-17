@@ -16,6 +16,13 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
 
         /// <summary>
         /// Gets or sets the user type ID for the invitation.
+        /// 
+        /// **Allowed Values:**
+        /// - 1 (Super Admin): Full system access with all module permissions
+        /// - 2 (Property Manager): Limited access with own data access control
+        /// 
+        /// **Note:** Only these two user types are allowed for invitations for security reasons.
+        /// Use GET /api/invitations/user-types to get the current available user types.
         /// </summary>
         [Required]
         public int UserTypeId { get; set; }
@@ -103,7 +110,13 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
     }
 
     /// <summary>
-    /// DTO for user type dropdown selection in invitations
+    /// DTO for user type dropdown selection in invitations.
+    /// 
+    /// **Security Note:** This DTO only contains user types that are allowed for invitations:
+    /// - Super Admin (ID: 1)
+    /// - Property Manager (ID: 2)
+    /// 
+    /// Other user types in the system are not included for security reasons.
     /// </summary>
     public class UserTypeDropdownDTO
     {

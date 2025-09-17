@@ -16,15 +16,18 @@ namespace YopoBackend.Modules.UserCRUD.Services
     public class UserService : BaseAccessControlService, IUserService
     {
         private readonly IJwtService _jwtService;
+        private readonly ICustomerService _customerService;
 
         /// <summary>
         /// Initializes a new instance of the UserService class.
         /// </summary>
         /// <param name="context">The database context.</param>
         /// <param name="jwtService">The JWT service for token generation.</param>
-        public UserService(ApplicationDbContext context, IJwtService jwtService) : base(context)
+        /// <param name="customerService">The customer service for managing customer records.</param>
+        public UserService(ApplicationDbContext context, IJwtService jwtService, ICustomerService customerService) : base(context)
         {
             _jwtService = jwtService;
+            _customerService = customerService;
         }
 
         // Authentication methods
@@ -189,7 +192,19 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 user.CreatedBy = user.Id;
                 await _context.SaveChangesAsync();
 
-                // Customer creation removed since CustomerCRUD module doesn't exist
+                // Create Customer record if user is a Property Manager
+                if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                {
+                    var customer = await _customerService.CreateCustomerAsync(user);
+                    if (customer != null)
+                    {
+                        Console.WriteLine($"Customer record created for Property Manager {user.Email} (Customer ID: {customer.CustomerId})");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Warning: Failed to create customer record for Property Manager {user.Email}");
+                    }
+                }
 
                 // Reload user with full relationships for response
                 var registeredUser = await _context.Users

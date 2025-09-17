@@ -12,6 +12,7 @@ using YopoBackend.Services;
 using YopoBackend.Constants;
 using YopoBackend.Middleware;
 using DotNetEnv;
+using Microsoft.AspNetCore.Rewrite;
 
 // Load environment variables from .env file
 Env.Load();
@@ -34,6 +35,7 @@ builder.Services.AddScoped<IInvitationService, InvitationService>();
 
 // Module: UserCRUD (Module ID: 3 - defined in ModuleConstants.USER_MODULE_ID)
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
@@ -139,6 +141,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+
             var app = builder.Build();
 
             using (var scope = app.Services.CreateScope())
@@ -181,6 +184,10 @@ app.UseDefaultFiles();
 
 // Enable static files serving
 app.UseStaticFiles();
+
+// Add URL rewriting to redirect root path to auth.html
+app.UseRewriter(new RewriteOptions()
+    .AddRedirect("^$", "auth.html"));
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
