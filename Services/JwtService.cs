@@ -55,10 +55,8 @@ namespace YopoBackend.Services
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.EmailAddress),
-                    new Claim(ClaimTypes.Name, user.FullName),
-                    new Claim(ClaimTypes.GivenName, user.FirstName),
-                    new Claim(ClaimTypes.Surname, user.LastName),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Name, user.Name),
                     new Claim("UserTypeId", user.UserTypeId.ToString()),
                     new Claim("IsActive", user.IsActive.ToString()),
                     new Claim("IsEmailVerified", user.IsEmailVerified.ToString())

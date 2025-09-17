@@ -5,6 +5,8 @@ using System.Security.Claims;
 using YopoBackend.Attributes;
 using YopoBackend.Constants;
 using YopoBackend.Data;
+using YopoBackend.Models;
+using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Modules.UserCRUD.DTOs;
 using YopoBackend.Modules.UserCRUD.Services;
 using YopoBackend.Services;
@@ -13,8 +15,8 @@ using YopoBackend.Utils;
 namespace YopoBackend.Modules.UserCRUD.Controllers
 {
     /// <summary>
-    /// Controller for managing users with authentication and CRUD operations.
-    /// Module: UserCRUD (Module ID: 3)
+    /// Consolidated controller for user management with authentication and CRUD operations.
+    /// Module: UserCRUD (Module ID: 3) - Streamlined API with merged endpoints.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
@@ -38,16 +40,13 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             _context = context;
         }
 
-        // Authentication endpoints
+        // ==== AUTHENTICATION ENDPOINTS ====
 
         /// <summary>
         /// Authenticates a user and returns a JWT token.
         /// </summary>
         /// <param name="loginRequest">The login request containing email and password.</param>
         /// <returns>An authentication response with JWT token if successful.</returns>
-        /// <response code="200">Login successful</response>
-        /// <response code="400">Invalid request data</response>
-        /// <response code="401">Invalid credentials or account inactive</response>
         [HttpPost("login")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(AuthenticationResponseDTO), 200)]
@@ -56,16 +55,11 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequestDTO loginRequest)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             var result = await _userService.LoginAsync(loginRequest);
-
             if (result == null)
-            {
                 return Unauthorized(new { message = "Invalid email or password, or account is inactive." });
-            }
 
             return Ok(result);
         }
@@ -75,8 +69,6 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// </summary>
         /// <param name="registerRequest">The registration request containing user details.</param>
         /// <returns>An authentication response with JWT token if successful.</returns>
-        /// <response code="200">Registration successful</response>
-        /// <response code="400">Invalid request data or email already registered</response>
         [HttpPost("register")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(AuthenticationResponseDTO), 200)]
@@ -85,18 +77,13 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterUserRequestDTO registerRequest)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             try
             {
                 var result = await _userService.RegisterAsync(registerRequest);
-
                 if (result == null)
-                {
                     return BadRequest(new { message = "Registration failed. Email may already be registered." });
-                }
 
                 return Ok(result);
             }
@@ -111,112 +98,81 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         }
 
         /// <summary>
-        /// Logs out the current user by revoking their current token.
+        /// Unified session management - logout, logout-all, or get active tokens.
         /// </summary>
-        /// <returns>Success status.</returns>
-        /// <response code="200">Logout successful</response>
-        /// <response code="401">Unauthorized</response>
-        [HttpPost("logout")]
+        /// <param name="action">Action to perform: "logout", "logout-all", or "tokens"</param>
+        /// <returns>Success status or token information.</returns>
+        [HttpPost("session/{action}")]
         [Authorize]
         [ProducesResponseType(200)]
         [ProducesResponseType(401)]
-        public async Task<IActionResult> Logout()
-        {
-            var authHeader = Request.Headers["Authorization"].ToString();
-            if (authHeader.StartsWith("Bearer "))
-            {
-                var token = authHeader.Substring("Bearer ".Length).Trim();
-                await _jwtService.RevokeTokenAsync(token);
-            }
-
-            return Ok(new { message = "Logout successful." });
-        }
-
-        /// <summary>
-        /// Logs out from all devices by revoking all user tokens.
-        /// </summary>
-        /// <returns>Success status with number of revoked tokens.</returns>
-        /// <response code="200">Logout from all devices successful</response>
-        /// <response code="401">Unauthorized</response>
-        [HttpPost("logout-all")]
-        [Authorize]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(401)]
-        public async Task<IActionResult> LogoutAll()
+        public async Task<IActionResult> ManageSession(string action)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
             if (!int.TryParse(userIdClaim, out int userId))
-            {
                 return Unauthorized(new { message = "Invalid token." });
+
+            switch (action.ToLower())
+            {
+                case "logout":
+                    var authHeader = Request.Headers["Authorization"].ToString();
+                    if (authHeader.StartsWith("Bearer "))
+                    {
+                        var token = authHeader.Substring("Bearer ".Length).Trim();
+                        await _jwtService.RevokeTokenAsync(token);
+                    }
+                    return Ok(new { message = "Logout successful." });
+
+                case "logout-all":
+                    var revokedCount = await _jwtService.RevokeAllUserTokensAsync(userId);
+                    return Ok(new { 
+                        message = "Logout from all devices successful.", 
+                        revokedTokens = revokedCount 
+                    });
+
+                case "tokens":
+                    var activeTokens = await _jwtService.GetUserActiveTokensAsync(userId);
+                    var tokenSummary = activeTokens.Select(t => new
+                    {
+                        id = t.Id,
+                        tokenType = t.TokenType,
+                        createdAt = t.CreatedAt,
+                        expiresAt = t.ExpiresAt,
+                        lastUsedAt = t.LastUsedAt,
+                        deviceInfo = t.DeviceInfo,
+                        ipAddress = t.IpAddress,
+                        isExpired = t.IsExpired
+                    });
+                    return Ok(new { 
+                        activeTokens = tokenSummary,
+                        totalCount = activeTokens.Count() 
+                    });
+
+                default:
+                    return BadRequest(new { message = "Invalid action. Use 'logout', 'logout-all', or 'tokens'." });
             }
-
-            var revokedCount = await _jwtService.RevokeAllUserTokensAsync(userId);
-
-            return Ok(new { 
-                message = "Logout from all devices successful.", 
-                revokedTokens = revokedCount 
-            });
         }
 
-        /// <summary>
-        /// Gets active tokens for the current user.
-        /// </summary>
-        /// <returns>List of active tokens.</returns>
-        /// <response code="200">Active tokens retrieved successfully</response>
-        /// <response code="401">Unauthorized</response>
-        [HttpGet("active-tokens")]
-        [Authorize]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(401)]
-        public async Task<IActionResult> GetActiveTokens()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (!int.TryParse(userIdClaim, out int userId))
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
-
-            var activeTokens = await _jwtService.GetUserActiveTokensAsync(userId);
-
-            var tokenSummary = activeTokens.Select(t => new
-            {
-                id = t.Id,
-                tokenType = t.TokenType,
-                createdAt = t.CreatedAt,
-                expiresAt = t.ExpiresAt,
-                lastUsedAt = t.LastUsedAt,
-                deviceInfo = t.DeviceInfo,
-                ipAddress = t.IpAddress,
-                isExpired = t.IsExpired
-            });
-
-            return Ok(new { 
-                activeTokens = tokenSummary,
-                totalCount = activeTokens.Count 
-            });
-        }
-
-        // CRUD endpoints
+        // ==== USER CRUD ENDPOINTS ====
 
         /// <summary>
-        /// Gets all users with pagination and filtering support.
+        /// Gets users with pagination and filtering. Use "me" as email to get current user profile.
         /// </summary>
-        /// <param name="page">The page number (starting from 1). Default is 1.</param>
-        /// <param name="pageSize">The number of items per page. Default is 10.</param>
-        /// <param name="searchTerm">Optional search term to filter users by name or email.</param>
-        /// <param name="userTypeId">Optional user type ID to filter users.</param>
-        /// <param name="isActive">Optional active status to filter users.</param>
-        /// <returns>A paginated list of users.</returns>
-        /// <response code="200">Users retrieved successfully</response>
-        /// <response code="401">Unauthorized</response>
-        [HttpGet]
+        /// <param name="email">User email or "me" for current user</param>
+        /// <param name="page">Page number for listing users (when email is not provided)</param>
+        /// <param name="pageSize">Page size for listing users</param>
+        /// <param name="searchTerm">Search term for filtering users</param>
+        /// <param name="userTypeId">Filter by user type</param>
+        /// <param name="isActive">Filter by active status</param>
+        /// <returns>User details or paginated list of users.</returns>
+        [HttpGet("{email?}")]
         [Authorize]
-        [RequireModule(ModuleConstants.USER_MODULE_ID)]
+        [ProducesResponseType(typeof(UserResponseDTO), 200)]
         [ProducesResponseType(typeof(UserListResponseDTO), 200)]
         [ProducesResponseType(401)]
-        public async Task<IActionResult> GetAllUsers(
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetUsers(
+            string? email = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
@@ -224,681 +180,245 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             [FromQuery] bool? isActive = null)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
             if (!int.TryParse(userIdClaim, out int currentUserId))
-            {
                 return Unauthorized(new { message = "Invalid token." });
+
+            // Get current user profile
+            if (email == "me")
+            {
+                var currentUser = await _userService.GetUserByIdAsync(currentUserId, currentUserId);
+                if (currentUser == null)
+                    return NotFound(new { message = "User not found." });
+                return Ok(currentUser);
             }
+
+            // Get specific user by email
+            if (!string.IsNullOrEmpty(email))
+            {
+                var user = await _userService.GetUserByEmailAsync(email);
+                if (user == null)
+                    return NotFound(new { message = "User not found." });
+                return Ok(user);
+            }
+
+            // Get all users with pagination (requires module access)
+            if (!User.HasClaim("module", ModuleConstants.USER_MODULE_ID.ToString()))
+                return Forbid("User module access required.");
 
             var result = await _userService.GetAllUsersAsync(currentUserId, page, pageSize, searchTerm, userTypeId, isActive);
             return Ok(result);
         }
 
         /// <summary>
-        /// Gets a user by their ID.
+        /// Creates a new user or updates an existing user.
         /// </summary>
-        /// <param name="id">The user ID.</param>
-        /// <returns>The user if found.</returns>
-        /// <response code="200">User found</response>
-        /// <response code="401">Unauthorized</response>
-        /// <response code="404">User not found</response>
-        [HttpGet("{id}")]
-        [Authorize]
-        [ProducesResponseType(typeof(UserResponseDTO), 200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> GetUserById(int id)
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (!int.TryParse(userIdClaim, out int currentUserId))
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
-
-            var result = await _userService.GetUserByIdAsync(id, currentUserId);
-
-            if (result == null)
-            {
-                return NotFound(new { message = "User not found." });
-            }
-
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Gets the currently authenticated user's profile.
-        /// </summary>
-        /// <returns>The current user's profile.</returns>
-        /// <response code="200">User profile retrieved successfully</response>
-        /// <response code="401">Unauthorized</response>
-        /// <response code="404">User not found</response>
-        [HttpGet("me")]
-        [Authorize]
-        [ProducesResponseType(typeof(UserResponseDTO), 200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> GetCurrentUser()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (!int.TryParse(userIdClaim, out int userId))
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
-
-            var result = await _userService.GetUserByIdAsync(userId, userId);
-
-            if (result == null)
-            {
-                return NotFound(new { message = "User not found." });
-            }
-
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Creates a new user.
-        /// </summary>
-        /// <param name="createRequest">The create user request.</param>
-        /// <returns>The created user.</returns>
-        /// <response code="201">User created successfully</response>
-        /// <response code="400">Invalid request data or email already registered</response>
-        /// <response code="401">Unauthorized</response>
-        [HttpPost]
+        /// <param name="email">User email for update, or omit for create</param>
+        /// <param name="userRequest">User data</param>
+        /// <returns>Created or updated user.</returns>
+        [HttpPost("{email?}")]
         [Authorize]
         [RequireModule(ModuleConstants.USER_MODULE_ID)]
+        [ProducesResponseType(typeof(UserResponseDTO), 200)]
         [ProducesResponseType(typeof(UserResponseDTO), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
-        public async Task<IActionResult> CreateUser([FromBody] CreateUserRequestDTO createRequest)
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> CreateOrUpdateUser(string? email, [FromBody] object userRequest)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
             if (!int.TryParse(userIdClaim, out int currentUserId))
-            {
                 return Unauthorized(new { message = "Invalid token." });
-            }
 
-            var result = await _userService.CreateUserAsync(createRequest, currentUserId);
-
-            if (result == null)
+            // Create new user
+            if (string.IsNullOrEmpty(email))
             {
-                return BadRequest(new { message = "User creation failed. Email may already be registered or user type is invalid." });
+                var createRequest = System.Text.Json.JsonSerializer.Deserialize<CreateUserRequestDTO>(userRequest.ToString()!);
+                if (createRequest == null)
+                    return BadRequest(new { message = "Invalid user data." });
+
+                var result = await _userService.CreateUserAsync(createRequest, currentUserId);
+                if (result == null)
+                    return BadRequest(new { message = "User creation failed. Email may already be registered or user type is invalid." });
+
+                return CreatedAtAction(nameof(GetUsers), new { email = result.Email }, result);
             }
 
-            return CreatedAtAction(nameof(GetUserById), new { id = result.Id }, result);
+            // Update existing user
+            var updateRequest = System.Text.Json.JsonSerializer.Deserialize<UpdateUserRequestDTO>(userRequest.ToString()!);
+            if (updateRequest == null)
+                return BadRequest(new { message = "Invalid user data." });
+
+            var updateResult = await _userService.UpdateUserByEmailAsync(email, updateRequest, currentUserId);
+            if (updateResult == null)
+                return NotFound(new { message = "User not found or user type is invalid." });
+
+            return Ok(updateResult);
         }
 
         /// <summary>
-        /// Updates an existing user.
+        /// Updates the current user's profile information.
         /// </summary>
-        /// <param name="id">The user ID to update.</param>
-        /// <param name="updateRequest">The update user request.</param>
-        /// <returns>The updated user.</returns>
-        /// <response code="200">User updated successfully</response>
-        /// <response code="400">Invalid request data</response>
-        /// <response code="401">Unauthorized</response>
-        /// <response code="404">User not found</response>
-        [HttpPut("{id}")]
+        /// <param name="updateRequest">Profile update request</param>
+        /// <returns>Updated user profile.</returns>
+        [HttpPut("me")]
         [Authorize]
-        [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(typeof(UserResponseDTO), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserRequestDTO updateRequest)
+        public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateUserRequestDTO updateRequest)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
             if (!int.TryParse(userIdClaim, out int currentUserId))
-            {
                 return Unauthorized(new { message = "Invalid token." });
-            }
 
-            var result = await _userService.UpdateUserAsync(id, updateRequest, currentUserId);
-
-            if (result == null)
+            try
             {
-                return NotFound(new { message = "User not found or user type is invalid." });
-            }
+                var result = await _userService.UpdateUserAsync(currentUserId, updateRequest, currentUserId);
+                if (result == null)
+                    return NotFound(new { message = "User not found." });
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to update profile: " + ex.Message });
+            }
         }
 
-        /// <summary>
-        /// Changes the current user's password.
-        /// </summary>
-        /// <param name="changePasswordRequest">The change password request.</param>
-        /// <returns>Success status.</returns>
-        /// <response code="200">Password changed successfully</response>
-        /// <response code="400">Invalid request data or current password is incorrect</response>
-        /// <response code="401">Unauthorized</response>
-        [HttpPost("change-password")]
-        [Authorize]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(401)]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDTO changePasswordRequest)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
 
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (!int.TryParse(userIdClaim, out int userId))
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
-
-            var result = await _userService.ChangePasswordAsync(userId, changePasswordRequest);
-
-            if (!result)
-            {
-                return BadRequest(new { message = "Password change failed. Current password may be incorrect." });
-            }
-
-            return Ok(new { message = "Password changed successfully." });
-        }
 
         /// <summary>
-        /// Resets the current user's own password (doesn't require current password).
+        /// Deletes a user by their email.
         /// </summary>
-        /// <param name="resetPasswordRequest">The reset password request.</param>
+        /// <param name="email">The user email to delete.</param>
         /// <returns>Success status.</returns>
-        /// <response code="200">Password reset successfully</response>
-        /// <response code="400">Invalid request data</response>
-        /// <response code="401">Unauthorized</response>
-        [HttpPost("reset-password")]
-        [Authorize]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(401)]
-        public async Task<IActionResult> ResetOwnPassword([FromBody] ResetPasswordRequestDTO resetPasswordRequest)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (!int.TryParse(userIdClaim, out int userId))
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
-
-            var result = await _userService.ResetPasswordAsync(userId, resetPasswordRequest, userId);
-
-            if (!result)
-            {
-                return BadRequest(new { message = "Password reset failed." });
-            }
-
-            return Ok(new { message = "Password reset successfully." });
-        }
-
-        /// <summary>
-        /// Changes another user's password (admin function).
-        /// </summary>
-        /// <param name="id">The user ID whose password to change.</param>
-        /// <param name="changePasswordRequest">The change password request.</param>
-        /// <returns>Success status.</returns>
-        /// <response code="200">Password changed successfully</response>
-        /// <response code="400">Invalid request data or current password is incorrect</response>
-        /// <response code="401">Unauthorized</response>
-        /// <response code="404">User not found</response>
-        [HttpPost("{id}/change-password")]
+        [HttpDelete("{email}")]
         [Authorize]
         [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(200)]
-        [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> ChangeUserPassword(int id, [FromBody] ChangePasswordRequestDTO changePasswordRequest)
+        public async Task<IActionResult> DeleteUser(string email)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await _userService.ChangePasswordAsync(id, changePasswordRequest);
-
-            if (!result)
-            {
-                return BadRequest(new { message = "Password change failed. User may not exist or current password may be incorrect." });
-            }
-
-            return Ok(new { message = "Password changed successfully." });
-        }
-
-        /// <summary>
-        /// Resets another user's password (Super Admin only - doesn't require current password).
-        /// </summary>
-        /// <param name="id">The user ID whose password to reset.</param>
-        /// <param name="resetPasswordRequest">The reset password request.</param>
-        /// <returns>Success status.</returns>
-        /// <response code="200">Password reset successfully</response>
-        /// <response code="400">Invalid request data</response>
-        /// <response code="401">Unauthorized</response>
-        /// <response code="403">Forbidden - Only Super Admin can reset passwords</response>
-        /// <response code="404">User not found</response>
-        [HttpPost("{id}/reset-password")]
-        [Authorize]
-        [RequireModule(ModuleConstants.USER_MODULE_ID)]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(403)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> ResetUserPassword(int id, [FromBody] ResetPasswordRequestDTO resetPasswordRequest)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
             if (!int.TryParse(userIdClaim, out int currentUserId))
-            {
                 return Unauthorized(new { message = "Invalid token." });
-            }
 
-            var result = await _userService.ResetPasswordAsync(id, resetPasswordRequest, currentUserId);
-
+            var result = await _userService.DeleteUserByEmailAsync(email, currentUserId);
             if (!result)
-            {
-                // Check if the current user is Super Admin to determine the error message
-                var currentUser = await _context.Users
-                    .Include(u => u.UserType)
-                    .FirstOrDefaultAsync(u => u.Id == currentUserId);
-                
-                if (currentUser == null || currentUser.UserTypeId != UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
-                {
-                    return StatusCode(403, new { message = "Only Super Admin can reset user passwords." });
-                }
-                
                 return NotFound(new { message = "User not found." });
-            }
-
-            return Ok(new { message = "Password reset successfully." });
-        }
-
-        /// <summary>
-        /// Activates or deactivates a user account.
-        /// </summary>
-        /// <param name="id">The user ID.</param>
-        /// <param name="isActive">Whether to activate or deactivate the account.</param>
-        /// <returns>Success status.</returns>
-        /// <response code="200">User status updated successfully</response>
-        /// <response code="401">Unauthorized</response>
-        /// <response code="404">User not found</response>
-        [HttpPatch("{id}/status")]
-        [Authorize]
-        [RequireModule(ModuleConstants.USER_MODULE_ID)]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> SetUserActiveStatus(int id, [FromQuery] bool isActive)
-        {
-            var result = await _userService.SetUserActiveStatusAsync(id, isActive);
-
-            if (!result)
-            {
-                return NotFound(new { message = "User not found." });
-            }
-
-            var status = isActive ? "activated" : "deactivated";
-            return Ok(new { message = $"User account {status} successfully." });
-        }
-
-        /// <summary>
-        /// Deletes a user by their ID.
-        /// </summary>
-        /// <param name="id">The user ID to delete.</param>
-        /// <returns>Success status.</returns>
-        /// <response code="200">User deleted successfully</response>
-        /// <response code="401">Unauthorized</response>
-        /// <response code="404">User not found</response>
-        [HttpDelete("{id}")]
-        [Authorize]
-        [RequireModule(ModuleConstants.USER_MODULE_ID)]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteUser(int id)
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (!int.TryParse(userIdClaim, out int currentUserId))
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
-
-            var result = await _userService.DeleteUserAsync(id, currentUserId);
-
-            if (!result)
-            {
-                return NotFound(new { message = "User not found." });
-            }
 
             return Ok(new { message = "User deleted successfully." });
         }
 
+        // ==== UTILITY ENDPOINTS ====
+
         /// <summary>
-        /// Checks if an email address is available for registration.
+        /// Unified validation endpoint - check email availability, registration eligibility, or get user modules.
         /// </summary>
-        /// <param name="email">The email address to check.</param>
-        /// <returns>Availability status.</returns>
-        /// <response code="200">Email availability status</response>
-        [HttpGet("check-email")]
+        /// <param name="action">Action: "email-availability", "registration-eligibility", or "modules"</param>
+        /// <param name="email">Email address for email-related checks</param>
+        /// <returns>Validation results or user modules.</returns>
+        [HttpGet("validate/{action}")]
         [AllowAnonymous]
         [ProducesResponseType(200)]
-        public async Task<IActionResult> CheckEmailAvailability([FromQuery] string email)
-        {
-            if (string.IsNullOrEmpty(email))
-            {
-                return BadRequest(new { message = "Email parameter is required." });
-            }
-
-            var isRegistered = await _userService.IsEmailRegisteredAsync(email);
-
-            return Ok(new { 
-                email = email, 
-                isAvailable = !isRegistered,
-                message = isRegistered ? "Email is already registered." : "Email is available."
-            });
-        }
-
-        /// <summary>
-        /// Gets the current user's module permissions based on their user type.
-        /// </summary>
-        /// <returns>List of modules the current user has access to.</returns>
-        /// <response code="200">Module permissions retrieved successfully</response>
-        /// <response code="401">Unauthorized</response>
-        /// <response code="404">User not found</response>
-        [HttpGet("me/modules")]
-        [Authorize]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> GetCurrentUserModules()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (!int.TryParse(userIdClaim, out int userId))
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
-
-            // Get user with user type and module permissions
-            var user = await _context.Users
-                .Include(u => u.UserType)
-                    .ThenInclude(ut => ut!.ModulePermissions)
-                        .ThenInclude(utmp => utmp.Module)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found." });
-            }
-
-            // Get all modules the user has access to
-            object[] userModules;
-            if (user.UserType?.ModulePermissions != null)
-            {
-                userModules = user.UserType.ModulePermissions
-                    .Where(utmp => utmp.IsActive && utmp.Module.IsActive)
-                    .Select(utmp => new
-                    {
-                        id = utmp.Module.Id,
-                        name = utmp.Module.Name,
-                        description = utmp.Module.Description,
-                        version = utmp.Module.Version,
-                        isActive = utmp.Module.IsActive
-                    })
-                    .Cast<object>()
-                    .ToArray();
-            }
-            else
-            {
-                userModules = Array.Empty<object>();
-            }
-
-            return Ok(new
-            {
-                userId = user.Id,
-                userType = user.UserType?.Name,
-                modules = userModules,
-                totalModules = userModules.Length
-            });
-        }
-
-        /// <summary>
-        /// Checks if registration is allowed for a given email address.
-        /// </summary>
-        /// <param name="email">The email address to check.</param>
-        /// <returns>Registration eligibility status.</returns>
-        /// <response code="200">Registration eligibility status</response>
-        [HttpGet("check-registration-eligibility")]
-        [AllowAnonymous]
-        [ProducesResponseType(200)]
-        public async Task<IActionResult> CheckRegistrationEligibility([FromQuery] string email)
-        {
-            if (string.IsNullOrEmpty(email))
-            {
-                return BadRequest(new { message = "Email parameter is required." });
-            }
-
-            // Check if this would be the first user
-            var isFirstUser = !await _userService.IsEmailRegisteredAsync(email) && !await _context.Users.AnyAsync();
-            
-            if (isFirstUser)
-            {
-                return Ok(new {
-                    canRegister = true,
-                    isFirstUser = true,
-                    message = "You will be registered as the Super Administrator."
-                });
-            }
-
-            // Check if email is already registered
-            if (await _userService.IsEmailRegisteredAsync(email))
-            {
-                return Ok(new {
-                    canRegister = false,
-                    isFirstUser = false,
-                    message = "Email is already registered."
-                });
-            }
-
-            // Check if email has a valid invitation
-            var hasInvitation = await _context.Invitations
-                .AnyAsync(i => i.EmailAddress.ToLower() == email.ToLower() && i.ExpiryTime > DateTime.UtcNow);
-
-            if (hasInvitation)
-            {
-                return Ok(new {
-                    canRegister = true,
-                    isFirstUser = false,
-                    message = "You have a valid invitation to register."
-                });
-            }
-
-            return Ok(new {
-                canRegister = false,
-                isFirstUser = false,
-                message = "You are not invited. Please contact with Authority."
-            });
-        }
-
-        // Profile Photo Management Endpoints
-
-        /// <summary>
-        /// Updates the current user's profile photo.
-        /// </summary>
-        /// <param name="request">The profile photo update request containing base64 encoded image.</param>
-        /// <returns>Success status with updated user information.</returns>
-        /// <response code="200">Profile photo updated successfully</response>
-        /// <response code="400">Invalid image format or size</response>
-        /// <response code="401">Unauthorized</response>
-        [HttpPost("me/profile-photo")]
-        [Authorize]
-        [ProducesResponseType(typeof(UserResponseDTO), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
-        public async Task<IActionResult> UpdateCurrentUserProfilePhoto([FromBody] UpdateProfilePhotoRequestDTO request)
+        public async Task<IActionResult> ValidateOrGetInfo(string action, [FromQuery] string? email = null)
         {
-            if (!ModelState.IsValid)
+            switch (action.ToLower())
             {
-                return BadRequest(ModelState);
-            }
+                case "email-availability":
+                    if (string.IsNullOrEmpty(email))
+                        return BadRequest(new { message = "Email parameter is required." });
 
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdClaim, out int userId))
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
+                    var isRegistered = await _userService.IsEmailRegisteredAsync(email);
+                    return Ok(new { 
+                        email = email, 
+                        isAvailable = !isRegistered,
+                        message = isRegistered ? "Email is already registered." : "Email is available."
+                    });
 
-            try
-            {
-                // Validate the image if provided
-                if (!string.IsNullOrEmpty(request.ProfilePhotoBase64))
-                {
-                    var validationResult = ImageUtils.ValidateBase64Image(request.ProfilePhotoBase64);
-                    if (!validationResult.IsValid)
+                case "registration-eligibility":
+                    if (string.IsNullOrEmpty(email))
+                        return BadRequest(new { message = "Email parameter is required." });
+
+                    var isFirstUser = !await _userService.IsEmailRegisteredAsync(email) && !await _context.Users.AnyAsync();
+                    
+                    if (isFirstUser)
                     {
-                        return BadRequest(new { message = validationResult.ErrorMessage });
+                        return Ok(new {
+                            canRegister = true,
+                            isFirstUser = true,
+                            message = "You will be registered as the Super Administrator."
+                        });
                     }
-                }
 
-                // Get current user
-                var currentUser = await _context.Users.FindAsync(userId);
-                if (currentUser == null)
-                {
-                    return NotFound(new { message = "User not found." });
-                }
+                    if (await _userService.IsEmailRegisteredAsync(email))
+                    {
+                        return Ok(new {
+                            canRegister = false,
+                            isFirstUser = false,
+                            message = "Email is already registered."
+                        });
+                    }
 
-                // Update profile photo
-                if (!string.IsNullOrEmpty(request.ProfilePhotoBase64))
-                {
-                    var validationResult = ImageUtils.ValidateBase64Image(request.ProfilePhotoBase64);
-                    currentUser.ProfilePhoto = validationResult.ImageBytes;
-                    currentUser.ProfilePhotoMimeType = validationResult.MimeType;
-                }
-                else if (request.ProfilePhotoBase64 == string.Empty) // Explicitly removing photo
-                {
-                    currentUser.ProfilePhoto = null;
-                    currentUser.ProfilePhotoMimeType = null;
-                }
+                    var hasInvitation = await _context.Invitations
+                        .AnyAsync(i => i.EmailAddress.ToLower() == email.ToLower() && i.ExpiryTime > DateTime.UtcNow);
 
-                currentUser.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                    return Ok(new {
+                        canRegister = hasInvitation,
+                        isFirstUser = false,
+                        message = hasInvitation ? "You have a valid invitation to register." : "You are not invited. Please contact with Authority."
+                    });
 
-                // Return updated user information
-                var updatedUser = await _userService.GetUserByIdAsync(userId, userId);
-                return Ok(new { 
-                    message = "Profile photo updated successfully.", 
-                    user = updatedUser 
-                });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Error updating profile photo: {ex.Message}" });
-            }
-        }
+                case "modules":
+                    // Requires authentication
+                    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (!int.TryParse(userIdClaim, out int userId))
+                        return Unauthorized(new { message = "Invalid token." });
 
-        /// <summary>
-        /// Removes the current user's profile photo.
-        /// </summary>
-        /// <returns>Success status.</returns>
-        /// <response code="200">Profile photo removed successfully</response>
-        /// <response code="401">Unauthorized</response>
-        /// <response code="404">User not found</response>
-        [HttpDelete("me/profile-photo")]
-        [Authorize]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> RemoveCurrentUserProfilePhoto()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdClaim, out int userId))
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
+                    var user = await _context.Users
+                        .Include(u => u.UserType)
+                            .ThenInclude(ut => ut!.ModulePermissions)
+                                .ThenInclude(utmp => utmp.Module)
+                        .FirstOrDefaultAsync(u => u.Id == userId);
 
-            try
-            {
-                var currentUser = await _context.Users.FindAsync(userId);
-                if (currentUser == null)
-                {
-                    return NotFound(new { message = "User not found." });
-                }
+                    if (user == null)
+                        return NotFound(new { message = "User not found." });
 
-                // Remove profile photo
-                currentUser.ProfilePhoto = null;
-                currentUser.ProfilePhotoMimeType = null;
-                currentUser.UpdatedAt = DateTime.UtcNow;
+                    object[] userModules = user.UserType?.ModulePermissions != null ?
+                        user.UserType.ModulePermissions
+                            .Where(utmp => utmp.IsActive && utmp.Module.IsActive)
+                            .Select(utmp => new
+                            {
+                                id = utmp.Module.Id,
+                                name = utmp.Module.Name,
+                                description = utmp.Module.Description,
+                                version = utmp.Module.Version,
+                                isActive = utmp.Module.IsActive
+                            })
+                            .Cast<object>()
+                            .ToArray() : Array.Empty<object>();
 
-                await _context.SaveChangesAsync();
+                    return Ok(new
+                    {
+                        userId = user.Id,
+                        userType = user.UserType?.Name,
+                        modules = userModules,
+                        totalModules = userModules.Length
+                    });
 
-                return Ok(new { message = "Profile photo removed successfully." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Error removing profile photo: {ex.Message}" });
-            }
-        }
-
-        /// <summary>
-        /// Gets a user's profile photo by user ID (returns the raw image data).
-        /// </summary>
-        /// <param name="id">The user ID.</param>
-        /// <returns>The profile photo as raw image data or 404 if not found.</returns>
-        /// <response code="200">Profile photo retrieved successfully</response>
-        /// <response code="404">User not found or no profile photo</response>
-        [HttpGet("{id}/profile-photo")]
-        [AllowAnonymous]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> GetUserProfilePhoto(int id)
-        {
-            try
-            {
-                var user = await _context.Users
-                    .Where(u => u.Id == id)
-                    .Select(u => new { u.ProfilePhoto, u.ProfilePhotoMimeType })
-                    .FirstOrDefaultAsync();
-
-                if (user == null || user.ProfilePhoto == null || user.ProfilePhoto.Length == 0)
-                {
-                    return NotFound(new { message = "Profile photo not found." });
-                }
-
-                // Return the raw image data with proper content type
-                return File(user.ProfilePhoto, user.ProfilePhotoMimeType ?? "image/jpeg");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Error retrieving profile photo: {ex.Message}" });
+                default:
+                    return BadRequest(new { message = "Invalid action. Use 'email-availability', 'registration-eligibility', or 'modules'." });
             }
         }
     }

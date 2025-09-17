@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using YopoBackend.Modules.BuildingCRUD.Models;
 
 namespace YopoBackend.Modules.UserCRUD.Models
 {
@@ -58,10 +57,7 @@ namespace YopoBackend.Modules.UserCRUD.Models
         [ForeignKey("UserId")]
         public virtual User? User { get; set; }
 
-        /// <summary>
-        /// Gets or sets the building associated with this permission.
-        /// </summary>
-        [ForeignKey("BuildingId")]
-        public virtual Building? Building { get; set; }
+        // Building navigation property removed since BuildingCRUD module doesn't exist
+        // This class is kept for potential future use when Building module is re-added
     }
 }

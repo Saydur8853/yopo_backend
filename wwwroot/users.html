@@ -571,8 +571,8 @@
             }
             
             const usersGrid = usersToShow.map(user => {
-                const initials = getInitials(user.firstName, user.lastName);
-                const fullName = `${user.firstName} ${user.lastName}`.trim();
+                const initials = getInitials(user.name);
+                const fullName = user.name || 'Unnamed User';
                 
                 // Check if current user is Super Admin (userTypeId = 1)
                 const isSuperAdmin = currentUser && currentUser.userTypeId === 1;
@@ -605,9 +605,10 @@
                         <div class="user-avatar">${avatarHtml}</div>
                         <div class="user-info">
                             <h3>${fullName}</h3>
-                            <p>📧 ${user.emailAddress}</p>
+                            <p>📧 ${user.email}</p>
                             <p>👥 ${user.userTypeName || 'Member'}</p>
                             ${user.phoneNumber ? `<p>📞 ${user.phoneNumber}</p>` : ''}
+                            ${user.address ? `<p>📍 ${user.address}</p>` : ''}
                             <p>📅 Joined ${new Date(user.createdAt).toLocaleDateString()}</p>
                         </div>
                         <div class="user-status ${user.isActive ? 'status-active' : 'status-inactive'}">
@@ -621,11 +622,13 @@
             container.innerHTML = `<div class="users-grid">${usersGrid}</div>`;
         }
 
-        // Get user initials
-        function getInitials(firstName, lastName) {
-            const first = firstName ? firstName.charAt(0).toUpperCase() : '';
-            const last = lastName ? lastName.charAt(0).toUpperCase() : '';
-            return first + last || 'U';
+        // Get user initials from full name
+        function getInitials(fullName) {
+            if (!fullName) return 'U';
+            const names = fullName.trim().split(' ');
+            const first = names[0] ? names[0].charAt(0).toUpperCase() : '';
+            const last = names[1] ? names[1].charAt(0).toUpperCase() : '';
+            return first + last || first || 'U';
         }
 
         // Show error message

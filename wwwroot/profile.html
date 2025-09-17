@@ -97,8 +97,7 @@
             margin-bottom: 2rem;
             padding: 1.5rem;
             background: #f8f9fa;
-            border-radius: 12px;
-            border: 2px dashed #dee2e6;
+            border-radius: 8px;
         }
 
         .current-photo {
@@ -128,13 +127,13 @@
 
         .photo-upload-area {
             width: 100%;
-            max-width: 400px;
-            padding: 2rem;
+            max-width: 350px;
+            padding: 1.5rem;
             border: 2px dashed #667eea;
-            border-radius: 12px;
+            border-radius: 8px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             background: white;
             margin-bottom: 1rem;
         }
@@ -142,13 +141,11 @@
         .photo-upload-area:hover {
             border-color: #5a67d8;
             background: #f8f9ff;
-            transform: translateY(-2px);
         }
 
         .photo-upload-area.dragover {
             border-color: #4c51bf;
             background: #f0f4ff;
-            transform: scale(1.02);
         }
 
         .upload-icon {
@@ -171,37 +168,36 @@
         }
 
         .file-requirements {
-            background: #e8f4fd;
-            border-left: 4px solid #667eea;
-            padding: 1rem;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 0.75rem;
             margin: 1rem 0;
-            border-radius: 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #666;
         }
 
         .file-requirements h4 {
-            color: #667eea;
-            font-size: 1rem;
+            color: #333;
+            font-size: 0.9rem;
             margin-bottom: 0.5rem;
         }
 
         .file-requirements ul {
             list-style: none;
             padding-left: 0;
+            margin: 0;
         }
 
         .file-requirements li {
-            font-size: 0.9rem;
-            color: #555;
-            margin-bottom: 0.3rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.2rem;
         }
 
         .file-requirements li::before {
-            content: "✓";
-            color: #28a745;
-            font-weight: bold;
+            content: "• ";
+            color: #667eea;
         }
 
         .photo-preview {
@@ -255,7 +251,7 @@
         /* Form Styles */
         .form-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -401,9 +397,6 @@
                 text-align: center;
             }
             
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
 
             .form-actions {
                 flex-direction: column;
@@ -441,14 +434,17 @@
                 </div>
 
                 <div class="file-requirements">
-                    <h4>📸 Photo Upload Guidelines</h4>
+                    <h4>Photo Guidelines & Options</h4>
                     <ul>
-                        <li>Supported formats: JPEG, PNG, GIF, BMP, WebP</li>
-                        <li>Maximum file size: 5MB</li>
-                        <li>Recommended size: 400x400 pixels or larger</li>
-                        <li>Image will be automatically resized and optimized</li>
-                        <li>Square images work best for profile photos</li>
+                        <li>JPEG, PNG, GIF, BMP, WebP supported</li>
+                        <li>Max 5MB file size</li>
+                        <li>Square images work best</li>
                     </ul>
+                    <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #333;">
+                        <strong>Two ways to update:</strong><br>
+                        1. Select photo → Click "Upload Photo Now" (immediate)<br>
+                        2. Select photo → Click "Save Changes" (with other profile info)
+                    </p>
                 </div>
 
                 <div class="photo-upload-area" onclick="triggerFileInput()" 
@@ -462,41 +458,49 @@
 
                 <input type="file" id="photoInput" accept="image/jpeg,image/png,image/gif,image/bmp,image/webp" onchange="handleFileSelect(event)">
 
-                <div id="photoPreview" class="photo-preview" style="display: none;">
-                    <img id="previewImage" class="preview-image" alt="Photo preview">
-                    <div class="photo-actions">
-                        <button type="button" class="btn-photo btn-upload" onclick="uploadPhoto()">
-                            ✓ Upload Photo
-                        </button>
-                        <button type="button" class="btn-photo btn-remove" onclick="clearPreview()">
-                            ✗ Cancel
-                        </button>
+                    <div class="photo-preview" id="photoPreview" style="display: none;">
+                        <img id="previewImage" class="preview-image" alt="Photo preview">
+                        <div class="photo-actions">
+                            <button type="button" class="btn-photo btn-upload" onclick="uploadPhoto()">
+                                ✓ Upload Photo Now
+                            </button>
+                            <button type="button" class="btn-photo btn-remove" onclick="clearPreview()">
+                                ✗ Cancel
+                            </button>
+                        </div>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem; text-align: center;">
+                            Or click "Save Changes" below to update photo with other profile info
+                        </p>
                     </div>
-                </div>
             </div>
 
             <!-- Profile Form -->
             <form id="profileForm">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="firstName">First Name *</label>
-                        <input type="text" id="firstName" name="firstName" required>
+                        <label for="name">Full Name *</label>
+                        <input type="text" id="name" name="name" required maxlength="200" placeholder="Enter your full name">
                     </div>
 
                     <div class="form-group">
-                        <label for="lastName">Last Name *</label>
-                        <input type="text" id="lastName" name="lastName" required>
-                    </div>
-
-                    <div class="form-group full-width">
                         <label for="email">Email Address *</label>
-                        <input type="email" id="email" name="email" required readonly style="background: #f8f9fa; color: #666;">
-                        <small style="color: #666; font-size: 0.8rem;">Email cannot be changed</small>
+                        <input type="email" id="email" name="email" required maxlength="255" placeholder="Enter your email address">
                     </div>
 
                     <div class="form-group">
                         <label for="phoneNumber">Phone Number</label>
-                        <input type="tel" id="phoneNumber" name="phoneNumber">
+                        <input type="tel" id="phoneNumber" name="phoneNumber" maxlength="20" placeholder="Enter your phone number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" minlength="8" maxlength="100" placeholder="Enter new password (leave empty to keep current)">
+                        <small style="color: #666; font-size: 0.8rem;">Leave empty to keep your current password</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <input type="text" id="address" name="address" maxlength="500" placeholder="Enter your address">
                     </div>
 
                     <div class="form-group">
@@ -527,7 +531,7 @@
     <script src="/js/avatar-utils.js"></script>
     <script>
         // API Configuration
-        const API_BASE = '/api';
+        const API_BASE = window.location.origin + '/api';
         
         // Global state
         let currentUser = null;
@@ -586,7 +590,13 @@
                 
             } catch (error) {
                 console.error('Error loading current user:', error);
-                showError('Failed to load profile information: ' + error.message);
+                let errorMessage = 'Failed to load profile information';
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    errorMessage = 'Cannot connect to server. Please check if the backend is running.';
+                } else if (error.message) {
+                    errorMessage += ': ' + error.message;
+                }
+                showError(errorMessage);
             } finally {
                 showLoading(false);
             }
@@ -594,10 +604,10 @@
 
         // Populate form with user data
         function populateForm(user) {
-            document.getElementById('firstName').value = user.firstName || '';
-            document.getElementById('lastName').value = user.lastName || '';
-            document.getElementById('email').value = user.emailAddress || '';
+            document.getElementById('name').value = user.name || '';
+            document.getElementById('email').value = user.email || '';
             document.getElementById('phoneNumber').value = user.phoneNumber || '';
+            document.getElementById('address').value = user.address || '';
             document.getElementById('userType').value = user.userTypeName || 'Member';
         }
 
@@ -620,7 +630,7 @@
                 } else {
                     // No profile photo - show initials placeholder
                     hasProfilePhoto = false;
-                    const initials = getInitials(currentUser.firstName, currentUser.lastName);
+                    const initials = getInitials(currentUser.name);
                     photoContainer.innerHTML = `
                         <div class="photo-placeholder">${initials}</div>
                         <p style="color: #666; text-align: center; margin-top: 0.5rem;">No profile photo set</p>
@@ -631,11 +641,13 @@
             }
         }
 
-        // Get user initials
-        function getInitials(firstName, lastName) {
-            const first = firstName ? firstName.charAt(0).toUpperCase() : '';
-            const last = lastName ? lastName.charAt(0).toUpperCase() : '';
-            return first + last || 'U';
+        // Get user initials from full name
+        function getInitials(fullName) {
+            if (!fullName) return 'U';
+            const names = fullName.trim().split(' ');
+            const first = names[0] ? names[0].charAt(0).toUpperCase() : '';
+            const last = names[1] ? names[1].charAt(0).toUpperCase() : '';
+            return first + last || first || 'U';
         }
 
         // File input handling
@@ -705,6 +717,7 @@
             selectedFile = null;
             document.getElementById('photoPreview').style.display = 'none';
             document.getElementById('photoInput').value = '';
+            console.log('Photo preview cleared, selectedFile reset to null');
         }
 
         // Upload photo
@@ -716,13 +729,16 @@
 
             try {
                 showLoading(true);
+                console.log('Starting photo upload...');
                 
                 // Convert file to base64
                 const base64 = await fileToBase64(selectedFile);
+                console.log('File converted to base64, length:', base64.length);
                 
                 const token = localStorage.getItem('authToken');
+                console.log('Sending photo upload request to:', `${API_BASE}/users/me/profile-photo`);
                 const response = await fetch(`${API_BASE}/users/me/profile-photo`, {
-                    method: 'POST',
+                    method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
@@ -731,26 +747,52 @@
                         profilePhotoBase64: base64
                     })
                 });
+                console.log('Response status:', response.status, response.statusText);
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to upload photo');
+                    let errorMessage = 'Failed to upload photo';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (e) {
+                        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
                 }
                 
-                const data = await response.json();
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    console.warn('Response is not valid JSON, but upload may have succeeded');
+                    data = { message: 'Profile photo updated successfully!' };
+                }
+                console.log('Photo upload successful, response data:', data);
                 showSuccess('Profile photo updated successfully!');
                 
                 // Update current user data and refresh photo display
-                currentUser = data.user;
+                if (data.user) {
+                    console.log('Updating currentUser with response data');
+                    currentUser = data.user;
+                    // Update localStorage to reflect the change across the app
+                    localStorage.setItem('userData', JSON.stringify(currentUser));
+                } else {
+                    console.log('No user data in response, refreshing from API');
+                    // Refresh user data from API if not returned in response
+                    await loadCurrentUser();
+                }
                 await loadProfilePhoto();
                 clearPreview();
                 
-                // Update localStorage to reflect the change across the app
-                localStorage.setItem('userData', JSON.stringify(currentUser));
-                
             } catch (error) {
                 console.error('Error uploading photo:', error);
-                showError('Failed to upload photo: ' + error.message);
+                let errorMessage = 'Failed to upload photo';
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    errorMessage = 'Cannot connect to server. Please check if the backend is running.';
+                } else if (error.message) {
+                    errorMessage += ': ' + error.message;
+                }
+                showError(errorMessage);
             } finally {
                 showLoading(false);
             }
@@ -767,17 +809,34 @@
                 
                 const token = localStorage.getItem('authToken');
                 const response = await fetch(`${API_BASE}/users/me/profile-photo`, {
-                    method: 'DELETE',
+                    method: 'PATCH',
                     headers: {
+                        'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
-                    }
+                    },
+                    body: JSON.stringify({
+                        profilePhotoBase64: ""
+                    })
                 });
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to remove photo');
+                    let errorMessage = 'Failed to remove photo';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (e) {
+                        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
                 }
                 
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    console.warn('Response is not valid JSON, but removal may have succeeded');
+                    data = { message: 'Profile photo removed successfully!' };
+                }
                 showSuccess('Profile photo removed successfully!');
                 
                 // Update display
@@ -789,7 +848,13 @@
                 
             } catch (error) {
                 console.error('Error removing photo:', error);
-                showError('Failed to remove photo: ' + error.message);
+                let errorMessage = 'Failed to remove photo';
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    errorMessage = 'Cannot connect to server. Please check if the backend is running.';
+                } else if (error.message) {
+                    errorMessage += ': ' + error.message;
+                }
+                showError(errorMessage);
             } finally {
                 showLoading(false);
             }
@@ -822,14 +887,34 @@
                 saveButton.innerHTML = '💾 Saving...';
                 
                 const formData = {
-                    firstName: document.getElementById('firstName').value.trim(),
-                    lastName: document.getElementById('lastName').value.trim(),
-                    phoneNumber: document.getElementById('phoneNumber').value.trim() || null
+                    email: document.getElementById('email').value.trim(),
+                    name: document.getElementById('name').value.trim(),
+                    phoneNumber: document.getElementById('phoneNumber').value.trim() || null,
+                    address: document.getElementById('address').value.trim() || null
                 };
 
+                // Add password only if it's provided
+                const password = document.getElementById('password').value.trim();
+                if (password) {
+                    formData.password = password;
+                }
+
+                // Add profile photo if a new one was selected
+                if (selectedFile) {
+                    console.log('Including profile photo in save request');
+                    const base64 = await fileToBase64(selectedFile);
+                    formData.profilePhotoBase64 = base64;
+                } else {
+                    console.log('No new profile photo selected for save request');
+                }
+
                 // Basic validation
-                if (!formData.firstName || !formData.lastName) {
-                    showError('First name and last name are required.');
+                if (!formData.email) {
+                    showError('Email is required.');
+                    return;
+                }
+                if (!formData.name) {
+                    showError('Name is required.');
                     return;
                 }
 
@@ -851,6 +936,13 @@
                 const data = await response.json();
                 currentUser = data;
                 
+                // Clear selected photo since it's now saved
+                if (selectedFile) {
+                    selectedFile = null;
+                    clearPreview();
+                    console.log('Profile photo was included in update, cleared selectedFile');
+                }
+                
                 showSuccess('Profile updated successfully!');
                 
                 // Redirect to dashboard after a short delay
@@ -860,7 +952,13 @@
                 
             } catch (error) {
                 console.error('Error saving profile:', error);
-                showError('Failed to save profile: ' + error.message);
+                let errorMessage = 'Failed to save profile';
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    errorMessage = 'Cannot connect to server. Please check if the backend is running.';
+                } else if (error.message) {
+                    errorMessage += ': ' + error.message;
+                }
+                showError(errorMessage);
             } finally {
                 const saveButton = document.getElementById('saveButton');
                 saveButton.disabled = false;

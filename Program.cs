@@ -8,12 +8,6 @@ using YopoBackend.Extensions;
 using YopoBackend.Modules.InvitationCRUD.Services;
 using YopoBackend.Modules.UserTypeCRUD.Services;
 using YopoBackend.Modules.UserCRUD.Services;
-using YopoBackend.Modules.BuildingCRUD.Services;
-using YopoBackend.Modules.TenantCRUD.Services;
-using YopoBackend.Modules.CustomerCRUD.Services;
-using YopoBackend.Modules.InvoiceCRUD.Services;
-using YopoBackend.Modules.CCTVcrud.Services;
-using YopoBackend.Modules.IntercomCRUD.Services;
 using YopoBackend.Services;
 using YopoBackend.Constants;
 using YopoBackend.Middleware;
@@ -40,33 +34,6 @@ builder.Services.AddScoped<IInvitationService, InvitationService>();
 
 // Module: UserCRUD (Module ID: 3 - defined in ModuleConstants.USER_MODULE_ID)
 builder.Services.AddScoped<IUserService, UserService>();
-
-// Module: BuildingCRUD (Module ID: 4)
-builder.Services.AddScoped<IBuildingService, BuildingService>();
-
-// Module: TenantCRUD (Module ID: 5)
-builder.Services.AddScoped<ITenantService, TenantService>();
-
-// Module: CustomerCRUD (Module ID: 6)
-builder.Services.AddScoped<ICustomerService, CustomerService>();
-
-// Module: InvoiceCRUD (Module ID: 7)
-builder.Services.AddScoped<IInvoiceService, InvoiceService>();
-
-// Module: CCTVcrud (Module ID: 8)
-builder.Services.AddScoped<ICCTVService, CCTVService>();
-
-// Module: IntercomCRUD (Module ID: 9)
-builder.Services.AddScoped<IIntercomService, IntercomService>();
-
-// Module: VirtualKeyCRUD (Module ID: 10)
-builder.Services.AddScoped<YopoBackend.Modules.VirtualKeyCRUD.Services.IVirtualKeyService, YopoBackend.Modules.VirtualKeyCRUD.Services.VirtualKeyService>();
-
-// Module: DoorCRUD (Module ID: 12)
-builder.Services.AddScoped<YopoBackend.Modules.DoorCRUD.Services.IDoorService, YopoBackend.Modules.DoorCRUD.Services.DoorService>();
-
-// Module: NotificationCRUD (Module ID: 14)
-builder.Services.AddScoped<YopoBackend.Modules.NotificationCRUD.Services.INotificationService, YopoBackend.Modules.NotificationCRUD.Services.NotificationService>();
 
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
@@ -153,20 +120,11 @@ static string GetControllerDisplayOrder(string? controllerName)
 {
     return controllerName?.ToLower() switch
     {
-        "modules" => "01-Modules",
-        "usertypes" => "02-UserTypes",
-        "invitations" => "03-Invitations",
-        "users" => "04-Users",
-        "buildings" => "05-Buildings",
-        "tenants" => "06-Tenants",
-        "customers" => "07-Customers",
-        "invoices" => "08-Invoices",
-        "cctvs" => "09-CCTVs",
-        "intercoms" => "10-Intercoms",
-        "virtualkeys" => "11-VirtualKeys",
-        "doors" => "12-Doors",
-        "notifications" => "14-Notifications",
-        _ => $"99-{controllerName}"
+        "users" => "01-Users",
+        "modules" => "Modules",
+        "usertypes" => "UserTypes",
+        "invitations" => "Invitations",
+        _ => controllerName ?? "Other"
     };
 }
 
@@ -181,7 +139,14 @@ builder.Services.AddCors(options =>
     });
 });
 
-var app = builder.Build();
+            var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                var context = services.GetRequiredService<ApplicationDbContext>();
+                context.Database.Migrate();
+            }
 
 // Configure the HTTP request pipeline.
 // TEMPORARY: Enable Swagger unconditionally for debugging
@@ -259,7 +224,7 @@ using (var scope = app.Services.CreateScope())
             dbLogger.LogInformation("Development database connection established successfully!");
         }
         
-        dbLogger.LogInformation("Available tables: Modules, UserTypes, UserTypeModulePermissions, Invitations, Users, UserTokens, Buildings, Tenants");
+        dbLogger.LogInformation("Available tables: Modules, UserTypes, UserTypeModulePermissions, Invitations, Users, UserTokens");
     }
     catch (Exception ex)
     {

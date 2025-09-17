@@ -24,8 +24,8 @@ namespace YopoBackend.Modules.UserCRUD.Models
         [Required]
         [EmailAddress]
         [MaxLength(255)]
-        [Column("EmailAddress")]
-        public string EmailAddress { get; set; } = string.Empty;
+        [Column("Email")]
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the hashed password of the user.
@@ -36,20 +36,19 @@ namespace YopoBackend.Modules.UserCRUD.Models
         public string PasswordHash { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the first name of the user.
+        /// Gets or sets the full name of the user.
         /// </summary>
         [Required]
-        [MaxLength(100)]
-        [Column("FirstName")]
-        public string FirstName { get; set; } = string.Empty;
+        [MaxLength(200)]
+        [Column("Name")]
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the last name of the user.
+        /// Gets or sets the address of the user.
         /// </summary>
-        [Required]
-        [MaxLength(100)]
-        [Column("LastName")]
-        public string LastName { get; set; } = string.Empty;
+        [MaxLength(500)]
+        [Column("Address")]
+        public string? Address { get; set; }
 
         /// <summary>
         /// Gets or sets the phone number of the user.
@@ -91,11 +90,6 @@ namespace YopoBackend.Modules.UserCRUD.Models
         [Column("IsEmailVerified")]
         public bool IsEmailVerified { get; set; } = false;
 
-        /// <summary>
-        /// Gets or sets the date and time when the user last logged in.
-        /// </summary>
-        [Column("LastLoginAt")]
-        public DateTime? LastLoginAt { get; set; }
 
         /// <summary>
         /// Gets or sets the ID of the user who created this user record.
@@ -124,20 +118,6 @@ namespace YopoBackend.Modules.UserCRUD.Models
         [ForeignKey("UserTypeId")]
         public virtual UserType? UserType { get; set; }
 
-        /// <summary>
-        /// Gets or sets the customers managed by this user.
-        /// </summary>
-        public virtual ICollection<YopoBackend.Modules.CustomerCRUD.Models.Customer> Customers { get; set; } = new List<YopoBackend.Modules.CustomerCRUD.Models.Customer>();
 
-        /// <summary>
-        /// Gets or sets the building permissions for this user.
-        /// </summary>
-        public virtual ICollection<UserBuildingPermission> BuildingPermissions { get; set; } = new List<UserBuildingPermission>();
-
-        /// <summary>
-        /// Gets the full name of the user (combination of first and last name).
-        /// </summary>
-        [NotMapped]
-        public string FullName => $"{FirstName} {LastName}".Trim();
     }
 }

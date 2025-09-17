@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using YopoBackend.Modules.UserTypeCRUD.Services;
-using YopoBackend.Modules.BuildingCRUD.Services;
 using YopoBackend.Services;
 
 namespace YopoBackend.Extensions

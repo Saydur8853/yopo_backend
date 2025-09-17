@@ -15,7 +15,7 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         [Required(ErrorMessage = "Email address is required")]
         [EmailAddress(ErrorMessage = "Invalid email address format")]
         [MaxLength(255, ErrorMessage = "Email address cannot exceed 255 characters")]
-        public string EmailAddress { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the password of the user.
@@ -29,24 +29,31 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public string Password { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the first name of the user.
+        /// Gets or sets the full name of the user.
         /// </summary>
-        [Required(ErrorMessage = "First name is required")]
-        [MaxLength(100, ErrorMessage = "First name cannot exceed 100 characters")]
-        public string FirstName { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Name is required")]
+        [MaxLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the last name of the user.
+        /// Gets or sets the address of the user.
         /// </summary>
-        [Required(ErrorMessage = "Last name is required")]
-        [MaxLength(100, ErrorMessage = "Last name cannot exceed 100 characters")]
-        public string LastName { get; set; } = string.Empty;
+        [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
+        public string? Address { get; set; }
 
         /// <summary>
         /// Gets or sets the phone number of the user.
         /// </summary>
         [MaxLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
         public string? PhoneNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets the profile photo as a base64 encoded string.
+        /// Maximum size: 5MB (after base64 encoding: ~6.7MB)
+        /// Supported formats: JPEG, PNG, GIF, BMP, WebP
+        /// </summary>
+        [Required(ErrorMessage = "Profile photo is required")]
+        public string ProfilePhotoBase64 { get; set; } = string.Empty;
 
     }
 
@@ -61,7 +68,7 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// </summary>
         [Required(ErrorMessage = "Email address is required")]
         [EmailAddress(ErrorMessage = "Invalid email address format")]
-        public string EmailAddress { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the password of the user.
@@ -81,7 +88,7 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         [Required(ErrorMessage = "Email address is required")]
         [EmailAddress(ErrorMessage = "Invalid email address format")]
         [MaxLength(255, ErrorMessage = "Email address cannot exceed 255 characters")]
-        public string EmailAddress { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the password of the user.
@@ -92,18 +99,17 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public string Password { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the first name of the user.
+        /// Gets or sets the full name of the user.
         /// </summary>
-        [Required(ErrorMessage = "First name is required")]
-        [MaxLength(100, ErrorMessage = "First name cannot exceed 100 characters")]
-        public string FirstName { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Name is required")]
+        [MaxLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the last name of the user.
+        /// Gets or sets the address of the user.
         /// </summary>
-        [Required(ErrorMessage = "Last name is required")]
-        [MaxLength(100, ErrorMessage = "Last name cannot exceed 100 characters")]
-        public string LastName { get; set; } = string.Empty;
+        [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
+        public string? Address { get; set; }
 
         /// <summary>
         /// Gets or sets the phone number of the user.
@@ -137,23 +143,38 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
     }
 
     /// <summary>
-    /// DTO for updating an existing user.
+    /// DTO for updating an existing user's profile.
     /// </summary>
     public class UpdateUserRequestDTO
     {
         /// <summary>
-        /// Gets or sets the first name of the user.
+        /// Gets or sets the email address of the user.
         /// </summary>
-        [Required(ErrorMessage = "First name is required")]
-        [MaxLength(100, ErrorMessage = "First name cannot exceed 100 characters")]
-        public string FirstName { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Email address is required")]
+        [EmailAddress(ErrorMessage = "Invalid email address format")]
+        [MaxLength(255, ErrorMessage = "Email address cannot exceed 255 characters")]
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the last name of the user.
+        /// Gets or sets the password of the user.
+        /// If provided, the password will be updated. Leave empty to keep current password.
         /// </summary>
-        [Required(ErrorMessage = "Last name is required")]
-        [MaxLength(100, ErrorMessage = "Last name cannot exceed 100 characters")]
-        public string LastName { get; set; } = string.Empty;
+        [MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
+        [MaxLength(100, ErrorMessage = "Password cannot exceed 100 characters")]
+        public string? Password { get; set; }
+
+        /// <summary>
+        /// Gets or sets the full name of the user.
+        /// </summary>
+        [Required(ErrorMessage = "Name is required")]
+        [MaxLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the address of the user.
+        /// </summary>
+        [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
+        public string? Address { get; set; }
 
         /// <summary>
         /// Gets or sets the phone number of the user.
@@ -167,23 +188,6 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Supported formats: JPEG, PNG, GIF, BMP, WebP
         /// </summary>
         public string? ProfilePhotoBase64 { get; set; }
-
-        /// <summary>
-        /// Gets or sets the user type ID that determines the user's role and permissions.
-        /// </summary>
-        [Required(ErrorMessage = "User type is required")]
-        [Range(1, int.MaxValue, ErrorMessage = "User type ID must be a positive number")]
-        public int UserTypeId { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the user account is active.
-        /// </summary>
-        public bool IsActive { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the user's email has been verified.
-        /// </summary>
-        public bool IsEmailVerified { get; set; }
     }
 
     /// <summary>
@@ -267,33 +271,22 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// <summary>
         /// Gets or sets the email address of the user.
         /// </summary>
-        public string EmailAddress { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the first name of the user.
-        /// </summary>
-        public string FirstName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the last name of the user.
-        /// </summary>
-        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the full name of the user.
         /// </summary>
-        public string FullName { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the address of the user.
+        /// </summary>
+        public string? Address { get; set; }
 
         /// <summary>
         /// Gets or sets the phone number of the user.
         /// </summary>
         public string? PhoneNumber { get; set; }
-
-        /// <summary>
-        /// Gets or sets the profile photo as a base64 encoded string.
-        /// Will be null if no profile photo is set.
-        /// </summary>
-        public string? ProfilePhotoBase64 { get; set; }
 
         /// <summary>
         /// Gets or sets the user type ID that determines the user's role and permissions.
@@ -316,11 +309,6 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public bool IsEmailVerified { get; set; }
 
         /// <summary>
-        /// Gets or sets the date and time when the user last logged in.
-        /// </summary>
-        public DateTime? LastLoginAt { get; set; }
-
-        /// <summary>
         /// Gets or sets the date and time when the user was created.
         /// </summary>
         public DateTime CreatedAt { get; set; }
@@ -336,9 +324,12 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public List<PermittedModuleDto> PermittedModules { get; set; } = new();
 
         /// <summary>
-        /// Gets or sets the list of buildings that the user has access to.
+        /// Gets or sets the profile photo as a base64 encoded string.
+        /// Will be null if no profile photo is set.
         /// </summary>
-        public List<UserBuildingDto> Buildings { get; set; } = new();
+        public string? ProfilePhotoBase64 { get; set; }
+
+        // Building access removed since BuildingCRUD module doesn't exist
     }
 
     /// <summary>
@@ -357,21 +348,6 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public string ModuleName { get; set; } = string.Empty;
     }
 
-    /// <summary>
-    /// DTO for representing a building in user response.
-    /// </summary>
-    public class UserBuildingDto
-    {
-        /// <summary>
-        /// Gets or sets the building ID.
-        /// </summary>
-        public string Id { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the building name.
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-    }
 
     /// <summary>
     /// DTO for paginated user list response.

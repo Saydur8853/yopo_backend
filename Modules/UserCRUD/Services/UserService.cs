@@ -3,7 +3,6 @@ using BCrypt.Net;
 using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
 using YopoBackend.Modules.UserCRUD.Models;
-using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Services;
 using YopoBackend.Constants;
 using YopoBackend.Utils;
@@ -40,7 +39,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
             try
             {
                 // Input validation
-                if (string.IsNullOrWhiteSpace(loginRequest.EmailAddress) || string.IsNullOrWhiteSpace(loginRequest.Password))
+                if (string.IsNullOrWhiteSpace(loginRequest.Email) || string.IsNullOrWhiteSpace(loginRequest.Password))
                 {
                     Console.WriteLine("Login attempt with empty email or password");
                     return null;
@@ -50,35 +49,30 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
-                    .Include(u => u.BuildingPermissions)
-                        .ThenInclude(bp => bp.Building)
-                    .FirstOrDefaultAsync(u => u.EmailAddress.ToLower() == loginRequest.EmailAddress.ToLower());
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == loginRequest.Email.ToLower());
 
                 if (user == null)
                 {
-                    Console.WriteLine($"Login attempt with non-existent email: {loginRequest.EmailAddress}");
+                    Console.WriteLine($"Login attempt with non-existent email: {loginRequest.Email}");
                     return null; // User not found
                 }
 
                 if (!user.IsActive)
                 {
-                    Console.WriteLine($"Login attempt with inactive account: {loginRequest.EmailAddress}");
+                    Console.WriteLine($"Login attempt with inactive account: {loginRequest.Email}");
                     return null; // Account is deactivated
                 }
 
                 if (!BCrypt.Net.BCrypt.Verify(loginRequest.Password, user.PasswordHash))
                 {
-                    Console.WriteLine($"Login attempt with invalid password for: {loginRequest.EmailAddress}");
+                    Console.WriteLine($"Login attempt with invalid password for: {loginRequest.Email}");
                     return null; // Invalid password
                 }
-
-                // Update last login time
-                await UpdateLastLoginAsync(user.Id);
 
                 // Generate JWT token with IP and device info if available
                 var (token, expiresAt) = await _jwtService.GenerateTokenAsync(user, null, null);
 
-                Console.WriteLine($"Successful login for user: {user.EmailAddress}");
+                Console.WriteLine($"Successful login for user: {user.Email}");
                 return new AuthenticationResponseDTO
                 {
                     Token = token,
@@ -89,7 +83,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Login error for {loginRequest.EmailAddress}: {ex.Message}");
+                Console.WriteLine($"Login error for {loginRequest.Email}: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return null;
             }
@@ -105,7 +99,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
             try
             {
                 // Check if email is already registered
-                if (await IsEmailRegisteredAsync(registerRequest.EmailAddress))
+                if (await IsEmailRegisteredAsync(registerRequest.Email))
                 {
                     return null; // Email already registered
                 }
@@ -118,25 +112,25 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 {
                     // First user becomes Super Admin
                     userTypeId = UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
-                    Console.WriteLine($"First user registration - assigning Super Admin role to: {registerRequest.EmailAddress}");
+                    Console.WriteLine($"First user registration - assigning Super Admin role to: {registerRequest.Email}");
                 }
                 else
                 {
                     // Check if email has a valid invitation
                     var invitation = await _context.Invitations
                         .Include(i => i.UserType)
-                        .FirstOrDefaultAsync(i => i.EmailAddress.ToLower() == registerRequest.EmailAddress.ToLower() 
+                        .FirstOrDefaultAsync(i => i.EmailAddress.ToLower() == registerRequest.Email.ToLower() 
                                                  && i.ExpiryTime > DateTime.UtcNow);
                     
                     if (invitation == null)
                     {
                         // No valid invitation found
-                        Console.WriteLine($"Registration denied for {registerRequest.EmailAddress} - no valid invitation");
+                        Console.WriteLine($"Registration denied for {registerRequest.Email} - no valid invitation");
                         throw new UnauthorizedAccessException("You are not invited. Please contact with Authority.");
                     }
                     
                     userTypeId = invitation.UserTypeId;
-                    Console.WriteLine($"User registration with invitation - assigning user type {invitation.UserType?.Name} to: {registerRequest.EmailAddress}");
+                    Console.WriteLine($"User registration with invitation - assigning user type {invitation.UserType?.Name} to: {registerRequest.Email}");
                     
                     // Remove the used invitation
                     _context.Invitations.Remove(invitation);
@@ -151,14 +145,36 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 // Hash password
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerRequest.Password);
 
+                // Process profile photo (now required)
+                byte[]? profilePhotoBytes = null;
+                string? profilePhotoMimeType = null;
+                
+                if (!string.IsNullOrEmpty(registerRequest.ProfilePhotoBase64))
+                {
+                    var validationResult = ImageUtils.ValidateBase64Image(registerRequest.ProfilePhotoBase64);
+                    if (!validationResult.IsValid)
+                    {
+                        throw new ArgumentException($"Invalid profile photo: {validationResult.ErrorMessage}");
+                    }
+                    
+                    profilePhotoBytes = validationResult.ImageBytes;
+                    profilePhotoMimeType = validationResult.MimeType;
+                }
+                else
+                {
+                    throw new ArgumentException("Profile photo is required");
+                }
+
                 // Create new user
                 var user = new User
                 {
-                    EmailAddress = registerRequest.EmailAddress.ToLower(),
+                    Email = registerRequest.Email.ToLower(),
                     PasswordHash = passwordHash,
-                    FirstName = registerRequest.FirstName,
-                    LastName = registerRequest.LastName,
+                    Name = registerRequest.Name,
+                    Address = registerRequest.Address,
                     PhoneNumber = registerRequest.PhoneNumber,
+                    ProfilePhoto = profilePhotoBytes,
+                    ProfilePhotoMimeType = profilePhotoMimeType,
                     UserTypeId = userTypeId,
                     IsActive = true,
                     IsEmailVerified = false,
@@ -173,37 +189,13 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 user.CreatedBy = user.Id;
                 await _context.SaveChangesAsync();
 
-                // If user is a Property Manager, create a corresponding Customer record
-                if (userTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
-                {
-                    var customer = new YopoBackend.Modules.CustomerCRUD.Models.Customer
-                    {
-                        Name = $"{registerRequest.FirstName} {registerRequest.LastName}".Trim(),
-                        Address = "Pending", // Default value - can be updated later
-                        CompanyName = null, // Can be updated later
-                        CompanyLicense = null, // Can be updated later
-                        Active = true,
-                        IsTrial = false,
-                        Paid = false,
-                        Type = "Property Manager", // Customer type
-                        UserId = user.Id,
-                        CreatedBy = user.Id,
-                        CreatedAt = DateTime.UtcNow
-                    };
-
-                    _context.Customers.Add(customer);
-                    await _context.SaveChangesAsync();
-                    
-                    Console.WriteLine($"Customer record created for Property Manager: {customer.Name} (User ID: {user.Id}, Customer ID: {customer.CustomerId})");
-                }
+                // Customer creation removed since CustomerCRUD module doesn't exist
 
                 // Reload user with full relationships for response
                 var registeredUser = await _context.Users
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
-                    .Include(u => u.BuildingPermissions)
-                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.Id == user.Id);
 
                 if (registeredUser == null) return null;
@@ -252,8 +244,6 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
-                    .Include(u => u.BuildingPermissions)
-                        .ThenInclude(bp => bp.Building)
                     .AsQueryable();
 
                 // Apply access control
@@ -263,9 +253,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 if (!string.IsNullOrEmpty(searchTerm))
                 {
                     var search = searchTerm.ToLower();
-                    query = query.Where(u => u.EmailAddress.ToLower().Contains(search) ||
-                                           u.FirstName.ToLower().Contains(search) ||
-                                           u.LastName.ToLower().Contains(search));
+                    query = query.Where(u => u.Email.ToLower().Contains(search) ||
+                                           u.Name.ToLower().Contains(search));
                 }
 
                 if (userTypeId.HasValue)
@@ -282,8 +271,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                 // Apply pagination
                 var users = await query
-                    .OrderBy(u => u.FirstName)
-                    .ThenBy(u => u.LastName)
+                    .OrderBy(u => u.Name)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
@@ -322,8 +310,6 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
-                    .Include(u => u.BuildingPermissions)
-                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.Id == id);
 
                 if (user == null)
@@ -359,9 +345,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
-                    .Include(u => u.BuildingPermissions)
-                        .ThenInclude(bp => bp.Building)
-                    .FirstOrDefaultAsync(u => u.EmailAddress.ToLower() == emailAddress.ToLower());
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == emailAddress.ToLower());
 
                 return user != null ? MapToUserResponse(user) : null;
             }
@@ -383,7 +367,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
             try
             {
                 // Check if email is already registered
-                if (await IsEmailRegisteredAsync(createRequest.EmailAddress))
+                if (await IsEmailRegisteredAsync(createRequest.Email))
                 {
                     return null; // Email already registered
                 }
@@ -417,10 +401,10 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 // Create new user
                 var user = new User
                 {
-                    EmailAddress = createRequest.EmailAddress.ToLower(),
+                    Email = createRequest.Email.ToLower(),
                     PasswordHash = passwordHash,
-                    FirstName = createRequest.FirstName,
-                    LastName = createRequest.LastName,
+                    Name = createRequest.Name,
+                    Address = createRequest.Address,
                     PhoneNumber = createRequest.PhoneNumber,
                     ProfilePhoto = profilePhotoBytes,
                     ProfilePhotoMimeType = profilePhotoMimeType,
@@ -439,8 +423,6 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
-                    .Include(u => u.BuildingPermissions)
-                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.Id == user.Id);
 
                 return createdUser != null ? MapToUserResponse(createdUser) : null;
@@ -453,7 +435,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
         }
 
         /// <summary>
-        /// Updates an existing user with access control.
+        /// Updates an existing user's profile with access control.
         /// </summary>
         /// <param name="id">The user ID to update.</param>
         /// <param name="updateRequest">The update user request.</param>
@@ -475,11 +457,15 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     return null; // User doesn't have access to update this user record
                 }
 
-                // Check if user type exists
-                var userType = await _context.UserTypes.FindAsync(updateRequest.UserTypeId);
-                if (userType == null)
+                // Check if email is being changed and if it's already taken by another user
+                if (updateRequest.Email.ToLower() != user.Email.ToLower())
                 {
-                    return null; // Invalid user type
+                    var existingUser = await _context.Users
+                        .FirstOrDefaultAsync(u => u.Email.ToLower() == updateRequest.Email.ToLower() && u.Id != id);
+                    if (existingUser != null)
+                    {
+                        throw new ArgumentException("Email address is already registered by another user.");
+                    }
                 }
 
                 // Process profile photo if provided
@@ -502,12 +488,17 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 // If ProfilePhotoBase64 is null, don't change the existing photo
 
                 // Update user properties
-                user.FirstName = updateRequest.FirstName;
-                user.LastName = updateRequest.LastName;
+                user.Email = updateRequest.Email.ToLower();
+                user.Name = updateRequest.Name;
+                user.Address = updateRequest.Address;
                 user.PhoneNumber = updateRequest.PhoneNumber;
-                user.UserTypeId = updateRequest.UserTypeId;
-                user.IsActive = updateRequest.IsActive;
-                user.IsEmailVerified = updateRequest.IsEmailVerified;
+                
+                // Update password if provided
+                if (!string.IsNullOrEmpty(updateRequest.Password))
+                {
+                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updateRequest.Password);
+                }
+                
                 user.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
@@ -517,8 +508,6 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .Include(u => u.UserType)
                         .ThenInclude(ut => ut!.ModulePermissions)
                             .ThenInclude(mp => mp.Module)
-                    .Include(u => u.BuildingPermissions)
-                        .ThenInclude(bp => bp.Building)
                     .FirstOrDefaultAsync(u => u.Id == user.Id);
 
                 return updatedUser != null ? MapToUserResponse(updatedUser) : null;
@@ -614,7 +603,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 await _context.SaveChangesAsync();
                 
                 string action = isOwnPassword ? "self-reset" : "admin-reset";
-                Console.WriteLine($"Password reset successful: {action} by {currentUser.EmailAddress} for user {targetUser.EmailAddress} (ID: {userId})");
+                Console.WriteLine($"Password reset successful: {action} by {currentUser.Email} for user {targetUser.Email} (ID: {userId})");
                 return true;
             }
             catch (Exception ex)
@@ -687,31 +676,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
             }
         }
 
-        /// <summary>
-        /// Updates the user's last login time.
-        /// </summary>
-        /// <param name="userId">The user ID.</param>
-        /// <returns>True if the operation was successful; otherwise, false.</returns>
-        public async Task<bool> UpdateLastLoginAsync(int userId)
-        {
-            try
-            {
-                var user = await _context.Users.FindAsync(userId);
-                if (user == null)
-                {
-                    return false; // User not found
-                }
-
-                user.LastLoginAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Update last login error: {ex.Message}");
-                return false;
-            }
-        }
+        // Last login tracking removed since LastLoginAt property was removed from User model
 
         /// <summary>
         /// Checks if an email address is already registered.
@@ -723,7 +688,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
         {
             try
             {
-                var query = _context.Users.Where(u => u.EmailAddress.ToLower() == emailAddress.ToLower());
+                var query = _context.Users.Where(u => u.Email.ToLower() == emailAddress.ToLower());
 
                 if (excludeUserId.HasValue)
                 {
@@ -735,6 +700,133 @@ namespace YopoBackend.Modules.UserCRUD.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Check email registration error: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Updates an existing user by email address with access control.
+        /// </summary>
+        /// <param name="email">The user email to update.</param>
+        /// <param name="updateRequest">The update user request.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>The updated user if successful and accessible; otherwise, null.</returns>
+        public async Task<UserResponseDTO?> UpdateUserByEmailAsync(string email, UpdateUserRequestDTO updateRequest, int currentUserId)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+                if (user == null)
+                {
+                    return null; // User not found
+                }
+
+                return await UpdateUserAsync(user.Id, updateRequest, currentUserId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Update user by email error: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Deletes a user by their email address with access control.
+        /// </summary>
+        /// <param name="email">The user email to delete.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>True if the user was deleted successfully and accessible; otherwise, false.</returns>
+        public async Task<bool> DeleteUserByEmailAsync(string email, int currentUserId)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+                if (user == null)
+                {
+                    return false; // User not found
+                }
+
+                return await DeleteUserAsync(user.Id, currentUserId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Delete user by email error: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Changes a user's password by email.
+        /// </summary>
+        /// <param name="email">The user email.</param>
+        /// <param name="changePasswordRequest">The change password request.</param>
+        /// <returns>True if the password was changed successfully; otherwise, false.</returns>
+        public async Task<bool> ChangePasswordByEmailAsync(string email, ChangePasswordRequestDTO changePasswordRequest)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+                if (user == null)
+                {
+                    return false; // User not found
+                }
+
+                return await ChangePasswordAsync(user.Id, changePasswordRequest);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Change password by email error: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Resets a user's password by email (Super Admin only - doesn't require current password).
+        /// </summary>
+        /// <param name="email">The user email whose password to reset.</param>
+        /// <param name="resetPasswordRequest">The reset password request.</param>
+        /// <param name="currentUserId">The ID of the user performing the reset (must be Super Admin).</param>
+        /// <returns>True if the password was reset successfully; otherwise, false.</returns>
+        public async Task<bool> ResetPasswordByEmailAsync(string email, ResetPasswordRequestDTO resetPasswordRequest, int currentUserId)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+                if (user == null)
+                {
+                    return false; // User not found
+                }
+
+                return await ResetPasswordAsync(user.Id, resetPasswordRequest, currentUserId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Reset password by email error: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Activates or deactivates a user account by email.
+        /// </summary>
+        /// <param name="email">The user email.</param>
+        /// <param name="isActive">Whether to activate or deactivate the account.</param>
+        /// <returns>True if the operation was successful; otherwise, false.</returns>
+        public async Task<bool> SetUserActiveStatusByEmailAsync(string email, bool isActive)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+                if (user == null)
+                {
+                    return false; // User not found
+                }
+
+                return await SetUserActiveStatusAsync(user.Id, isActive);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Set user active status by email error: {ex.Message}");
                 return false;
             }
         }
@@ -763,59 +855,22 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .ToList();
             }
 
-            // Get buildings - Super Admin sees all buildings, others see only their permitted buildings
-            var buildings = new List<UserBuildingDto>();
-            
-            // Check if user is Super Admin
-            if (user.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
-            {
-                // Super Admin gets ALL buildings
-                var allBuildings = _context.Buildings
-                    .Where(b => b.IsActive)
-                    .Select(b => new UserBuildingDto
-                    {
-                        Id = b.Id.ToString(),
-                        Name = b.Name
-                    })
-                    .OrderBy(b => b.Name)
-                    .ToList();
-                buildings = allBuildings;
-            }
-            else
-            {
-                // Regular users get only buildings they have explicit permissions for
-                if (user.BuildingPermissions != null)
-                {
-                    buildings = user.BuildingPermissions
-                        .Where(ubp => ubp.IsActive && ubp.Building != null && ubp.Building.IsActive)
-                        .Select(ubp => new UserBuildingDto
-                        {
-                            Id = ubp.Building!.Id.ToString(),
-                            Name = ubp.Building!.Name
-                        })
-                        .OrderBy(b => b.Name)
-                        .ToList();
-                }
-            }
-
             return new UserResponseDTO
             {
                 Id = user.Id,
-                EmailAddress = user.EmailAddress,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                FullName = user.FullName,
+                Email = user.Email,
+                Name = user.Name,
+                Address = user.Address,
                 PhoneNumber = user.PhoneNumber,
                 ProfilePhotoBase64 = ImageUtils.ConvertToBase64DataUrl(user.ProfilePhoto, user.ProfilePhotoMimeType),
                 UserTypeId = user.UserTypeId,
                 UserTypeName = user.UserType?.Name ?? string.Empty,
                 IsActive = user.IsActive,
                 IsEmailVerified = user.IsEmailVerified,
-                LastLoginAt = user.LastLoginAt,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt,
-                PermittedModules = permittedModules,
-                Buildings = buildings
+                PermittedModules = permittedModules
+                // Building access removed since BuildingCRUD module doesn't exist
             };
         }
     }

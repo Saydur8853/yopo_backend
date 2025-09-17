@@ -55,6 +55,48 @@ namespace YopoBackend.Modules.UserCRUD.Services
         Task<UserResponseDTO?> GetUserByEmailAsync(string emailAddress);
 
         /// <summary>
+        /// Updates an existing user by email address with access control.
+        /// </summary>
+        /// <param name="email">The user email to update.</param>
+        /// <param name="updateRequest">The update user request.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>The updated user if successful and accessible; otherwise, null.</returns>
+        Task<UserResponseDTO?> UpdateUserByEmailAsync(string email, UpdateUserRequestDTO updateRequest, int currentUserId);
+
+        /// <summary>
+        /// Deletes a user by their email address with access control.
+        /// </summary>
+        /// <param name="email">The user email to delete.</param>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <returns>True if the user was deleted successfully and accessible; otherwise, false.</returns>
+        Task<bool> DeleteUserByEmailAsync(string email, int currentUserId);
+
+        /// <summary>
+        /// Changes a user's password by email.
+        /// </summary>
+        /// <param name="email">The user email.</param>
+        /// <param name="changePasswordRequest">The change password request.</param>
+        /// <returns>True if the password was changed successfully; otherwise, false.</returns>
+        Task<bool> ChangePasswordByEmailAsync(string email, ChangePasswordRequestDTO changePasswordRequest);
+
+        /// <summary>
+        /// Resets a user's password by email (Super Admin only - doesn't require current password).
+        /// </summary>
+        /// <param name="email">The user email whose password to reset.</param>
+        /// <param name="resetPasswordRequest">The reset password request.</param>
+        /// <param name="currentUserId">The ID of the user performing the reset (must be Super Admin).</param>
+        /// <returns>True if the password was reset successfully; otherwise, false.</returns>
+        Task<bool> ResetPasswordByEmailAsync(string email, ResetPasswordRequestDTO resetPasswordRequest, int currentUserId);
+
+        /// <summary>
+        /// Activates or deactivates a user account by email.
+        /// </summary>
+        /// <param name="email">The user email.</param>
+        /// <param name="isActive">Whether to activate or deactivate the account.</param>
+        /// <returns>True if the operation was successful; otherwise, false.</returns>
+        Task<bool> SetUserActiveStatusByEmailAsync(string email, bool isActive);
+
+        /// <summary>
         /// Creates a new user.
         /// </summary>
         /// <param name="createRequest">The create user request.</param>
@@ -104,12 +146,6 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// <returns>True if the operation was successful; otherwise, false.</returns>
         Task<bool> SetUserActiveStatusAsync(int id, bool isActive);
 
-        /// <summary>
-        /// Updates the user's last login time.
-        /// </summary>
-        /// <param name="userId">The user ID.</param>
-        /// <returns>True if the operation was successful; otherwise, false.</returns>
-        Task<bool> UpdateLastLoginAsync(int userId);
 
         /// <summary>
         /// Checks if an email address is already registered.

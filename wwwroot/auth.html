@@ -27,7 +27,7 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.2);
             overflow: hidden;
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
             position: relative;
         }
 
@@ -257,6 +257,134 @@
             text-decoration: underline;
         }
 
+        /* Profile Photo Upload Styles */
+        .photo-upload-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .photo-upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+            position: relative;
+        }
+
+        .photo-upload-area:hover {
+            border-color: #5a67d8;
+            background: #f0f4ff;
+        }
+
+        .photo-upload-area.dragover {
+            border-color: #4c51bf;
+            background: #e6efff;
+            transform: scale(1.02);
+        }
+
+        .photo-upload-area.error {
+            border-color: #dc3545;
+            background: #fdf2f2;
+        }
+
+        .photo-upload-area.error .upload-icon {
+            color: #dc3545;
+        }
+
+        .photo-upload-area.error .upload-text {
+            color: #dc3545;
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-text {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .photo-requirements {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 0.5rem;
+            text-align: left;
+        }
+
+        .photo-preview {
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 120px;
+            max-height: 120px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 0.5rem;
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-remove:hover {
+            background: #c82333;
+        }
+
+        #photoInput {
+            display: none;
+        }
+
+        .current-photo-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .photo-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
         @media (max-width: 480px) {
             .auth-container {
                 margin: 1rem;
@@ -265,6 +393,14 @@
             
             .form-row {
                 grid-template-columns: 1fr;
+            }
+            
+            .photo-upload-area {
+                padding: 1rem;
+            }
+            
+            .upload-icon {
+                font-size: 2rem;
             }
         }
     </style>
@@ -304,15 +440,9 @@
 
             <!-- Registration Form -->
             <form id="register-form" class="auth-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="register-firstname">First Name</label>
-                        <input type="text" id="register-firstname" class="form-control" required maxlength="100">
-                    </div>
-                    <div class="form-group">
-                        <label for="register-lastname">Last Name</label>
-                        <input type="text" id="register-lastname" class="form-control" required maxlength="100">
-                    </div>
+                <div class="form-group">
+                    <label for="register-name">Full Name</label>
+                    <input type="text" id="register-name" class="form-control" required maxlength="200" placeholder="Enter your full name">
                 </div>
 
                 <div class="form-group">
@@ -323,6 +453,40 @@
                 <div class="form-group">
                     <label for="register-phone">Phone Number (Optional)</label>
                     <input type="tel" id="register-phone" class="form-control" maxlength="20">
+                </div>
+
+                <div class="form-group">
+                    <label for="register-address">Address (Optional)</label>
+                    <input type="text" id="register-address" class="form-control" maxlength="500" placeholder="Enter your address">
+                </div>
+
+                <!-- Profile Photo Upload Section -->
+                <div class="form-group photo-upload-section">
+                    <label>Profile Photo *</label>
+                    <div class="photo-upload-area" onclick="triggerPhotoInput()" 
+                         ondragover="handleDragOver(event)" 
+                         ondragleave="handleDragLeave(event)" 
+                         ondrop="handlePhotoDrop(event)">
+                        <div class="upload-icon">📸</div>
+                        <div class="upload-text">Click to upload or drag & drop</div>
+                        <div class="upload-hint">Please select a profile photo (Required)</div>
+                        <div class="photo-requirements">
+                            • JPEG, PNG, GIF, BMP, WebP supported<br>
+                            • Max 5MB file size<br>
+                            • Square images work best
+                        </div>
+                    </div>
+                    
+                    <input type="file" id="photoInput" accept="image/jpeg,image/png,image/gif,image/bmp,image/webp" onchange="handlePhotoSelect(event)">
+                    
+                    <div id="photoPreview" class="photo-preview" style="display: none;">
+                        <img id="previewImage" class="preview-image" alt="Photo preview">
+                        <div class="preview-actions">
+                            <button type="button" class="btn-small btn-remove" onclick="clearPhotoPreview()">
+                                ✗ Remove
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -359,14 +523,19 @@
 
     <script>
         // API Configuration
-        const API_BASE = '/api';
+        const API_BASE = window.location.origin + '/api';
         
         // Global state
         let isLoading = false;
+        let selectedPhotoFile = null;
+        let selectedPhotoBase64 = null;
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             setupFormHandlers();
+            
+            // Add initial error styling to required photo field
+            document.querySelector('.photo-upload-area').classList.add('error');
             
             // Check if user is already logged in
             const token = localStorage.getItem('authToken');
@@ -413,6 +582,17 @@
             
             // Clear messages
             hideMessages();
+            
+            // Clear photo preview and error styling when switching forms
+            if (formType === 'login') {
+                clearPhotoPreview();
+                document.querySelector('.photo-upload-area').classList.remove('error');
+            } else if (formType === 'register') {
+                // Show error styling for required photo field
+                if (!selectedPhotoBase64) {
+                    document.querySelector('.photo-upload-area').classList.add('error');
+                }
+            }
         }
 
         // Message handling
@@ -493,7 +673,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        emailAddress: email,
+                        email: email,
                         password: password
                     })
                 });
@@ -531,16 +711,23 @@ const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
             
             if (isLoading) return;
             
-            const firstName = document.getElementById('register-firstname').value.trim();
-            const lastName = document.getElementById('register-lastname').value.trim();
+            const name = document.getElementById('register-name').value.trim();
             const email = document.getElementById('register-email').value.trim();
             const phone = document.getElementById('register-phone').value.trim();
+            const address = document.getElementById('register-address').value.trim();
             const password = document.getElementById('register-password').value;
             const confirmPassword = document.getElementById('register-confirm-password').value;
             
             // Validation
-            if (!firstName || !lastName || !email || !password || !confirmPassword) {
+            if (!name || !email || !password || !confirmPassword) {
                 showMessage('Please fill in all required fields');
+                return;
+            }
+            
+            if (!selectedPhotoBase64) {
+                showMessage('Please select a profile photo');
+                // Add error styling to upload area
+                document.querySelector('.photo-upload-area').classList.add('error');
                 return;
             }
             
@@ -557,18 +744,26 @@ const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
             setLoading('register', true);
             
             try {
+                // Prepare registration data
+                const registrationData = {
+                    name: name,
+                    email: email,
+                    phoneNumber: phone || null,
+                    address: address || null,
+                    password: password
+                };
+                
+                // Add profile photo if selected
+                if (selectedPhotoBase64) {
+                    registrationData.profilePhotoBase64 = selectedPhotoBase64;
+                }
+                
                 const response = await fetch(`${API_BASE}/users/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        firstName: firstName,
-                        lastName: lastName,
-                        emailAddress: email,
-                        phoneNumber: phone || null,
-                        password: password
-                    })
+                    body: JSON.stringify(registrationData)
                 });
                 
                 const data = await response.json();
@@ -617,6 +812,98 @@ const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
             localStorage.removeItem('tokenExpiry');
             localStorage.removeItem('userData');
             window.location.href = '/auth.html';
+        }
+
+        // Photo upload handling functions
+        function triggerPhotoInput() {
+            document.getElementById('photoInput').click();
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('dragover');
+        }
+
+        function handlePhotoDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                processPhotoFile(files[0]);
+            }
+        }
+
+        function handlePhotoSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processPhotoFile(file);
+            }
+        }
+
+        function processPhotoFile(file) {
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showMessage('Please select a valid image file (JPEG, PNG, GIF, BMP, or WebP)');
+                return;
+            }
+
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showMessage('File size must be less than 5MB. Please choose a smaller image.');
+                return;
+            }
+
+            selectedPhotoFile = file;
+            
+            // Remove error styling if present
+            document.querySelector('.photo-upload-area').classList.remove('error');
+            hideMessages();
+            
+            // Convert to base64 and show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedPhotoBase64 = e.target.result;
+                showPhotoPreview(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showPhotoPreview(base64Data) {
+            const previewContainer = document.getElementById('photoPreview');
+            const previewImage = document.getElementById('previewImage');
+            
+            previewImage.src = base64Data;
+            previewContainer.style.display = 'block';
+            
+            // Hide upload area
+            document.querySelector('.photo-upload-area').style.display = 'none';
+        }
+
+        function clearPhotoPreview() {
+            selectedPhotoFile = null;
+            selectedPhotoBase64 = null;
+            
+            document.getElementById('photoPreview').style.display = 'none';
+            document.querySelector('.photo-upload-area').style.display = 'block';
+            document.getElementById('photoInput').value = '';
+            
+            // Add error styling since photo is required
+            document.querySelector('.photo-upload-area').classList.add('error');
+        }
+
+        function getInitials(fullName) {
+            if (!fullName) return 'U';
+            const names = fullName.trim().split(' ');
+            const first = names[0] ? names[0].charAt(0).toUpperCase() : '';
+            const last = names[1] ? names[1].charAt(0).toUpperCase() : '';
+            return first + last || first || 'U';
         }
 
         // Check registration eligibility
