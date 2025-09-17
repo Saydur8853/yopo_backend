@@ -37,6 +37,9 @@ builder.Services.AddScoped<IInvitationService, InvitationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 
+// Module: BuildingCRUD (Module ID: 4 - defined in ModuleConstants.BUILDING_MODULE_ID)
+builder.Services.AddScoped<YopoBackend.Modules.BuildingCRUD.Services.IBuildingService, YopoBackend.Modules.BuildingCRUD.Services.BuildingService>();
+
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
@@ -126,6 +129,7 @@ static string GetControllerDisplayOrder(string? controllerName)
         "modules" => "Modules",
         "usertypes" => "UserTypes",
         "invitations" => "Invitations",
+        "buildings" => "04-Buildings",
         _ => controllerName ?? "Other"
     };
 }

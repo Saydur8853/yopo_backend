@@ -26,6 +26,31 @@ namespace YopoBackend.Constants
         public const string USER_TYPE_MODULE_VERSION = "1.0.0";
 
         /// <summary>
+        /// Current version of the PropertyManagerCRUD module.
+        /// </summary>
+        public const string PROPERTY_MANAGER_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
+        /// Module ID for the BuildingCRUD module.
+        /// </summary>
+        public const int BUILDING_MODULE_ID = 4;
+
+        /// <summary>
+        /// Module name for the BuildingCRUD module.
+        /// </summary>
+        public const string BUILDING_MODULE_NAME = "BuildingCRUD";
+
+        /// <summary>
+        /// Module description for the BuildingCRUD module.
+        /// </summary>
+        public const string BUILDING_MODULE_DESCRIPTION = "Module for managing buildings with PM data access control";
+
+        /// <summary>
+        /// Current version of the BuildingCRUD module.
+        /// </summary>
+        public const string BUILDING_MODULE_VERSION = "1.0.0";
+
+        /// <summary>
         /// Module ID for the InvitationCRUD module.
         /// </summary>
         public const int INVITATION_MODULE_ID = 2;
@@ -102,6 +127,17 @@ namespace YopoBackend.Constants
                     Name = USER_MODULE_NAME,
                     Description = USER_MODULE_DESCRIPTION,
                     Version = USER_MODULE_VERSION,
+                    IsActive = true
+                }
+            },
+            {
+                BUILDING_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = BUILDING_MODULE_ID,
+                    Name = BUILDING_MODULE_NAME,
+                    Description = BUILDING_MODULE_DESCRIPTION,
+                    Version = BUILDING_MODULE_VERSION,
                     IsActive = true
                 }
             }

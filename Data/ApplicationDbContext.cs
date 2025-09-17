@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using YopoBackend.Modules.InvitationCRUD.Models;
 using YopoBackend.Modules.UserTypeCRUD.Models;
 using YopoBackend.Modules.UserCRUD.Models;
+using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -56,6 +57,12 @@ namespace YopoBackend.Data
         /// Gets or sets the Customers DbSet for managing customer entities (property managers).
         /// </summary>
         public DbSet<Customer> Customers { get; set; }
+
+        // Module: BuildingCRUD (Module ID: 4)
+        /// <summary>
+        /// Gets or sets the Buildings DbSet for managing building entities.
+        /// </summary>
+        public DbSet<Building> Buildings { get; set; }
 
 
 
@@ -217,6 +224,33 @@ namespace YopoBackend.Data
                     .WithOne()
                     .HasForeignKey<Customer>(e => e.CustomerId)
                     .OnDelete(DeleteBehavior.Cascade); // Delete customer when user is deleted
+            });
+            
+            // Configure Building entity (Module ID: 4)
+            modelBuilder.Entity<Building>(entity =>
+            {
+                entity.HasKey(e => e.BuildingId);
+                entity.HasIndex(e => e.CustomerId);
+                entity.HasIndex(e => e.Name);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.Address).HasMaxLength(500);
+                
+                // Configure foreign key relationship with Customer
+                entity.HasOne(e => e.Customer)
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.Cascade); // Delete buildings when customer is deleted
+                
+                // Configure foreign key relationship with User (CreatedBy)
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict); // Don't delete user if they created buildings
             });
             
         }
