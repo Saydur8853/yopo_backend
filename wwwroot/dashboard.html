@@ -86,10 +86,242 @@
         }
 
 
+        .user-info:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
         .container {
             max-width: 1200px;
             margin: 2rem auto;
             padding: 0 2rem;
+        }
+
+        /* Profile Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .profile-modal {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-content {
+            padding: 1.5rem;
+        }
+
+        .profile-photo-section {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .current-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .photo-placeholder {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .photo-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-photo {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-change {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-change:hover {
+            background: #5a67d8;
+        }
+
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-remove:hover {
+            background: #c82333;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
         }
 
 
@@ -116,13 +348,13 @@
 <body>
     <div class="header">
         <h1>🚀 Yopo Dashboard</h1>
-        <div class="user-info">
+        <div class="user-info" onclick="openProfileModal()" style="cursor: pointer;">
             <div class="user-avatar" id="user-avatar">U</div>
             <div class="user-details">
                 <h3 id="user-name">Loading...</h3>
                 <p id="user-type">Loading...</p>
             </div>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+            <button class="logout-btn" onclick="event.stopPropagation(); logout()">Logout</button>
         </div>
     </div>
 
@@ -150,6 +382,15 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             }
             
             loadUserData();
+            
+            // Setup modal form submission
+            const modalForm = document.getElementById('modalProfileForm');
+            if (modalForm) {
+                modalForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await submitModalProfileUpdate();
+                });
+            }
         });
 
         // Authentication check
@@ -278,6 +519,358 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             // Redirect to auth page
             window.location.href = '/auth.html';
         }
+
+        // Profile Modal Functions
+        let selectedPhotoFile = null;
+
+        function openProfileModal() {
+            const modal = document.getElementById('profileModal');
+            modal.classList.add('active');
+            
+            // Load current user data into the modal form
+            if (userData) {
+                populateModalForm(userData);
+                updateModalPhoto(userData);
+            }
+        }
+
+        function closeProfileModal() {
+            const modal = document.getElementById('profileModal');
+            modal.classList.remove('active');
+            clearModalMessages();
+            selectedPhotoFile = null;
+        }
+
+        function populateModalForm(user) {
+            document.getElementById('modalName').value = user.name || '';
+            document.getElementById('modalEmail').value = user.email || '';
+            document.getElementById('modalPhone').value = user.phoneNumber || '';
+            document.getElementById('modalAddress').value = user.address || '';
+            document.getElementById('modalPassword').value = ''; // Always empty for security
+        }
+
+        function updateModalPhoto(user) {
+            const photoContainer = document.getElementById('modalPhotoContainer');
+            
+            if (user.profilePhotoBase64) {
+                photoContainer.innerHTML = `<img src="${user.profilePhotoBase64}" alt="Profile photo" class="current-photo" onerror="showModalPhotoFallback(this, '${getInitials(user.name)}')"/>`;
+                document.getElementById('removePhotoBtn').style.display = 'inline-block';
+            } else {
+                const initials = getInitials(user.name);
+                photoContainer.innerHTML = `<div class="photo-placeholder">${initials}</div>`;
+                document.getElementById('removePhotoBtn').style.display = 'none';
+            }
+        }
+
+        function showModalPhotoFallback(img, initials) {
+            img.parentNode.innerHTML = `<div class="photo-placeholder">${initials}</div>`;
+            document.getElementById('removePhotoBtn').style.display = 'none';
+        }
+
+        function triggerPhotoInput() {
+            document.getElementById('modalPhotoInput').click();
+        }
+
+        function handlePhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showModalError('Please select a valid image file (JPEG, PNG, GIF, BMP, or WebP)');
+                return;
+            }
+
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showModalError('File size must be less than 5MB');
+                return;
+            }
+
+            selectedPhotoFile = file;
+            
+            // Preview the selected image
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const photoContainer = document.getElementById('modalPhotoContainer');
+                photoContainer.innerHTML = `<img src="${e.target.result}" alt="Preview" class="current-photo"/>`;
+                document.getElementById('removePhotoBtn').style.display = 'inline-block';
+            };
+            reader.readAsDataURL(file);
+
+            showModalSuccess('Photo selected. Click "Save Changes" to upload.');
+        }
+
+        async function removeProfilePhoto() {
+            if (confirm('Are you sure you want to remove your profile photo?')) {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    
+                    const response = await fetch(`${API_BASE}/users/me/profile-photo`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            profilePhotoBase64: ""
+                        })
+                    });
+
+                    if (!response.ok) {
+                        let errorMessage = 'Failed to remove profile photo';
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || errorMessage;
+                        } catch (e) {
+                            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                        }
+                        throw new Error(errorMessage);
+                    }
+
+                    // Try to parse response, but don't fail if it's not JSON
+                    let data = {};
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        console.warn('Response is not valid JSON, but removal may have succeeded');
+                        data = { message: 'Profile photo removed successfully!' };
+                    }
+                    
+                    // Update userData
+                    userData.profilePhotoBase64 = null;
+                    localStorage.setItem('userData', JSON.stringify(userData));
+                    
+                    // Update both modal and dashboard
+                    displayUserInfo(userData);
+                    updateModalPhoto(userData);
+                    
+                    showModalSuccess('Profile photo removed successfully!');
+                } catch (error) {
+                    showModalError('Failed to remove profile photo: ' + error.message);
+                }
+            }
+        }
+
+        function showModalError(message) {
+            const errorDiv = document.getElementById('modalError');
+            errorDiv.innerHTML = `<div class="error-message">${message}</div>`;
+            document.getElementById('modalSuccess').innerHTML = '';
+        }
+
+        function showModalSuccess(message) {
+            const successDiv = document.getElementById('modalSuccess');
+            successDiv.innerHTML = `<div class="success-message">${message}</div>`;
+            document.getElementById('modalError').innerHTML = '';
+        }
+
+        function clearModalMessages() {
+            document.getElementById('modalError').innerHTML = '';
+            document.getElementById('modalSuccess').innerHTML = '';
+        }
+
+        // Convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+
+        async function submitModalProfileUpdate() {
+            try {
+                const saveButton = document.getElementById('modalSaveButton');
+                saveButton.disabled = true;
+                saveButton.textContent = 'Saving...';
+                
+                clearModalMessages();
+
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+
+                const profileData = {
+                    email: document.getElementById('modalEmail').value.trim(),
+                    name: document.getElementById('modalName').value.trim(),
+                    phoneNumber: document.getElementById('modalPhone').value.trim() || null,
+                    address: document.getElementById('modalAddress').value.trim() || null
+                };
+                
+                // Add password only if provided
+                const password = document.getElementById('modalPassword').value.trim();
+                if (password) {
+                    profileData.password = password;
+                }
+                
+                // Add profile photo if selected (convert to base64)
+                if (selectedPhotoFile) {
+                    const base64 = await fileToBase64(selectedPhotoFile);
+                    profileData.profilePhotoBase64 = base64;
+                }
+
+                // Basic validation
+                if (!profileData.email) {
+                    throw new Error('Email is required.');
+                }
+                if (!profileData.name) {
+                    throw new Error('Name is required.');
+                }
+
+                const response = await fetch(`${API_BASE}/users/me`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (!response.ok) {
+                    let errorMessage = 'Failed to update profile';
+                    try {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || errorMessage;
+                        } else {
+                            const errorText = await response.text();
+                            errorMessage = errorText || errorMessage;
+                        }
+                    } catch (parseError) {
+                        console.error('Error parsing error response:', parseError);
+                        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                let updatedUser;
+                try {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        updatedUser = await response.json();
+                    } else {
+                        // If response is not JSON, we need to fetch the updated user data
+                        const userResponse = await fetch(`${API_BASE}/users/me`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        if (userResponse.ok) {
+                            updatedUser = await userResponse.json();
+                        } else {
+                            throw new Error('Profile might be updated but failed to fetch updated data');
+                        }
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing success response:', parseError);
+                    // Try to fetch fresh user data
+                    try {
+                        const userResponse = await fetch(`${API_BASE}/users/me`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        if (userResponse.ok) {
+                            updatedUser = await userResponse.json();
+                        } else {
+                            throw new Error('Profile might be updated but failed to fetch updated data');
+                        }
+                    } catch (fetchError) {
+                        throw new Error('Profile update status unknown - please refresh the page');
+                    }
+                }
+                
+                // Update global userData and localStorage
+                userData = updatedUser;
+                localStorage.setItem('userData', JSON.stringify(updatedUser));
+                
+                // Update both dashboard and modal displays
+                displayUserInfo(updatedUser);
+                populateModalForm(updatedUser);
+                updateModalPhoto(updatedUser);
+                
+                // Clear selected file
+                selectedPhotoFile = null;
+                document.getElementById('modalPhotoInput').value = '';
+                
+                showModalSuccess('Profile updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showModalError(error.message || 'Failed to update profile');
+            } finally {
+                const saveButton = document.getElementById('modalSaveButton');
+                saveButton.disabled = false;
+                saveButton.innerHTML = '💾 Save Changes';
+            }
+        }
     </script>
+
+    <!-- Profile Edit Modal -->
+    <div class="modal-overlay" id="profileModal" onclick="closeProfileModal()">
+        <div class="profile-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>👤 Edit Profile</h2>
+                <button class="modal-close" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <div class="modal-content">
+                <div id="modalError"></div>
+                <div id="modalSuccess"></div>
+                
+                <!-- Profile Photo Section -->
+                <div class="profile-photo-section">
+                    <div id="modalPhotoContainer">
+                        <!-- Current photo will be loaded here -->
+                    </div>
+                    <div class="photo-actions">
+                        <button type="button" class="btn-photo btn-change" onclick="triggerPhotoInput()">📷 Change Photo</button>
+                        <button type="button" class="btn-photo btn-remove" onclick="removeProfilePhoto()" id="removePhotoBtn">🗑️ Remove</button>
+                    </div>
+                    <input type="file" id="modalPhotoInput" accept="image/jpeg,image/png,image/gif,image/bmp,image/webp" onchange="handlePhotoSelect(event)" style="display: none;">
+                </div>
+
+                <!-- Profile Form -->
+                <form id="modalProfileForm">
+                    <div class="form-group">
+                        <label for="modalName">Full Name *</label>
+                        <input type="text" id="modalName" name="name" required maxlength="200" placeholder="Enter your full name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalEmail">Email Address *</label>
+                        <input type="email" id="modalEmail" name="email" required maxlength="255" placeholder="Enter your email address">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalPhone">Phone Number</label>
+                        <input type="tel" id="modalPhone" name="phoneNumber" maxlength="20" placeholder="Enter your phone number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalPassword">New Password</label>
+                        <input type="password" id="modalPassword" name="password" minlength="8" maxlength="100" placeholder="Enter new password (leave empty to keep current)">
+                        <small style="color: #666; font-size: 0.8rem;">Leave empty to keep your current password</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalAddress">Address</label>
+                        <input type="text" id="modalAddress" name="address" maxlength="500" placeholder="Enter your address">
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="modalSaveButton">
+                            💾 Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
