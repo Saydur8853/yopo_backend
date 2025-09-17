@@ -303,6 +303,18 @@
         .btn-secondary:hover {
             background: #5a6268;
         }
+        
+        .btn-secondary.btn-edit {
+            background: #28a745;
+            color: white;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+        }
+        
+        .btn-secondary.btn-edit:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
 
         .success-message {
             background: #d4edda;
@@ -1275,6 +1287,12 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                 userTypeForm.addEventListener('submit', handleUserTypeSubmit);
             }
             
+            // Setup user type edit form
+            const userTypeEditForm = document.getElementById('userTypeEditForm');
+            if (userTypeEditForm) {
+                userTypeEditForm.addEventListener('submit', handleUserTypeEditSubmit);
+            }
+            
             // Setup customer search
             const customerSearch = document.getElementById('customer-search');
             if (customerSearch) {
@@ -2169,6 +2187,11 @@ sessionStorage.setItem('redirectUrl', window.location.href);
         function displayUserTypesList(userTypes) {
             const container = document.getElementById('user-types-list-container');
             
+            // Debug: Log the first user type to see its structure
+            if (userTypes && userTypes.length > 0) {
+                console.log('First user type structure:', JSON.stringify(userTypes[0], null, 2));
+            }
+            
             if (!userTypes || userTypes.length === 0) {
                 container.innerHTML = `
                     <div class="empty-invitations">
@@ -2201,12 +2224,22 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                                         ${userType.isActive ? 'Active' : 'Inactive'}
                                     </span>
                                 </td>
-                                <td>${userType.modulePermissions?.length || 0} modules</td>
+                                <td>
+                                    ${userType.moduleNames && userType.moduleNames.length > 0 
+                                        ? userType.moduleNames.length <= 3 
+                                            ? userType.moduleNames.join(', ')
+                                            : `${userType.moduleNames.slice(0, 3).join(', ')} (+${userType.moduleNames.length - 3} more)`
+                                        : '0 modules'
+                                    }
+                                </td>
                                 <td>${formatDateTime(userType.createdAt)}</td>
                                 <td>
                                     ${userType.name !== 'Super Admin' ? `
+                                        <button class="btn btn-secondary btn-edit" onclick="editUserType(${userType.id})" title="Edit User Type" style="margin-right: 0.5rem;">
+                                            \u270f\ufe0f Edit
+                                        </button>
                                         <button class="btn btn-danger" onclick="deleteUserType(${userType.id}, '${userType.name}')" title="Delete User Type">
-                                            \ud83d\uddd1\ufe0f Delete
+                                            🗑️ Delete
                                         </button>
                                     ` : `
                                         <span style="color: #666; font-size: 0.8rem;">Protected</span>
@@ -2255,6 +2288,138 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             } catch (error) {
                 console.error('Error deleting user type:', error);
                 showUserTypeMessage(error.message || 'Failed to delete user type', 'error');
+            }
+        }
+        
+        // User Type Edit Modal Functions
+        let currentEditingUserType = null;
+        
+        async function editUserType(userTypeId) {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/usertypes/${userTypeId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user type details');
+                }
+                
+                const userType = await response.json();
+                currentEditingUserType = userType;
+                
+                // Populate the edit form
+                document.getElementById('editUserTypeName').value = userType.name || '';
+                document.getElementById('editUserTypeDescription').value = userType.description || '';
+                document.getElementById('editUserTypeStatus').value = userType.isActive ? 'true' : 'false';
+                
+                // Clear any previous messages
+                clearUserTypeEditMessages();
+                
+                // Show the modal
+                document.getElementById('userTypeEditModal').classList.add('active');
+                
+            } catch (error) {
+                console.error('Error loading user type for edit:', error);
+                showUserTypeMessage(error.message || 'Failed to load user type details', 'error');
+            }
+        }
+        
+        function closeUserTypeEditModal() {
+            document.getElementById('userTypeEditModal').classList.remove('active');
+            clearUserTypeEditMessages();
+            currentEditingUserType = null;
+        }
+        
+        function clearUserTypeEditMessages() {
+            document.getElementById('userTypeEditError').innerHTML = '';
+            document.getElementById('userTypeEditSuccess').innerHTML = '';
+        }
+        
+        function showUserTypeEditError(message) {
+            const errorDiv = document.getElementById('userTypeEditError');
+            errorDiv.innerHTML = `<div class="error-message">${message}</div>`;
+            document.getElementById('userTypeEditSuccess').innerHTML = '';
+        }
+        
+        function showUserTypeEditSuccess(message) {
+            const successDiv = document.getElementById('userTypeEditSuccess');
+            successDiv.innerHTML = `<div class="success-message">${message}</div>`;
+            document.getElementById('userTypeEditError').innerHTML = '';
+        }
+        
+        async function handleUserTypeEditSubmit(e) {
+            e.preventDefault();
+            
+            if (!currentEditingUserType) {
+                showUserTypeEditError('No user type selected for editing');
+                return;
+            }
+            
+            try {
+                const saveButton = document.getElementById('userTypeEditSaveButton');
+                saveButton.disabled = true;
+                saveButton.textContent = 'Saving...';
+                
+                clearUserTypeEditMessages();
+                
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+                
+                const formData = {
+                    name: document.getElementById('editUserTypeName').value.trim(),
+                    description: document.getElementById('editUserTypeDescription').value.trim() || null,
+                    isActive: document.getElementById('editUserTypeStatus').value === 'true'
+                };
+                
+                // Basic validation
+                if (!formData.name) {
+                    throw new Error('User type name is required.');
+                }
+                
+                const response = await fetch(`${API_BASE}/usertypes/${currentEditingUserType.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = 'Failed to update user type';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData || errorMessage;
+                    } catch (e) {
+                        const errorText = await response.text();
+                        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                showUserTypeEditSuccess(`User type "${formData.name}" updated successfully!`);
+                
+                // Refresh the user types list
+                loadUserTypesList();
+                
+                // Close modal after a short delay
+                setTimeout(() => {
+                    closeUserTypeEditModal();
+                    showUserTypeMessage(`\u2713 User type "${formData.name}" updated successfully!`, 'success');
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error updating user type:', error);
+                showUserTypeEditError(error.message || 'Failed to update user type');
+            } finally {
+                const saveButton = document.getElementById('userTypeEditSaveButton');
+                saveButton.disabled = false;
+                saveButton.innerHTML = '\ud83d\udcbe Save Changes';
             }
         }
         
@@ -2598,6 +2763,48 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                     <div class="modal-actions">
                         <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Cancel</button>
                         <button type="submit" class="btn btn-primary" id="modalSaveButton">
+                            💾 Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Type Edit Modal -->
+    <div class="modal-overlay" id="userTypeEditModal" onclick="closeUserTypeEditModal()">
+        <div class="profile-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>✏️ Edit User Type</h2>
+                <button class="modal-close" onclick="closeUserTypeEditModal()">&times;</button>
+            </div>
+            <div class="modal-content">
+                <div id="userTypeEditError"></div>
+                <div id="userTypeEditSuccess"></div>
+                
+                <!-- User Type Edit Form -->
+                <form id="userTypeEditForm">
+                    <div class="form-group">
+                        <label for="editUserTypeName">User Type Name *</label>
+                        <input type="text" id="editUserTypeName" name="name" required maxlength="100" placeholder="Enter user type name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editUserTypeDescription">Description</label>
+                        <input type="text" id="editUserTypeDescription" name="description" maxlength="500" placeholder="Enter description">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editUserTypeStatus">Status *</label>
+                        <select id="editUserTypeStatus" name="isActive" required>
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeUserTypeEditModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="userTypeEditSaveButton">
                             💾 Save Changes
                         </button>
                     </div>
