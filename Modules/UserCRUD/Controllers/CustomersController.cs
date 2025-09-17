@@ -125,7 +125,9 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                         PhoneNumber = customer.User.PhoneNumber,
                         UserTypeName = customer.User.UserType?.Name ?? string.Empty,
                         IsActive = customer.User.IsActive,
-                        IsEmailVerified = customer.User.IsEmailVerified
+                        IsEmailVerified = customer.User.IsEmailVerified,
+                        ProfilePhotoBase64 = customer.User.ProfilePhoto != null ? 
+                            $"data:{customer.User.ProfilePhotoMimeType};base64,{Convert.ToBase64String(customer.User.ProfilePhoto)}" : null
                     } : null
                 };
 

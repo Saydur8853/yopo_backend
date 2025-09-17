@@ -6,6 +6,10 @@ namespace YopoBackend.Constants
     public static class UserTypeConstants
     {
         /// <summary>
+        /// Special user ID used for system-created records when no actual user is available.
+        /// </summary>
+        public const int SYSTEM_USER_ID = -1;
+        /// <summary>
         /// User Type ID for the default Super Admin user type.
         /// </summary>
         public const int SUPER_ADMIN_USER_TYPE_ID = 1;

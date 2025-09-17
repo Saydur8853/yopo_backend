@@ -266,6 +266,10 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         /// <inheritdoc/>
         public async Task InitializeDefaultUserTypesAsync()
         {
+            // First, fix any existing user types that have CreatedBy = -1 or 0
+            await FixExistingUserTypesCreatedByAsync();
+            
+            // Then proceed with normal initialization
             foreach (var userTypeInfo in UserTypeConstants.DefaultUserTypes)
             {
                 var existingUserType = await _context.UserTypes
@@ -273,6 +277,12 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
 
                 if (existingUserType == null)
                 {
+                    // For default user types during initialization, use the expected Super Admin user ID (1)
+                    // This assumes the first Super Admin user will have ID 1, which is standard for identity columns
+                    int createdByUserId = 1;
+                    
+                    Console.WriteLine($"   Creating user type '{userTypeInfo.Value.Name}' with CreatedBy={createdByUserId} (DefaultSuperAdmin)");
+                    
                     // Create new default user type
                     var newUserType = new UserType
                     {
@@ -283,6 +293,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                         // Super Admin should always have ALL data access control, Property Manager should have OWN
                         DataAccessControl = userTypeInfo.Value.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID ? "ALL" : 
                                           userTypeInfo.Value.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID ? "OWN" : "ALL",
+                        CreatedBy = createdByUserId,
                         CreatedAt = DateTime.UtcNow
                     };
 
@@ -385,6 +396,68 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                     _context.UserTypeModulePermissions.AddRange(newPermissions);
                     await _context.SaveChangesAsync();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Fixes existing user types that have incorrect CreatedBy values (0 or -1).
+        /// This method should be called during initialization to correct legacy data.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task FixExistingUserTypesCreatedByAsync()
+        {
+            try
+            {
+                // Find user types with CreatedBy = 0 or -1 (system/incorrect values)
+                var userTypesToFix = await _context.UserTypes
+                    .Where(ut => ut.CreatedBy <= 0)
+                    .ToListAsync();
+
+                if (!userTypesToFix.Any())
+                {
+                    Console.WriteLine("   No user types need CreatedBy fixes.");
+                    return;
+                }
+
+                // Try to find the first Super Admin user
+                var superAdminUser = await _context.Users
+                    .Where(u => u.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID && u.IsActive)
+                    .OrderBy(u => u.Id)  // Get the first one by ID
+                    .FirstOrDefaultAsync();
+
+                if (superAdminUser == null)
+                {
+                    Console.WriteLine($"   No Super Admin user found to fix {userTypesToFix.Count} user type(s).");
+                    Console.WriteLine($"   Using default Super Admin user ID (1) for default user types.");
+                    
+                    // For default user types, use ID 1 (first Super Admin user ID)
+                    foreach (var userType in userTypesToFix)
+                    {
+                        int createdById = userType.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID ? 1 : 1;  // Both use 1
+                        Console.WriteLine($"     • Updating '{userType.Name}' CreatedBy from {userType.CreatedBy} to {createdById}");
+                        userType.CreatedBy = createdById;
+                        userType.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"   Fixing CreatedBy for {userTypesToFix.Count} user type(s) to Super Admin user ID {superAdminUser.Id}");
+                    
+                    foreach (var userType in userTypesToFix)
+                    {
+                        Console.WriteLine($"     • Updating '{userType.Name}' CreatedBy from {userType.CreatedBy} to {superAdminUser.Id}");
+                        userType.CreatedBy = superAdminUser.Id;
+                        userType.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"   ✅ Fixed CreatedBy for {userTypesToFix.Count} user type(s)");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"   ⚠️ Error fixing user types CreatedBy: {ex.Message}");
+                // Don't throw - this is a cleanup operation and shouldn't break initialization
             }
         }
 

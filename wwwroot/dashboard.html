@@ -605,6 +605,418 @@
                 font-size: 0.8rem;
             }
         }
+
+        /* Customer Section Styles */
+        .customer-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .customer-controls {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+        }
+
+        .controls-header {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .controls-title {
+            margin: 0;
+            color: #495057;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .refresh-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            color: #495057;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-1px);
+        }
+
+        .controls-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .search-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .filters-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .control-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        .search-input-group {
+            display: flex;
+            gap: 0.75rem;
+            align-items: stretch;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 0;
+            padding: 0.75rem 1rem;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+
+        .btn-search {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn-search:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .filter-select {
+            padding: 0.6rem 0.75rem;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .filter-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+
+        .controls-actions {
+            display: flex;
+            justify-content: center;
+            padding-top: 1rem;
+            border-top: 1px solid #f8f9fa;
+        }
+
+        .btn-clear {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+            padding: 0.6rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-clear:hover {
+            background: #e9ecef;
+            color: #495057;
+            border-color: #adb5bd;
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .customer-controls {
+                padding: 1rem;
+            }
+            
+            .controls-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+                text-align: center;
+            }
+            
+            .search-input-group {
+                flex-direction: column;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .customer-user {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 1rem;
+            }
+            
+            .status-badges {
+                flex-direction: row;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .customer-meta {
+                justify-content: center;
+                text-align: center;
+            }
+        }
+
+        .customer-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s ease;
+            border: 1px solid #f1f3f4;
+        }
+
+        .customer-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            transform: translateY(-1px);
+        }
+
+        .customer-user {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .customer-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .customer-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .customer-main-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .customer-primary {
+            margin-bottom: 0.5rem;
+        }
+
+        .customer-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .customer-company {
+            color: #667eea;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .customer-secondary {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .user-contact {
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .user-email {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .user-phone {
+            color: #666;
+        }
+
+        .customer-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        .meta-item {
+            white-space: nowrap;
+        }
+
+        .no-user-text {
+            color: #999;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+
+        .status-badges {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+
+        .badge-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-trial {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-paid {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge-unpaid {
+            background: #f5c6cb;
+            color: #721c24;
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .pagination-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .page-btn {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .page-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -716,6 +1128,107 @@
             </div>
         </div>
 
+        <!-- Customer Information Section -->
+        <div id="customer-section" class="invitation-box" style="display: none;">
+            <h3>🏢 Customer Information</h3>
+            <div id="customer-message"></div>
+            
+            <!-- Customer Statistics -->
+            <div class="customer-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-customers">0</div>
+                    <div class="stat-label">Total Customers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="active-customers">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="trial-customers">0</div>
+                    <div class="stat-label">Trial</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="paid-customers">0</div>
+                    <div class="stat-label">Paid</div>
+                </div>
+            </div>
+            
+            <!-- Customer Search and Filters -->
+            <div class="customer-controls">
+                <div class="controls-header">
+                    <button type="button" class="btn btn-outline refresh-btn" onclick="loadCustomersList()" title="Refresh customer list">
+                        🔄 Refresh
+                    </button>
+                </div>
+                
+                <div class="controls-content">
+                    <!-- Search Section -->
+                    <div class="search-section">
+                        <div class="search-input-group">
+                            <input type="text" id="customer-search" class="form-control search-input" placeholder="Search by name, company, email...">
+                            <button type="button" class="btn btn-search" onclick="searchCustomers()">
+                                Search
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filters Section -->
+                    <div class="filters-section">
+                        <div class="filters-grid">
+                            <div class="filter-item">
+                                <label for="customer-status-filter" class="filter-label">Status</label>
+                                <select id="customer-status-filter" class="form-control filter-select">
+                                    <option value="">All Status</option>
+                                    <option value="true">✅ Active</option>
+                                    <option value="false">❌ Inactive</option>
+                                </select>
+                            </div>
+                            <div class="filter-item">
+                                <label for="customer-trial-filter" class="filter-label">Account Type</label>
+                                <select id="customer-trial-filter" class="form-control filter-select">
+                                    <option value="">All Types</option>
+                                    <option value="true">🔄 Trial</option>
+                                    <option value="false">💼 Regular</option>
+                                </select>
+                            </div>
+                            <div class="filter-item">
+                                <label for="customer-paid-filter" class="filter-label">Payment</label>
+                                <select id="customer-paid-filter" class="form-control filter-select">
+                                    <option value="">All Payment</option>
+                                    <option value="true">💳 Paid</option>
+                                    <option value="false">💸 Unpaid</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Clear Filters Button -->
+                    <div class="controls-actions">
+                        <button type="button" class="btn btn-clear" onclick="clearCustomerFilters()">
+                            🧹 Clear All Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Customers List -->
+            <div class="customers-list-section">
+                <div class="list-header">
+                    <h4>📋 Customers</h4>
+                    <div class="pagination-info" id="customer-pagination-info"></div>
+                </div>
+                <div id="customers-loading" class="loading-state" style="display: none;">
+                    <span class="spinner"></span> Loading customers...
+                </div>
+                <div id="customers-list-container">
+                    <!-- Customers will be loaded here -->
+                </div>
+                <div class="pagination-controls" id="customer-pagination-controls" style="display: none;">
+                    <!-- Pagination buttons will be added here -->
+                </div>
+            </div>
+        </div>
+
 
     </div>
 
@@ -761,6 +1274,28 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             if (userTypeForm) {
                 userTypeForm.addEventListener('submit', handleUserTypeSubmit);
             }
+            
+            // Setup customer search
+            const customerSearch = document.getElementById('customer-search');
+            if (customerSearch) {
+                customerSearch.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchCustomers();
+                    }
+                });
+            }
+            
+            // Setup customer filter changes
+            const customerFilters = ['customer-status-filter', 'customer-trial-filter', 'customer-paid-filter'];
+            customerFilters.forEach(filterId => {
+                const filter = document.getElementById(filterId);
+                if (filter) {
+                    filter.addEventListener('change', () => {
+                        currentCustomerPage = 1;
+                        loadCustomersList();
+                    });
+                }
+            });
         });
 
         // Authentication check
@@ -802,18 +1337,22 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             // Avatar with profile photo or initials fallback
             updateUserAvatar(user);
             
-            // Show invitation box and user type management only for Super Admin
+            // Show invitation box, user type management, and customer information only for Super Admin
             if (user.userTypeName === 'Super Admin') {
                 console.log('User is Super Admin - showing all sections');
                 document.getElementById('invitation-section').style.display = 'block';
                 document.getElementById('user-type-section').style.display = 'block';
+                document.getElementById('customer-section').style.display = 'block';
                 loadUserTypesForInvitation();
                 loadInvitationsList();
                 loadUserTypesList();
+                loadCustomersList();
+                loadCustomerStats();
             } else {
-                console.log('User is not Super Admin - hiding admin sections');
+                console.log('User is not Super Admin - hiding all admin sections');
                 document.getElementById('invitation-section').style.display = 'none';
                 document.getElementById('user-type-section').style.display = 'none';
+                document.getElementById('customer-section').style.display = 'none';
             }
         }
 
@@ -1717,6 +2256,291 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                 console.error('Error deleting user type:', error);
                 showUserTypeMessage(error.message || 'Failed to delete user type', 'error');
             }
+        }
+        
+        // Customer Management Functions
+        let currentCustomerPage = 1;
+        const customersPerPage = 10;
+        
+        async function loadCustomerStats() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/customers?page=1&pageSize=1000`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch customer statistics');
+                }
+                
+                const data = await response.json();
+                const customers = data.customers || [];
+                
+                // Calculate statistics
+                const totalCustomers = customers.length;
+                const activeCustomers = customers.filter(c => c.active).length;
+                const trialCustomers = customers.filter(c => c.isTrial).length;
+                const paidCustomers = customers.filter(c => c.paid).length;
+                
+                // Update UI
+                document.getElementById('total-customers').textContent = totalCustomers;
+                document.getElementById('active-customers').textContent = activeCustomers;
+                document.getElementById('trial-customers').textContent = trialCustomers;
+                document.getElementById('paid-customers').textContent = paidCustomers;
+                
+            } catch (error) {
+                console.error('Error loading customer stats:', error);
+                showCustomerMessage('Failed to load customer statistics', 'error');
+            }
+        }
+        
+        async function loadCustomersList() {
+            try {
+                document.getElementById('customers-loading').style.display = 'block';
+                document.getElementById('customers-list-container').innerHTML = '';
+                
+                const token = localStorage.getItem('authToken');
+                const searchTerm = document.getElementById('customer-search').value.trim();
+                const statusFilter = document.getElementById('customer-status-filter').value;
+                const trialFilter = document.getElementById('customer-trial-filter').value;
+                const paidFilter = document.getElementById('customer-paid-filter').value;
+                
+                let url = `${API_BASE}/customers?page=${currentCustomerPage}&pageSize=${customersPerPage}`;
+                
+                if (searchTerm) {
+                    url += `&search=${encodeURIComponent(searchTerm)}`;
+                }
+                if (statusFilter) {
+                    url += `&active=${statusFilter}`;
+                }
+                if (trialFilter) {
+                    url += `&isTrial=${trialFilter}`;
+                }
+                if (paidFilter) {
+                    url += `&paid=${paidFilter}`;
+                }
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch customers');
+                }
+                
+                const data = await response.json();
+                displayCustomersList(data);
+                updateCustomerPagination(data);
+                
+            } catch (error) {
+                console.error('Error loading customers:', error);
+                showCustomerMessage('Failed to load customers: ' + error.message, 'error');
+            } finally {
+                document.getElementById('customers-loading').style.display = 'none';
+            }
+        }
+        
+        function displayCustomersList(data) {
+            const container = document.getElementById('customers-list-container');
+            const customers = data.customers || [];
+            
+            if (customers.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <p>📭 No customers found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const customersHTML = customers.map(customer => {
+                const user = customer.user || {};
+                const userInitials = getCustomerInitials(user.email || customer.customerName);
+                
+                return `
+                    <div class="customer-card">
+                        ${user.id ? `
+                            <div class="customer-user">
+                                <div class="customer-avatar">
+                                    ${user.profilePhotoBase64 ? 
+                                        `<img src="${user.profilePhotoBase64}" alt="Profile photo" onerror="this.parentNode.innerHTML='${userInitials}';">` : 
+                                        userInitials
+                                    }
+                                </div>
+                                <div class="customer-main-info">
+                                    <div class="customer-primary">
+                                        <div class="customer-name">${customer.customerName || 'N/A'}</div>
+                                        ${customer.companyName ? `<div class="customer-company">${customer.companyName}</div>` : ''}
+                                    </div>
+                                    <div class="customer-secondary">
+                                        <div class="user-contact">
+                                            <span class="user-email">${user.email || 'N/A'}</span>
+                                            ${user.phoneNumber ? `<span class="user-phone"> • ${user.phoneNumber}</span>` : ''}
+                                        </div>
+                                        <div class="customer-meta">
+                                            ${customer.companyAddress ? `<span class="meta-item">📍 ${customer.companyAddress}</span>` : ''}
+                                            ${customer.companyLicense ? `<span class="meta-item">📄 ${customer.companyLicense}</span>` : ''}
+                                            <span class="meta-item">📅 ${new Date(customer.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="status-badges">
+                                    <span class="status-badge ${customer.active ? 'badge-active' : 'badge-inactive'}">
+                                        ${customer.active ? '✅ Active' : '❌ Inactive'}
+                                    </span>
+                                    ${customer.isTrial ? '<span class="status-badge badge-trial">🔄 Trial</span>' : ''}
+                                    <span class="status-badge ${customer.paid ? 'badge-paid' : 'badge-unpaid'}">
+                                        ${customer.paid ? '💳 Paid' : '💸 Unpaid'}
+                                    </span>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="customer-user no-user">
+                                <div class="customer-avatar">C</div>
+                                <div class="customer-main-info">
+                                    <div class="customer-primary">
+                                        <div class="customer-name">${customer.customerName || 'N/A'}</div>
+                                        ${customer.companyName ? `<div class="customer-company">${customer.companyName}</div>` : ''}
+                                    </div>
+                                    <div class="customer-secondary">
+                                        <div class="no-user-text">No user account associated</div>
+                                        <div class="customer-meta">
+                                            ${customer.companyAddress ? `<span class="meta-item">📍 ${customer.companyAddress}</span>` : ''}
+                                            ${customer.companyLicense ? `<span class="meta-item">📄 ${customer.companyLicense}</span>` : ''}
+                                            <span class="meta-item">📅 ${new Date(customer.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="status-badges">
+                                    <span class="status-badge ${customer.active ? 'badge-active' : 'badge-inactive'}">
+                                        ${customer.active ? '✅ Active' : '❌ Inactive'}
+                                    </span>
+                                    ${customer.isTrial ? '<span class="status-badge badge-trial">🔄 Trial</span>' : ''}
+                                    <span class="status-badge ${customer.paid ? 'badge-paid' : 'badge-unpaid'}">
+                                        ${customer.paid ? '💳 Paid' : '💸 Unpaid'}
+                                    </span>
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = customersHTML;
+        }
+        
+        function getCustomerInitials(email) {
+            if (!email) return 'C';
+            const parts = email.split('@')[0].split('.');
+            if (parts.length >= 2) {
+                return parts[0].charAt(0).toUpperCase() + parts[1].charAt(0).toUpperCase();
+            }
+            return email.charAt(0).toUpperCase();
+        }
+        
+        function updateCustomerPagination(data) {
+            const paginationInfo = document.getElementById('customer-pagination-info');
+            const paginationControls = document.getElementById('customer-pagination-controls');
+            
+            if (data.totalCount <= customersPerPage) {
+                paginationInfo.innerHTML = '';
+                paginationControls.style.display = 'none';
+                return;
+            }
+            
+            // Update pagination info
+            const start = (data.page - 1) * data.pageSize + 1;
+            const end = Math.min(data.page * data.pageSize, data.totalCount);
+            paginationInfo.innerHTML = `Showing ${start}-${end} of ${data.totalCount} customers`;
+            
+            // Update pagination controls
+            paginationControls.style.display = 'flex';
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `
+                <button class="page-btn" onclick="goToCustomerPage(${data.page - 1})" ${!data.hasPreviousPage ? 'disabled' : ''}>
+                    ← Previous
+                </button>
+            `;
+            
+            // Page numbers
+            const startPage = Math.max(1, data.page - 2);
+            const endPage = Math.min(data.totalPages, data.page + 2);
+            
+            if (startPage > 1) {
+                paginationHTML += `<button class="page-btn" onclick="goToCustomerPage(1)">1</button>`;
+                if (startPage > 2) {
+                    paginationHTML += `<span style="padding: 0.5rem;">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `
+                    <button class="page-btn ${i === data.page ? 'active' : ''}" onclick="goToCustomerPage(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            if (endPage < data.totalPages) {
+                if (endPage < data.totalPages - 1) {
+                    paginationHTML += `<span style="padding: 0.5rem;">...</span>`;
+                }
+                paginationHTML += `<button class="page-btn" onclick="goToCustomerPage(${data.totalPages})">${data.totalPages}</button>`;
+            }
+            
+            // Next button
+            paginationHTML += `
+                <button class="page-btn" onclick="goToCustomerPage(${data.page + 1})" ${!data.hasNextPage ? 'disabled' : ''}>
+                    Next →
+                </button>
+            `;
+            
+            paginationControls.innerHTML = paginationHTML;
+        }
+        
+        function goToCustomerPage(page) {
+            currentCustomerPage = page;
+            loadCustomersList();
+        }
+        
+        function searchCustomers() {
+            currentCustomerPage = 1;
+            loadCustomersList();
+        }
+        
+        function showCustomerMessage(message, type = 'info') {
+            const messageDiv = document.getElementById('customer-message');
+            const className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.innerHTML = `<div class="${className}">${message}</div>`;
+            
+            // Clear message after 5 seconds
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        function clearCustomerFilters() {
+            // Clear search input
+            document.getElementById('customer-search').value = '';
+            
+            // Reset all filters to default (empty) values
+            document.getElementById('customer-status-filter').value = '';
+            document.getElementById('customer-trial-filter').value = '';
+            document.getElementById('customer-paid-filter').value = '';
+            
+            // Reset to first page and reload
+            currentCustomerPage = 1;
+            loadCustomersList();
+            
+            // Show success message
+            showCustomerMessage('Filters cleared successfully!', 'success');
         }
     </script>
 
