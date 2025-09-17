@@ -1355,8 +1355,8 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             // Avatar with profile photo or initials fallback
             updateUserAvatar(user);
             
-            // Show invitation box, user type management, and customer information for Super Admin and Property Manager
-            if (user.userTypeName === 'Super Admin' || user.userTypeName === 'Property Manager') {
+            // Show sections based on user type
+            if (user.userTypeName === 'Super Admin') {
                 console.log(`User is ${user.userTypeName} - showing all sections`);
                 document.getElementById('invitation-section').style.display = 'block';
                 document.getElementById('user-type-section').style.display = 'block';
@@ -1366,6 +1366,14 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                 loadUserTypesList();
                 loadCustomersList();
                 loadCustomerStats();
+            } else if (user.userTypeName === 'Property Manager') {
+                console.log(`User is ${user.userTypeName} - showing invitation and user type sections only`);
+                document.getElementById('invitation-section').style.display = 'block';
+                document.getElementById('user-type-section').style.display = 'block';
+                document.getElementById('customer-section').style.display = 'none'; // Property managers shouldn't see customer data
+                loadUserTypesForInvitation();
+                loadInvitationsList();
+                loadUserTypesList();
             } else {
                 console.log(`User is ${user.userTypeName} - hiding admin sections`);
                 document.getElementById('invitation-section').style.display = 'none';
