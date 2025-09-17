@@ -173,6 +173,30 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 user.CreatedBy = user.Id;
                 await _context.SaveChangesAsync();
 
+                // If user is a Property Manager, create a corresponding Customer record
+                if (userTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                {
+                    var customer = new YopoBackend.Modules.CustomerCRUD.Models.Customer
+                    {
+                        Name = $"{registerRequest.FirstName} {registerRequest.LastName}".Trim(),
+                        Address = "Pending", // Default value - can be updated later
+                        CompanyName = null, // Can be updated later
+                        CompanyLicense = null, // Can be updated later
+                        Active = true,
+                        IsTrial = false,
+                        Paid = false,
+                        Type = "Property Manager", // Customer type
+                        UserId = user.Id,
+                        CreatedBy = user.Id,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Customers.Add(customer);
+                    await _context.SaveChangesAsync();
+                    
+                    Console.WriteLine($"Customer record created for Property Manager: {customer.Name} (User ID: {user.Id}, Customer ID: {customer.CustomerId})");
+                }
+
                 // Reload user with full relationships for response
                 var registeredUser = await _context.Users
                     .Include(u => u.UserType)
