@@ -77,10 +77,11 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         Task<bool> EmailAlreadyInvitedAsync(string email);
         
         /// <summary>
-        /// Gets all available user types for invitation dropdown selection.
+        /// Gets all available user types for invitation dropdown selection with access control.
         /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of available user types.</returns>
-        Task<IEnumerable<UserTypeDropdownDTO>> GetAvailableUserTypesAsync();
+        Task<IEnumerable<UserTypeDropdownDTO>> GetAvailableUserTypesAsync(int currentUserId);
         
         /// <summary>
         /// Validates if a user type ID exists and is active.

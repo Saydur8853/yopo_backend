@@ -246,7 +246,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<UserTypeDropdownDTO>>> GetAvailableUserTypes()
         {
-            var userTypes = await _invitationService.GetAvailableUserTypesAsync();
+            var currentUserId = GetCurrentUserId();
+            var userTypes = await _invitationService.GetAvailableUserTypesAsync(currentUserId);
             return Ok(userTypes);
         }
     }

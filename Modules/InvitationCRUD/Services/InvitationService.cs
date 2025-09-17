@@ -194,10 +194,16 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         }
 
         /// <inheritdoc/>
-        public async Task<IEnumerable<UserTypeDropdownDTO>> GetAvailableUserTypesAsync()
+        public async Task<IEnumerable<UserTypeDropdownDTO>> GetAvailableUserTypesAsync(int currentUserId)
         {
-            var userTypes = await _context.UserTypes
+            var query = _context.UserTypes
                 .Where(ut => ut.IsActive)
+                .AsQueryable();
+            
+            // Apply access control - users with "OWN" access control can only see user types they created
+            query = await ApplyAccessControlAsync(query, currentUserId);
+            
+            var userTypes = await query
                 .Select(ut => new UserTypeDropdownDTO
                 {
                     Id = ut.Id,
