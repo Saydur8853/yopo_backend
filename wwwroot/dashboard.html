@@ -327,6 +327,239 @@
 
 
 
+        /* Invitation Box Styles */
+        .invitation-box {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            border-left: 4px solid #667eea;
+        }
+
+        .invitation-box h3 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .invitation-form {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Invitations List Styles */
+        .invitations-list-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .list-header h4 {
+            color: #333;
+            margin: 0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .invitations-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .invitations-table th,
+        .invitations-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .invitations-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .invitations-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .invitations-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        .empty-invitations {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #666;
+        }
+
+        .empty-invitations h5 {
+            color: #555;
+            margin-bottom: 0.5rem;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 0 1rem;
@@ -341,6 +574,35 @@
             
             .user-info {
                 justify-content: center;
+            }
+
+            .invitation-form {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .invitation-box {
+                padding: 1.5rem;
+            }
+
+            .invitations-table {
+                font-size: 0.85rem;
+            }
+
+            .invitations-table th,
+            .invitations-table td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .list-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .btn-danger {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -360,6 +622,53 @@
 
     <div class="container">
         <div id="error-container"></div>
+        
+        <!-- Invitation Box - Only visible to Super Admin -->
+        <div id="invitation-section" class="invitation-box" style="display: none;">
+            <h3>📧 Invite New User</h3>
+            <div id="invitation-message"></div>
+            <form id="invitation-form" class="invitation-form">
+                <div class="form-group">
+                    <label for="invite-email">Email Address</label>
+                    <input type="email" id="invite-email" class="form-control" required placeholder="Enter email address">
+                </div>
+                <div class="form-group">
+                    <label for="invite-role">User Role</label>
+                    <select id="invite-role" class="form-control" required>
+                        <option value="">Loading roles...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="invite-days">Expires in Days</label>
+                    <select id="invite-days" class="form-control" required>
+                        <option value="1">1 Day</option>
+                        <option value="3">3 Days</option>
+                        <option value="7" selected>7 Days</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary" id="invite-btn">
+                        📧 Send Invite
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Invitations List -->
+            <div class="invitations-list-section">
+                <div class="list-header">
+                    <h4>📋 Sent Invitations</h4>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="loadInvitationsList()">
+                        🔄 Refresh
+                    </button>
+                </div>
+                <div id="invitations-loading" class="loading-state" style="display: none;">
+                    <span class="spinner"></span> Loading invitations...
+                </div>
+                <div id="invitations-list-container">
+                    <!-- Invitations will be loaded here -->
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -371,6 +680,8 @@
         
         // Global state
         let userData = null;
+        let availableUserTypes = [];
+        let isInviteLoading = false;
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
@@ -390,6 +701,12 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                     e.preventDefault();
                     await submitModalProfileUpdate();
                 });
+            }
+            
+            // Setup invitation form
+            const invitationForm = document.getElementById('invitation-form');
+            if (invitationForm) {
+                invitationForm.addEventListener('submit', handleInvitationSubmit);
             }
         });
 
@@ -429,7 +746,14 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             // Avatar with profile photo or initials fallback
             updateUserAvatar(user);
             
-            // Buttons are now handled dynamically by module permissions
+            // Show invitation box only for Super Admin
+            if (user.userTypeName === 'Super Admin') {
+                document.getElementById('invitation-section').style.display = 'block';
+                loadUserTypesForInvitation();
+                loadInvitationsList();
+            } else {
+                document.getElementById('invitation-section').style.display = 'none';
+            }
         }
 
         // Update user avatar with profile photo or initials fallback
@@ -807,6 +1131,295 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                 const saveButton = document.getElementById('modalSaveButton');
                 saveButton.disabled = false;
                 saveButton.innerHTML = '💾 Save Changes';
+            }
+        }
+        
+        // Invitation Management Functions
+        async function loadUserTypesForInvitation() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/invitations/user-types`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load user types');
+                }
+                
+                availableUserTypes = await response.json();
+                populateUserTypeDropdown();
+            } catch (error) {
+                console.error('Error loading user types:', error);
+                showInvitationMessage('Failed to load user types for invitation', 'error');
+            }
+        }
+        
+        function populateUserTypeDropdown() {
+            const dropdown = document.getElementById('invite-role');
+            
+            // Filter to only show Super Admin and Property Manager
+            const allowedTypes = availableUserTypes.filter(type => 
+                type.name === 'Super Admin' || type.name === 'Property Manager'
+            );
+            
+            if (allowedTypes.length === 0) {
+                dropdown.innerHTML = '<option value="">No available roles</option>';
+                return;
+            }
+            
+            dropdown.innerHTML = [
+                '<option value="">Select a role...</option>',
+                ...allowedTypes.map(type => 
+                    `<option value="${type.id}">${type.name}</option>`
+                )
+            ].join('');
+        }
+        
+        async function handleInvitationSubmit(e) {
+            e.preventDefault();
+            
+            if (isInviteLoading) return;
+            
+            const email = document.getElementById('invite-email').value.trim();
+            const roleId = document.getElementById('invite-role').value;
+            const days = document.getElementById('invite-days').value;
+            
+            if (!email || !roleId || !days) {
+                showInvitationMessage('Please fill in all fields', 'error');
+                return;
+            }
+            
+            setInviteLoading(true);
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/invitations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        emailAddress: email,
+                        userTypeId: parseInt(roleId),
+                        expiryDays: parseInt(days)
+                    })
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = 'Failed to send invitation';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData || errorMessage;
+                    } catch (e) {
+                        const errorText = await response.text();
+                        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const selectedUserType = availableUserTypes.find(t => t.id == roleId);
+                const roleName = selectedUserType ? selectedUserType.name : 'user';
+                
+                showInvitationMessage(`\u2713 Invitation sent successfully to ${email} as ${roleName}!`, 'success');
+                document.getElementById('invitation-form').reset();
+                document.getElementById('invite-days').value = '7'; // Reset to default
+                
+                // Refresh the invitations list after successful invite
+                loadInvitationsList();
+                
+            } catch (error) {
+                console.error('Error sending invitation:', error);
+                showInvitationMessage(error.message || 'Failed to send invitation', 'error');
+            } finally {
+                setInviteLoading(false);
+            }
+        }
+        
+        function showInvitationMessage(message, type = 'error') {
+            const messageContainer = document.getElementById('invitation-message');
+            messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 5000);
+        }
+        
+        function setInviteLoading(loading) {
+            isInviteLoading = loading;
+            const btn = document.getElementById('invite-btn');
+            const emailInput = document.getElementById('invite-email');
+            const roleInput = document.getElementById('invite-role');
+            const daysInput = document.getElementById('invite-days');
+            
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span>Sending...';
+                emailInput.disabled = true;
+                roleInput.disabled = true;
+                daysInput.disabled = true;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '\uD83D\uDCE7 Send Invite';
+                emailInput.disabled = false;
+                roleInput.disabled = false;
+                daysInput.disabled = false;
+            }
+        }
+        
+        // Invitations List Management Functions
+        async function loadInvitationsList() {
+            const loadingElement = document.getElementById('invitations-loading');
+            const containerElement = document.getElementById('invitations-list-container');
+            
+            try {
+                loadingElement.style.display = 'block';
+                containerElement.innerHTML = '';
+                
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/invitations`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load invitations');
+                }
+                
+                const invitations = await response.json();
+                displayInvitationsList(invitations);
+                
+            } catch (error) {
+                console.error('Error loading invitations:', error);
+                containerElement.innerHTML = `
+                    <div class="empty-invitations">
+                        <h5>\u26a0\ufe0f Error Loading Invitations</h5>
+                        <p>${error.message || 'Failed to load invitations'}</p>
+                        <button class="btn btn-primary btn-small" onclick="loadInvitationsList()">Try Again</button>
+                    </div>
+                `;
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        }
+        
+        function displayInvitationsList(invitations) {
+            const container = document.getElementById('invitations-list-container');
+            
+            if (!invitations || invitations.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-invitations">
+                        <h5>\ud83d\udce7 No Invitations Sent Yet</h5>
+                        <p>Invitations you send will appear here.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const tableHTML = `
+                <table class="invitations-table">
+                    <thead>
+                        <tr>
+                            <th>Email Address</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Expires</th>
+                            <th>Sent</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${invitations.map(invitation => `
+                            <tr>
+                                <td><strong>${invitation.emailAddress}</strong></td>
+                                <td>${invitation.userTypeName}</td>
+                                <td>
+                                    <span class="status-badge ${invitation.isExpired ? 'status-expired' : 'status-active'}">
+                                        ${invitation.isExpired ? 'Expired' : 'Active'}
+                                    </span>
+                                </td>
+                                <td>${formatDateTime(invitation.expiryTime)}</td>
+                                <td>${formatDateTime(invitation.createdAt)}</td>
+                                <td>
+                                    ${!invitation.isExpired ? `
+                                        <button class="btn btn-danger" onclick="deleteInvitation(${invitation.id}, '${invitation.emailAddress}')" title="Cancel Invitation">
+                                            \ud83d\uddd1\ufe0f Cancel
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-danger" onclick="deleteInvitation(${invitation.id}, '${invitation.emailAddress}')" title="Remove Invitation">
+                                            \ud83d\uddd1\ufe0f Remove
+                                        </button>
+                                    `}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+        
+        async function deleteInvitation(invitationId, email) {
+            const action = document.querySelector(`button[onclick*="${invitationId}"]`).textContent.includes('Cancel') ? 'cancel' : 'remove';
+            const confirmMessage = `Are you sure you want to ${action} the invitation for ${email}?`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/invitations/${invitationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = `Failed to ${action} invitation`;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData || errorMessage;
+                    } catch (e) {
+                        const errorText = await response.text();
+                        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                showInvitationMessage(`\u2713 Invitation for ${email} ${action}ed successfully!`, 'success');
+                loadInvitationsList(); // Refresh the list
+                
+            } catch (error) {
+                console.error(`Error ${action}ing invitation:`, error);
+                showInvitationMessage(error.message || `Failed to ${action} invitation`, 'error');
+            }
+        }
+        
+        function formatDateTime(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+            const diffMinutes = Math.floor(diffTime / (1000 * 60));
+            
+            // Show relative time for recent dates
+            if (diffMinutes < 60) {
+                return `${diffMinutes} min ago`;
+            } else if (diffHours < 24) {
+                return `${diffHours} hours ago`;
+            } else if (diffDays < 7) {
+                return `${diffDays} days ago`;
+            } else {
+                // Show full date for older dates
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             }
         }
     </script>
