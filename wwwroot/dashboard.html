@@ -1035,7 +1035,7 @@
     <div class="container">
         <div id="error-container"></div>
         
-        <!-- Invitation Box - Only visible to Super Admin -->
+        <!-- Invitation Box - Visible to Super Admin and Property Manager -->
         <div id="invitation-section" class="invitation-box" style="display: none;">
             <h3>📧 Invite New User</h3>
             <div id="invitation-message"></div>
@@ -1082,7 +1082,7 @@
             </div>
         </div>
 
-        <!-- User Type Management Box - Only visible to Super Admin -->
+        <!-- User Type Management Box - Visible to Super Admin and Property Manager -->
         <div id="user-type-section" class="invitation-box" style="display: none;">
             <h3>👥 User Type Management</h3>
             <div id="user-type-message"></div>
@@ -1337,9 +1337,9 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             // Avatar with profile photo or initials fallback
             updateUserAvatar(user);
             
-            // Show invitation box, user type management, and customer information only for Super Admin
-            if (user.userTypeName === 'Super Admin') {
-                console.log('User is Super Admin - showing all sections');
+            // Show invitation box, user type management, and customer information for Super Admin and Property Manager
+            if (user.userTypeName === 'Super Admin' || user.userTypeName === 'Property Manager') {
+                console.log(`User is ${user.userTypeName} - showing all sections`);
                 document.getElementById('invitation-section').style.display = 'block';
                 document.getElementById('user-type-section').style.display = 'block';
                 document.getElementById('customer-section').style.display = 'block';
@@ -1349,7 +1349,7 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                 loadCustomersList();
                 loadCustomerStats();
             } else {
-                console.log('User is not Super Admin - hiding all admin sections');
+                console.log(`User is ${user.userTypeName} - hiding admin sections`);
                 document.getElementById('invitation-section').style.display = 'none';
                 document.getElementById('user-type-section').style.display = 'none';
                 document.getElementById('customer-section').style.display = 'none';
