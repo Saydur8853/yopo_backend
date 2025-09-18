@@ -1140,6 +1140,69 @@
             </div>
         </div>
 
+        <!-- Buildings Management Section -->
+        <div id="buildings-section" class="invitation-box" style="display: none;">
+            <h3>🏢 Buildings Management</h3>
+            <div id="buildings-message"></div>
+            
+            <!-- Add Building Form (Property Manager only) -->
+            <div id="add-building-form-section" style="display: none;">
+                <form id="add-building-form" class="invitation-form">
+                    <div class="form-group">
+                        <label for="building-name">Building Name</label>
+                        <input type="text" id="building-name" class="form-control" required placeholder="Enter building name" maxlength="200">
+                    </div>
+                    <div class="form-group">
+                        <label for="building-address">Address</label>
+                        <input type="text" id="building-address" class="form-control" required placeholder="Enter building address" maxlength="500">
+                    </div>
+                    <div class="form-group">
+                        <label for="building-floors">Floors</label>
+                        <input type="number" id="building-floors" class="form-control" required min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="building-parking">Parking Floors</label>
+                        <input type="number" id="building-parking" class="form-control" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Amenities</label>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-weight: normal;">
+                                <input type="checkbox" id="building-gym"> Gym
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-weight: normal;">
+                                <input type="checkbox" id="building-pool"> Swimming Pool
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-weight: normal;">
+                                <input type="checkbox" id="building-sauna"> Sauna
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" id="add-building-btn">
+                            🏢 Add Building
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Buildings List -->
+            <div class="invitations-list-section">
+                <div class="list-header">
+                    <h4>🏢 Buildings</h4>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="loadBuildingsList()">
+                        🔄 Refresh
+                    </button>
+                </div>
+                <div id="buildings-loading" class="loading-state" style="display: none;">
+                    <span class="spinner"></span> Loading buildings...
+                </div>
+                <div id="buildings-list-container">
+                    <!-- Buildings will be loaded here -->
+                </div>
+            </div>
+        </div>
+
         <!-- Customer Information Section -->
         <div id="customer-section" class="invitation-box" style="display: none;">
             <h3>🏢 Customer Information</h3>
@@ -1314,6 +1377,12 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                     });
                 }
             });
+            
+            // Setup building form
+            const buildingForm = document.getElementById('add-building-form');
+            if (buildingForm) {
+                buildingForm.addEventListener('submit', handleBuildingSubmit);
+            }
         });
 
         // Authentication check
@@ -1360,24 +1429,31 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                 console.log(`User is ${user.userTypeName} - showing all sections`);
                 document.getElementById('invitation-section').style.display = 'block';
                 document.getElementById('user-type-section').style.display = 'block';
+                document.getElementById('buildings-section').style.display = 'block';
                 document.getElementById('customer-section').style.display = 'block';
+                document.getElementById('add-building-form-section').style.display = 'none'; // Super Admin can only view
                 loadUserTypesForInvitation();
                 loadInvitationsList();
                 loadUserTypesList();
+                loadBuildingsList();
                 loadCustomersList();
                 loadCustomerStats();
             } else if (user.userTypeName === 'Property Manager') {
-                console.log(`User is ${user.userTypeName} - showing invitation and user type sections only`);
+                console.log(`User is ${user.userTypeName} - showing invitation, user type and buildings sections`);
                 document.getElementById('invitation-section').style.display = 'block';
                 document.getElementById('user-type-section').style.display = 'block';
+                document.getElementById('buildings-section').style.display = 'block';
                 document.getElementById('customer-section').style.display = 'none'; // Property managers shouldn't see customer data
+                document.getElementById('add-building-form-section').style.display = 'block'; // PM can add buildings
                 loadUserTypesForInvitation();
                 loadInvitationsList();
                 loadUserTypesList();
+                loadBuildingsList();
             } else {
                 console.log(`User is ${user.userTypeName} - hiding admin sections`);
                 document.getElementById('invitation-section').style.display = 'none';
                 document.getElementById('user-type-section').style.display = 'none';
+                document.getElementById('buildings-section').style.display = 'none';
                 document.getElementById('customer-section').style.display = 'none';
             }
         }
@@ -2715,6 +2791,268 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             // Show success message
             showCustomerMessage('Filters cleared successfully!', 'success');
         }
+        
+        // Buildings Management Functions
+        let isBuildingLoading = false;
+        
+        async function handleBuildingSubmit(e) {
+            e.preventDefault();
+            
+            if (isBuildingLoading) return;
+            
+            const name = document.getElementById('building-name').value.trim();
+            const address = document.getElementById('building-address').value.trim();
+            const floors = parseInt(document.getElementById('building-floors').value);
+            const parkingFloor = parseInt(document.getElementById('building-parking').value);
+            const hasGym = document.getElementById('building-gym').checked;
+            const hasSwimmingPool = document.getElementById('building-pool').checked;
+            const hasSauna = document.getElementById('building-sauna').checked;
+            
+            if (!name || !address || floors < 1) {
+                showBuildingsMessage('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            setBuildingLoading(true);
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                // For Property Managers, we need to get their customer ID
+                // Since CustomerId = User.Id for Property Managers
+                let customerId = userData.id;
+                
+                const response = await fetch(`${API_BASE}/buildings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        customerId: customerId,
+                        name: name,
+                        address: address,
+                        floors: floors,
+                        parkingFloor: parkingFloor,
+                        hasGym: hasGym,
+                        hasSwimmingPool: hasSwimmingPool,
+                        hasSauna: hasSauna
+                    })
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = 'Failed to create building';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData || errorMessage;
+                    } catch (e) {
+                        const errorText = await response.text();
+                        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                showBuildingsMessage(`✓ Building "${name}" created successfully!`, 'success');
+                document.getElementById('add-building-form').reset();
+                document.getElementById('building-floors').value = '1';
+                document.getElementById('building-parking').value = '0';
+                
+                // Refresh the buildings list after successful creation
+                loadBuildingsList();
+                
+            } catch (error) {
+                console.error('Error creating building:', error);
+                showBuildingsMessage(error.message || 'Failed to create building', 'error');
+            } finally {
+                setBuildingLoading(false);
+            }
+        }
+        
+        function showBuildingsMessage(message, type = 'error') {
+            const messageContainer = document.getElementById('buildings-message');
+            messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 5000);
+        }
+        
+        function setBuildingLoading(loading) {
+            isBuildingLoading = loading;
+            const btn = document.getElementById('add-building-btn');
+            const inputs = ['building-name', 'building-address', 'building-floors', 'building-parking', 'building-gym', 'building-pool', 'building-sauna'];
+            
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span>Creating...';
+                inputs.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) input.disabled = true;
+                });
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '🏢 Add Building';
+                inputs.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) input.disabled = false;
+                });
+            }
+        }
+        
+        // Buildings List Management Functions
+        async function loadBuildingsList() {
+            const loadingElement = document.getElementById('buildings-loading');
+            const containerElement = document.getElementById('buildings-list-container');
+            
+            try {
+                loadingElement.style.display = 'block';
+                containerElement.innerHTML = '';
+                
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/buildings`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load buildings');
+                }
+                
+                const result = await response.json();
+                const buildings = result.buildings || result; // Handle both paginated and direct array responses
+                displayBuildingsList(buildings);
+                
+            } catch (error) {
+                console.error('Error loading buildings:', error);
+                containerElement.innerHTML = `
+                    <div class="empty-invitations">
+                        <h5>⚠️ Error Loading Buildings</h5>
+                        <p>${error.message || 'Failed to load buildings'}</p>
+                        <button class="btn btn-primary btn-small" onclick="loadBuildingsList()">Try Again</button>
+                    </div>
+                `;
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        }
+        
+        function displayBuildingsList(buildings) {
+            const container = document.getElementById('buildings-list-container');
+            
+            if (!buildings || buildings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-invitations">
+                        <h5>🏢 No Buildings Yet</h5>
+                        <p>Buildings will appear here once they are created.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const isPropertyManager = userData && userData.userTypeName === 'Property Manager';
+            
+            const tableHTML = `
+                <table class="invitations-table">
+                    <thead>
+                        <tr>
+                            <th>Building Name</th>
+                            <th>Address</th>
+                            <th>Property Manager</th>
+                            <th>Floors</th>
+                            <th>Amenities</th>
+                            <th>Status</th>
+                            ${isPropertyManager ? '<th>Actions</th>' : ''}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${buildings.map(building => {
+                            const amenities = [];
+                            if (building.hasGym) amenities.push('🏋️ Gym');
+                            if (building.hasSwimmingPool) amenities.push('🏊 Pool');
+                            if (building.hasSauna) amenities.push('🧖 Sauna');
+                            const amenitiesText = amenities.length > 0 ? amenities.join('<br>') : 'None';
+                            
+                            return `
+                            <tr>
+                                <td><strong>${building.name}</strong></td>
+                                <td>${building.address}</td>
+                                <td>
+                                    <div>${building.customerName || 'N/A'}</div>
+                                    ${building.companyName ? `<small style="color: #666;">${building.companyName}</small>` : ''}
+                                </td>
+                                <td>
+                                    ${building.floors} floors
+                                    ${building.parkingFloor > 0 ? `<br><small style="color: #666;">${building.parkingFloor} parking</small>` : ''}
+                                </td>
+                                <td>${amenitiesText}</td>
+                                <td>
+                                    <span class="status-badge ${building.isActive ? 'status-active' : 'status-expired'}">
+                                        ${building.isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                </td>
+                                ${isPropertyManager ? `
+                                    <td>
+                                        <button class="btn btn-secondary btn-edit" onclick="editBuilding(${building.buildingId})" title="Edit Building" style="margin-right: 0.5rem;">
+                                            ✏️ Edit
+                                        </button>
+                                        <button class="btn btn-danger" onclick="deleteBuilding(${building.buildingId}, '${building.name}')" title="Delete Building">
+                                            🗑️ Delete
+                                        </button>
+                                    </td>
+                                ` : ''}
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+        
+        async function deleteBuilding(buildingId, name) {
+            const confirmMessage = `Are you sure you want to delete the building "${name}"? This action cannot be undone.`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/buildings/${buildingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = 'Failed to delete building';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData || errorMessage;
+                    } catch (e) {
+                        const errorText = await response.text();
+                        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                showBuildingsMessage(`✓ Building "${name}" deleted successfully!`, 'success');
+                loadBuildingsList(); // Refresh the list
+                
+            } catch (error) {
+                console.error('Error deleting building:', error);
+                showBuildingsMessage(error.message || 'Failed to delete building', 'error');
+            }
+        }
+        
+        // Simple edit function (you can expand this to show a modal form)
+        async function editBuilding(buildingId) {
+            showBuildingsMessage('Edit functionality coming soon - you can delete and recreate for now', 'error');
+        }
+        
     </script>
 
     <!-- Profile Edit Modal -->

@@ -324,12 +324,16 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public List<PermittedModuleDto> PermittedModules { get; set; } = new();
 
         /// <summary>
+        /// Gets or sets the list of buildings associated with this user (for Property Managers).
+        /// Will be empty if user is not a Property Manager or has no buildings.
+        /// </summary>
+        public List<UserBuildingDto> Buildings { get; set; } = new();
+
+        /// <summary>
         /// Gets or sets the profile photo as a base64 encoded string.
         /// Will be null if no profile photo is set.
         /// </summary>
         public string? ProfilePhotoBase64 { get; set; }
-
-        // Building access removed since BuildingCRUD module doesn't exist
     }
 
     /// <summary>
@@ -346,6 +350,22 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Gets or sets the module name.
         /// </summary>
         public string ModuleName { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO for representing a building associated with a user.
+    /// </summary>
+    public class UserBuildingDto
+    {
+        /// <summary>
+        /// Gets or sets the building ID.
+        /// </summary>
+        public int BuildingId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the building name.
+        /// </summary>
+        public string Name { get; set; } = string.Empty;
     }
 
 

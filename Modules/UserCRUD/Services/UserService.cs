@@ -3,6 +3,7 @@ using BCrypt.Net;
 using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
 using YopoBackend.Modules.UserCRUD.Models;
+using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Services;
 using YopoBackend.Constants;
 using YopoBackend.Utils;
@@ -870,6 +871,21 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .ToList();
             }
 
+            // Get buildings for Property Managers (where CustomerId = User.Id)
+            var buildings = new List<UserBuildingDto>();
+            if (user.UserType?.Name == "Property Manager")
+            {
+                var userBuildings = _context.Buildings
+                    .Where(b => b.CustomerId == user.Id && b.IsActive)
+                    .Select(b => new UserBuildingDto
+                    {
+                        BuildingId = b.BuildingId,
+                        Name = b.Name
+                    })
+                    .ToList();
+                buildings = userBuildings;
+            }
+
             return new UserResponseDTO
             {
                 Id = user.Id,
@@ -877,15 +893,15 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 Name = user.Name,
                 Address = user.Address,
                 PhoneNumber = user.PhoneNumber,
-                ProfilePhotoBase64 = ImageUtils.ConvertToBase64DataUrl(user.ProfilePhoto, user.ProfilePhotoMimeType),
                 UserTypeId = user.UserTypeId,
                 UserTypeName = user.UserType?.Name ?? string.Empty,
                 IsActive = user.IsActive,
                 IsEmailVerified = user.IsEmailVerified,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt,
-                PermittedModules = permittedModules
-                // Building access removed since BuildingCRUD module doesn't exist
+                PermittedModules = permittedModules,
+                Buildings = buildings,
+                ProfilePhotoBase64 = ImageUtils.ConvertToBase64DataUrl(user.ProfilePhoto, user.ProfilePhotoMimeType)
             };
         }
     }
