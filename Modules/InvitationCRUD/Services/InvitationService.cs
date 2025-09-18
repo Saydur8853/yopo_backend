@@ -213,18 +213,34 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 .OrderBy(ut => ut.Name)
                 .ToListAsync();
 
-            // API-level restriction: Only allow Super Admin and Property Manager for invitations
+            // API-level restriction: Allow specific user types for invitations
             // This ensures security even if frontend filtering is removed
             // 
             // BUSINESS LOGIC: For security and system integrity, invitations are restricted to:
             // - Super Admin: Full system access, can manage everything
             // - Property Manager: Limited access with OWN data access control
+            // - PM-created user types: User types created by Property Managers (DataAccessControl = "PM")
             // 
-            // This prevents unauthorized creation of custom user types through invitations
-            // and maintains the intended user hierarchy in the system.
+            // This allows Property Managers to invite users to their custom user types
+            // while maintaining the intended user hierarchy and security in the system.
+            
+            // Get the full user type details to check DataAccessControl
+            var userTypeIds = userTypes.Select(ut => ut.Id).ToList();
+            var fullUserTypes = await _context.UserTypes
+                .Where(ut => userTypeIds.Contains(ut.Id))
+                .Select(ut => new { ut.Id, ut.Name, ut.DataAccessControl })
+                .ToListAsync();
+            
             var allowedUserTypes = userTypes.Where(ut => 
-                ut.Name == "Super Admin" || ut.Name == "Property Manager"
-            ).ToList();
+            {
+                var fullUserType = fullUserTypes.FirstOrDefault(fut => fut.Id == ut.Id);
+                return fullUserType != null && (
+                    // Allow default system user types
+                    ut.Name == "Super Admin" || ut.Name == "Property Manager" ||
+                    // Allow PM-created user types (those with DataAccessControl = "PM")
+                    fullUserType.DataAccessControl == "PM"
+                );
+            }).ToList();
 
             return allowedUserTypes;
         }
@@ -232,8 +248,19 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         /// <inheritdoc/>
         public async Task<bool> ValidateUserTypeIdAsync(int userTypeId)
         {
-            return await _context.UserTypes
-                .AnyAsync(ut => ut.Id == userTypeId && ut.IsActive);
+            var userType = await _context.UserTypes
+                .FirstOrDefaultAsync(ut => ut.Id == userTypeId && ut.IsActive);
+                
+            if (userType == null)
+                return false;
+                
+            // Allow validation for:
+            // - Super Admin (ID: 1)
+            // - Property Manager (ID: 2) 
+            // - PM-created user types (DataAccessControl = "PM")
+            return userType.Name == "Super Admin" || 
+                   userType.Name == "Property Manager" || 
+                   userType.DataAccessControl == "PM";
         }
 
         private static InvitationResponseDTO MapToResponseDTO(Invitation invitation)

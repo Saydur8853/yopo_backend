@@ -95,16 +95,17 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         /// <remarks>
         /// **User Type Restrictions:**
         /// 
-        /// Only the following user types are allowed for invitations:
+        /// The following user types are allowed for invitations:
         /// - **Super Admin** (ID: 1): Full system access
         /// - **Property Manager** (ID: 2): Limited access with own data control
+        /// - **PM-created User Types**: Custom user types created by Property Managers
         /// 
         /// Use the `/api/invitations/user-types` endpoint to get the exact IDs and available user types.
         /// 
         /// **Validation Rules:**
         /// - Email must be unique (no active invitations for the same email)
         /// - UserTypeId must be valid and active
-        /// - UserTypeId must be one of the allowed types (Super Admin or Property Manager)
+        /// - UserTypeId must be one of the allowed types (Super Admin, Property Manager, or PM-created types)
         /// - ExpiryDays must be between 1-7 days
         /// 
         /// **Example Request:**
@@ -272,11 +273,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         /// This endpoint is specifically designed for invitation purposes and only returns user types that can be invited:
         /// - **Super Admin**: Full system access with all module permissions
         /// - **Property Manager**: Limited access with own data access control
+        /// - **PM-created User Types**: Custom user types created by Property Managers (DataAccessControl = "PM")
         /// 
         /// **Business Rules:**
-        /// - Only these two user types are allowed for invitations to maintain system security
+        /// - These user types are allowed for invitations to maintain system security while allowing PM customization
         /// - The restriction is enforced at the API level, not just frontend
-        /// - Other user types in the system are not available for invitation purposes
+        /// - Only system user types and PM-created user types are available for invitation purposes
         /// 
         /// **Access Control:**
         /// - Users with "ALL" access control can see all allowed user types
