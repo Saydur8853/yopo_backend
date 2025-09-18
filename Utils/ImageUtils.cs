@@ -1,5 +1,4 @@
-using System.Drawing;
-using System.Drawing.Imaging;
+using SkiaSharp;
 
 namespace YopoBackend.Utils
 {
@@ -92,19 +91,22 @@ namespace YopoBackend.Utils
                 // Validate image dimensions
                 try
                 {
-                    using var stream = new MemoryStream(imageBytes);
-                    using var image = Image.FromStream(stream);
+                    using var bitmap = SKBitmap.Decode(imageBytes);
+                    if (bitmap == null)
+                    {
+                        return new ImageValidationResult { IsValid = false, ErrorMessage = "Invalid or corrupted image file." };
+                    }
                     
-                    if (image.Width > MAX_IMAGE_DIMENSION || image.Height > MAX_IMAGE_DIMENSION)
+                    if (bitmap.Width > MAX_IMAGE_DIMENSION || bitmap.Height > MAX_IMAGE_DIMENSION)
                     {
                         return new ImageValidationResult 
                         { 
                             IsValid = false, 
-                            ErrorMessage = $"Image dimensions ({image.Width}x{image.Height}) exceed maximum allowed size ({MAX_IMAGE_DIMENSION}x{MAX_IMAGE_DIMENSION})." 
+                            ErrorMessage = $"Image dimensions ({bitmap.Width}x{bitmap.Height}) exceed maximum allowed size ({MAX_IMAGE_DIMENSION}x{MAX_IMAGE_DIMENSION})." 
                         };
                     }
                 }
-                catch (ArgumentException)
+                catch (Exception)
                 {
                     return new ImageValidationResult { IsValid = false, ErrorMessage = "Invalid or corrupted image file." };
                 }
@@ -218,55 +220,40 @@ namespace YopoBackend.Utils
         /// <returns>Resized image bytes in JPEG format.</returns>
         public static byte[] ResizeImage(byte[] imageBytes, int maxWidth, int maxHeight, int quality = 85)
         {
-            using var stream = new MemoryStream(imageBytes);
-            using var originalImage = Image.FromStream(stream);
+            using var originalBitmap = SKBitmap.Decode(imageBytes);
+            if (originalBitmap == null)
+            {
+                throw new ArgumentException("Invalid image data");
+            }
 
             // Calculate new dimensions
-            var ratioX = (double)maxWidth / originalImage.Width;
-            var ratioY = (double)maxHeight / originalImage.Height;
+            var ratioX = (double)maxWidth / originalBitmap.Width;
+            var ratioY = (double)maxHeight / originalBitmap.Height;
             var ratio = Math.Min(ratioX, ratioY);
 
-            var newWidth = (int)(originalImage.Width * ratio);
-            var newHeight = (int)(originalImage.Height * ratio);
+            var newWidth = (int)(originalBitmap.Width * ratio);
+            var newHeight = (int)(originalBitmap.Height * ratio);
 
-            // Create resized image
-            using var resizedImage = new Bitmap(newWidth, newHeight);
-            using var graphics = Graphics.FromImage(resizedImage);
-            
-            graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-            
-            graphics.DrawImage(originalImage, 0, 0, newWidth, newHeight);
-
-            // Save to memory stream as JPEG
-            using var outputStream = new MemoryStream();
-            var jpegEncoder = GetEncoder(ImageFormat.Jpeg);
-            var encoderParameters = new EncoderParameters(1);
-            encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, quality);
-            
-            resizedImage.Save(outputStream, jpegEncoder, encoderParameters);
-            
-            return outputStream.ToArray();
-        }
-
-        /// <summary>
-        /// Gets the image encoder for the specified format.
-        /// </summary>
-        /// <param name="format">The image format.</param>
-        /// <returns>The image codec info.</returns>
-        private static ImageCodecInfo GetEncoder(ImageFormat format)
-        {
-            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
-            foreach (ImageCodecInfo codec in codecs)
+            // Create resized bitmap
+            var resizedBitmap = originalBitmap.Resize(new SKImageInfo(newWidth, newHeight), SKFilterQuality.High);
+            if (resizedBitmap == null)
             {
-                if (codec.FormatID == format.Guid)
-                {
-                    return codec;
-                }
+                throw new InvalidOperationException("Failed to resize image");
             }
-            throw new ArgumentException("No encoder found for format: " + format);
+
+            try
+            {
+                // Encode as JPEG
+                using var image = SKImage.FromBitmap(resizedBitmap);
+                using var data = image.Encode(SKEncodedImageFormat.Jpeg, quality);
+                return data.ToArray();
+            }
+            finally
+            {
+                resizedBitmap.Dispose();
+            }
         }
+
     }
 
     /// <summary>

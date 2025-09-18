@@ -4,6 +4,7 @@ using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
 using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Modules.BuildingCRUD.Models;
+using YopoBackend.Modules.InvitationCRUD.Models;
 using YopoBackend.Services;
 using YopoBackend.Constants;
 using YopoBackend.Utils;
@@ -100,18 +101,17 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// <returns>An authentication response with JWT token if successful.</returns>
         public async Task<AuthenticationResponseDTO?> RegisterAsync(RegisterUserRequestDTO registerRequest)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Check if email is already registered
-                if (await IsEmailRegisteredAsync(registerRequest.Email))
-                {
-                    return null; // Email already registered
-                }
-
+                Console.WriteLine($"Starting registration process for: {registerRequest.Email}");
+                
                 // Check if this is the first user in the system
                 var isFirstUser = !await _context.Users.AnyAsync();
                 
                 int userTypeId;
+                Invitation? invitationToRemove = null;
+                
                 if (isFirstUser)
                 {
                     // First user becomes Super Admin
@@ -120,6 +120,14 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 }
                 else
                 {
+                    // Double-check if email is already registered (race condition protection)
+                    if (await IsEmailRegisteredAsync(registerRequest.Email))
+                    {
+                        Console.WriteLine($"Registration failed for {registerRequest.Email} - email already registered");
+                        await transaction.RollbackAsync();
+                        return null; // Email already registered
+                    }
+                    
                     // Check if email has a valid invitation
                     var invitation = await _context.Invitations
                         .Include(i => i.UserType)
@@ -129,20 +137,21 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     if (invitation == null)
                     {
                         // No valid invitation found
-                        Console.WriteLine($"Registration denied for {registerRequest.Email} - no valid invitation");
+                        Console.WriteLine($"Registration denied for {registerRequest.Email} - no valid invitation found");
+                        await transaction.RollbackAsync();
                         throw new UnauthorizedAccessException("You are not invited. Please contact with Authority.");
                     }
                     
                     userTypeId = invitation.UserTypeId;
+                    invitationToRemove = invitation;
                     Console.WriteLine($"User registration with invitation - assigning user type {invitation.UserType?.Name} to: {registerRequest.Email}");
-                    
-                    // Remove the used invitation
-                    _context.Invitations.Remove(invitation);
                 }
 
                 var userType = await _context.UserTypes.FindAsync(userTypeId);
                 if (userType == null || !userType.IsActive)
                 {
+                    Console.WriteLine($"Registration failed for {registerRequest.Email} - invalid user type {userTypeId}");
+                    await transaction.RollbackAsync();
                     return null; // User type not found or inactive
                 }
 
@@ -158,6 +167,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     var validationResult = ImageUtils.ValidateBase64Image(registerRequest.ProfilePhotoBase64);
                     if (!validationResult.IsValid)
                     {
+                        Console.WriteLine($"Registration failed for {registerRequest.Email} - invalid profile photo: {validationResult.ErrorMessage}");
+                        await transaction.RollbackAsync();
                         throw new ArgumentException($"Invalid profile photo: {validationResult.ErrorMessage}");
                     }
                     
@@ -185,6 +196,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
+                
+                Console.WriteLine($"User created successfully: {user.Email} (ID: {user.Id})");
 
                 // Update CreatedBy to the user's own ID for self-registration
                 user.CreatedBy = user.Id;
@@ -204,6 +217,14 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     }
                 }
 
+                // Only remove the invitation AFTER successful user creation
+                if (invitationToRemove != null)
+                {
+                    _context.Invitations.Remove(invitationToRemove);
+                    await _context.SaveChangesAsync();
+                    Console.WriteLine($"Invitation removed for {registerRequest.Email}");
+                }
+
                 // Reload user with full relationships for response
                 var registeredUser = await _context.Users
                     .Include(u => u.UserType)
@@ -211,12 +232,22 @@ namespace YopoBackend.Modules.UserCRUD.Services
                             .ThenInclude(mp => mp.Module)
                     .FirstOrDefaultAsync(u => u.Id == user.Id);
 
-                if (registeredUser == null) return null;
+                if (registeredUser == null)
+                {
+                    Console.WriteLine($"Failed to reload registered user: {user.Email}");
+                    await transaction.RollbackAsync();
+                    return null;
+                }
 
                 // Generate JWT token
                 var (token, expiresAt) = await _jwtService.GenerateTokenAsync(registeredUser);
 
                 var message = isFirstUser ? "Registration successful - You are now the Super Administrator!" : "Registration successful";
+                
+                // Commit the transaction
+                await transaction.CommitAsync();
+                
+                Console.WriteLine($"Registration completed successfully for: {registerRequest.Email}");
                 
                 return new AuthenticationResponseDTO
                 {
@@ -226,13 +257,17 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     Message = message
                 };
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                Console.WriteLine($"Registration unauthorized: {ex.Message}");
+                await transaction.RollbackAsync();
                 throw; // Re-throw to preserve the specific error message
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Registration error: {ex.Message}");
+                Console.WriteLine($"Registration error for {registerRequest.Email}: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                await transaction.RollbackAsync();
                 return null;
             }
         }
