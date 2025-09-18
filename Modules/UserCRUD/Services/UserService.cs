@@ -149,7 +149,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 // Hash password
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerRequest.Password);
 
-                // Process profile photo (now required)
+                // Process profile photo (optional)
                 byte[]? profilePhotoBytes = null;
                 string? profilePhotoMimeType = null;
                 
@@ -164,10 +164,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     profilePhotoBytes = validationResult.ImageBytes;
                     profilePhotoMimeType = validationResult.MimeType;
                 }
-                else
-                {
-                    throw new ArgumentException("Profile photo is required");
-                }
+                // Profile photo is optional, so we don't throw an error if it's not provided
 
                 // Create new user
                 var user = new User

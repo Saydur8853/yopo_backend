@@ -51,9 +51,9 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Gets or sets the profile photo as a base64 encoded string.
         /// Maximum size: 5MB (after base64 encoding: ~6.7MB)
         /// Supported formats: JPEG, PNG, GIF, BMP, WebP
+        /// This field is optional.
         /// </summary>
-        [Required(ErrorMessage = "Profile photo is required")]
-        public string ProfilePhotoBase64 { get; set; } = string.Empty;
+        public string? ProfilePhotoBase64 { get; set; }
 
     }
 
