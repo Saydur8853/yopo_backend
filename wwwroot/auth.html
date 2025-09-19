@@ -462,14 +462,14 @@
 
                 <!-- Profile Photo Upload Section -->
                 <div class="form-group photo-upload-section">
-                    <label>Profile Photo *</label>
+                    <label>Profile Photo (Optional)</label>
                     <div class="photo-upload-area" onclick="triggerPhotoInput()" 
                          ondragover="handleDragOver(event)" 
                          ondragleave="handleDragLeave(event)" 
                          ondrop="handlePhotoDrop(event)">
                         <div class="upload-icon">📸</div>
                         <div class="upload-text">Click to upload or drag & drop</div>
-                        <div class="upload-hint">Please select a profile photo (Required)</div>
+                        <div class="upload-hint">Please select a profile photo (Optional)</div>
                         <div class="photo-requirements">
                             • JPEG, PNG, GIF, BMP, WebP supported<br>
                             • Max 5MB file size<br>
@@ -534,8 +534,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             setupFormHandlers();
             
-            // Add initial error styling to required photo field
-            document.querySelector('.photo-upload-area').classList.add('error');
+            // Photo field is optional, no need for initial error styling
+            // document.querySelector('.photo-upload-area').classList.add('error');
             
             // Check if user is already logged in
             const token = localStorage.getItem('authToken');
@@ -588,10 +588,10 @@
                 clearPhotoPreview();
                 document.querySelector('.photo-upload-area').classList.remove('error');
             } else if (formType === 'register') {
-                // Show error styling for required photo field
-                if (!selectedPhotoBase64) {
-                    document.querySelector('.photo-upload-area').classList.add('error');
-                }
+                // Photo field is optional, no need for error styling
+                // if (!selectedPhotoBase64) {
+                //     document.querySelector('.photo-upload-area').classList.add('error');
+                // }
             }
         }
 
@@ -724,12 +724,13 @@ const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
                 return;
             }
             
-            if (!selectedPhotoBase64) {
-                showMessage('Please select a profile photo');
-                // Add error styling to upload area
-                document.querySelector('.photo-upload-area').classList.add('error');
-                return;
-            }
+            // Profile photo is optional, no validation needed
+            // if (!selectedPhotoBase64) {
+            //     showMessage('Please select a profile photo');
+            //     // Add error styling to upload area
+            //     document.querySelector('.photo-upload-area').classList.add('error');
+            //     return;
+            // }
             
             if (password !== confirmPassword) {
                 showMessage('Passwords do not match');
@@ -894,8 +895,8 @@ const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
             document.querySelector('.photo-upload-area').style.display = 'block';
             document.getElementById('photoInput').value = '';
             
-            // Add error styling since photo is required
-            document.querySelector('.photo-upload-area').classList.add('error');
+            // Photo is optional, no need for error styling
+            // document.querySelector('.photo-upload-area').classList.add('error');
         }
 
         function getInitials(fullName) {
