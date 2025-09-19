@@ -95,5 +95,16 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         /// <param name="userTypeId">The user type ID to validate.</param>
         /// <returns>A task that represents the asynchronous operation. The task result indicates whether the user type ID is valid.</returns>
         Task<bool> ValidateUserTypeIdAsync(int userTypeId);
+        
+        /// <summary>
+        /// Checks if the current user has permission to invite users of the specified type.
+        /// Business Rules:
+        /// - Super Admins can invite anyone (Super Admins, Property Managers, PM-created types)
+        /// - Property Managers can only invite PM-created user types (NOT other Property Managers or Super Admins)
+        /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <param name="targetUserTypeId">The user type ID they want to invite.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result indicates whether the user can invite the specified user type.</returns>
+        Task<bool> CanUserInviteUserTypeAsync(int currentUserId, int targetUserTypeId);
     }
 }

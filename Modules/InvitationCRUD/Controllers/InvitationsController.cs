@@ -91,6 +91,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         /// <returns>Created invitation</returns>
         /// <response code="201">Returns the newly created invitation</response>
         /// <response code="400">If the invitation data is invalid</response>
+        /// <response code="403">If user doesn't have permission to invite the specified user type</response>
         /// <response code="409">If email is already invited and active</response>
         /// <remarks>
         /// **User Type Restrictions:**
@@ -120,6 +121,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<ActionResult<InvitationResponseDTO>> CreateInvitation([FromBody] CreateInvitationDTO createDto)
         {
@@ -143,6 +145,14 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
             }
 
             var currentUserId = GetCurrentUserId();
+            
+            // Business Rule: Validate invitation permissions based on current user type
+            var canInviteUserType = await _invitationService.CanUserInviteUserTypeAsync(currentUserId, createDto.UserTypeId);
+            if (!canInviteUserType)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, 
+                    new { message = "You do not have permission to invite users of this type. Property Managers cannot invite other Property Managers or Super Admins." });
+            }
             var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
             
             return CreatedAtAction(
@@ -159,10 +169,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         /// <returns>Updated invitation</returns>
         /// <response code="200">Returns the updated invitation</response>
         /// <response code="400">If the update data is invalid</response>
+        /// <response code="403">If user doesn't have permission to update to the specified user type</response>
         /// <response code="404">If the invitation is not found</response>
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<InvitationResponseDTO>> UpdateInvitation(int id, [FromBody] UpdateInvitationDTO updateDto)
         {
@@ -170,6 +182,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            var currentUserId = GetCurrentUserId();
 
             // Validate user type ID if provided
             if (updateDto.UserTypeId.HasValue)
@@ -179,9 +193,17 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
                 {
                     return BadRequest($"User type with ID {updateDto.UserTypeId.Value} is not valid or not active.");
                 }
+                
+                // Business Rule: Validate invitation permissions for user type updates
+                var canInviteUserType = await _invitationService.CanUserInviteUserTypeAsync(currentUserId, updateDto.UserTypeId.Value);
+                if (!canInviteUserType)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, 
+                        new { message = "You do not have permission to update invitation to this user type. Property Managers cannot invite other Property Managers or Super Admins." });
+                }
             }
 
-            var currentUserId = GetCurrentUserId();
+            // Perform the update
             var invitation = await _invitationService.UpdateInvitationAsync(id, updateDto, currentUserId);
             if (invitation == null)
             {

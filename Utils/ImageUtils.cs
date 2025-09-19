@@ -1,5 +1,11 @@
-using System.Drawing;
-using System.Drawing.Imaging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Webp;
 
 namespace YopoBackend.Utils
 {
@@ -93,7 +99,7 @@ namespace YopoBackend.Utils
                 try
                 {
                     using var stream = new MemoryStream(imageBytes);
-                    using var image = Image.FromStream(stream);
+                    using var image = Image.Load(stream);
                     
                     if (image.Width > MAX_IMAGE_DIMENSION || image.Height > MAX_IMAGE_DIMENSION)
                     {
@@ -104,7 +110,7 @@ namespace YopoBackend.Utils
                         };
                     }
                 }
-                catch (ArgumentException)
+                catch (Exception ex) when (ex is UnknownImageFormatException || ex is InvalidImageContentException)
                 {
                     return new ImageValidationResult { IsValid = false, ErrorMessage = "Invalid or corrupted image file." };
                 }
@@ -219,54 +225,31 @@ namespace YopoBackend.Utils
         public static byte[] ResizeImage(byte[] imageBytes, int maxWidth, int maxHeight, int quality = 85)
         {
             using var stream = new MemoryStream(imageBytes);
-            using var originalImage = Image.FromStream(stream);
+            using var image = Image.Load(stream);
 
             // Calculate new dimensions
-            var ratioX = (double)maxWidth / originalImage.Width;
-            var ratioY = (double)maxHeight / originalImage.Height;
+            var ratioX = (double)maxWidth / image.Width;
+            var ratioY = (double)maxHeight / image.Height;
             var ratio = Math.Min(ratioX, ratioY);
 
-            var newWidth = (int)(originalImage.Width * ratio);
-            var newHeight = (int)(originalImage.Height * ratio);
+            var newWidth = (int)(image.Width * ratio);
+            var newHeight = (int)(image.Height * ratio);
 
-            // Create resized image
-            using var resizedImage = new Bitmap(newWidth, newHeight);
-            using var graphics = Graphics.FromImage(resizedImage);
-            
-            graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-            
-            graphics.DrawImage(originalImage, 0, 0, newWidth, newHeight);
+            // Resize the image
+            image.Mutate(x => x.Resize(newWidth, newHeight));
 
             // Save to memory stream as JPEG
             using var outputStream = new MemoryStream();
-            var jpegEncoder = GetEncoder(ImageFormat.Jpeg);
-            var encoderParameters = new EncoderParameters(1);
-            encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+            var jpegEncoder = new JpegEncoder
+            {
+                Quality = quality
+            };
             
-            resizedImage.Save(outputStream, jpegEncoder, encoderParameters);
+            image.SaveAsJpeg(outputStream, jpegEncoder);
             
             return outputStream.ToArray();
         }
 
-        /// <summary>
-        /// Gets the image encoder for the specified format.
-        /// </summary>
-        /// <param name="format">The image format.</param>
-        /// <returns>The image codec info.</returns>
-        private static ImageCodecInfo GetEncoder(ImageFormat format)
-        {
-            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
-            foreach (ImageCodecInfo codec in codecs)
-            {
-                if (codec.FormatID == format.Guid)
-                {
-                    return codec;
-                }
-            }
-            throw new ArgumentException("No encoder found for format: " + format);
-        }
     }
 
     /// <summary>

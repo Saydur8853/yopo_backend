@@ -358,10 +358,20 @@
         }
 
         .invitation-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .invitation-form-row {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr auto;
             gap: 1rem;
             align-items: end;
+        }
+        
+        .invitation-form-row.full-width {
+            grid-template-columns: 1fr;
         }
 
         .form-group {
@@ -1061,6 +1071,11 @@
                     <select id="invite-role" class="form-control" required>
                         <option value="">Loading roles...</option>
                     </select>
+                </div>
+                <div class="form-group" id="company-name-group" style="display: none;">
+                    <label for="invite-company">Company Name (Optional)</label>
+                    <input type="text" id="invite-company" class="form-control" placeholder="Enter company name" maxlength="300">
+                    <small style="color: #666; font-size: 0.85rem; margin-top: 0.25rem; display: block;">This will be stored in the customer record when the Property Manager registers.</small>
                 </div>
                 <div class="form-group">
                     <label for="invite-days">Expires in Days</label>
@@ -1889,6 +1904,30 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                     `<option value="${type.id}">${type.name}</option>`
                 )
             ].join('');
+            
+            // Add event listener to show/hide company name field
+            dropdown.addEventListener('change', handleRoleChange);
+        }
+        
+        function handleRoleChange() {
+            const roleSelect = document.getElementById('invite-role');
+            const companyGroup = document.getElementById('company-name-group');
+            const selectedRoleId = roleSelect.value;
+            
+            // Only Super Admins can see and set CompanyName for Property Manager invitations
+            if (selectedRoleId && userData && userData.userTypeName === 'Super Admin') {
+                const selectedUserType = availableUserTypes.find(t => t.id == selectedRoleId);
+                // Show company name field for Property Manager invitations only for Super Admins
+                if (selectedUserType && selectedUserType.name === 'Property Manager') {
+                    companyGroup.style.display = 'block';
+                } else {
+                    companyGroup.style.display = 'none';
+                    document.getElementById('invite-company').value = ''; // Clear the field
+                }
+            } else {
+                companyGroup.style.display = 'none';
+                document.getElementById('invite-company').value = ''; // Clear the field
+            }
         }
         
         async function handleInvitationSubmit(e) {
@@ -1899,6 +1938,7 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             const email = document.getElementById('invite-email').value.trim();
             const roleId = document.getElementById('invite-role').value;
             const days = document.getElementById('invite-days').value;
+            const companyName = document.getElementById('invite-company').value.trim();
             
             if (!email || !roleId || !days) {
                 showInvitationMessage('Please fill in all fields', 'error');
@@ -1909,17 +1949,24 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             
             try {
                 const token = localStorage.getItem('authToken');
+                const requestBody = {
+                    emailAddress: email,
+                    userTypeId: parseInt(roleId),
+                    expiryDays: parseInt(days)
+                };
+                
+                // Add company name if provided
+                if (companyName) {
+                    requestBody.companyName = companyName;
+                }
+                
                 const response = await fetch(`${API_BASE}/invitations`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({
-                        emailAddress: email,
-                        userTypeId: parseInt(roleId),
-                        expiryDays: parseInt(days)
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 if (!response.ok) {
@@ -1937,9 +1984,11 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                 const selectedUserType = availableUserTypes.find(t => t.id == roleId);
                 const roleName = selectedUserType ? selectedUserType.name : 'user';
                 
-                showInvitationMessage(`\u2713 Invitation sent successfully to ${email} as ${roleName}!`, 'success');
+                const companyMsg = companyName ? ` for ${companyName}` : '';
+                showInvitationMessage(`\u2713 Invitation sent successfully to ${email} as ${roleName}${companyMsg}!`, 'success');
                 document.getElementById('invitation-form').reset();
                 document.getElementById('invite-days').value = '7'; // Reset to default
+                document.getElementById('company-name-group').style.display = 'none'; // Hide company field
                 
                 // Refresh the invitations list after successful invite
                 loadInvitationsList();
@@ -1968,6 +2017,7 @@ sessionStorage.setItem('redirectUrl', window.location.href);
             const emailInput = document.getElementById('invite-email');
             const roleInput = document.getElementById('invite-role');
             const daysInput = document.getElementById('invite-days');
+            const companyInput = document.getElementById('invite-company');
             
             if (loading) {
                 btn.disabled = true;
@@ -1975,12 +2025,14 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                 emailInput.disabled = true;
                 roleInput.disabled = true;
                 daysInput.disabled = true;
+                companyInput.disabled = true;
             } else {
                 btn.disabled = false;
                 btn.innerHTML = '\uD83D\uDCE7 Send Invite';
                 emailInput.disabled = false;
                 roleInput.disabled = false;
                 daysInput.disabled = false;
+                companyInput.disabled = false;
             }
         }
         
@@ -2034,12 +2086,16 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                 return;
             }
             
+            // Check if current user is Super Admin to show/hide Company column
+            const isSuperAdmin = userData && userData.userTypeName === 'Super Admin';
+            
             const tableHTML = `
                 <table class="invitations-table">
                     <thead>
                         <tr>
                             <th>Email Address</th>
                             <th>Role</th>
+                            ${isSuperAdmin ? '<th>Company</th>' : ''}
                             <th>Status</th>
                             <th>Expires</th>
                             <th>Sent</th>
@@ -2051,6 +2107,7 @@ sessionStorage.setItem('redirectUrl', window.location.href);
                             <tr>
                                 <td><strong>${invitation.emailAddress}</strong></td>
                                 <td>${invitation.userTypeName}</td>
+                                ${isSuperAdmin ? `<td>${invitation.companyName ? `<span style="color: #667eea; font-weight: 500;">${invitation.companyName}</span>` : '<span style="color: #999; font-style: italic;">-</span>'}</td>` : ''}
                                 <td>
                                     <span class="status-badge ${invitation.isExpired ? 'status-expired' : 'status-active'}">
                                         ${invitation.isExpired ? 'Expired' : 'Active'}

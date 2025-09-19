@@ -112,6 +112,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 var isFirstUser = !await _context.Users.AnyAsync();
                 
                 int userTypeId;
+                string? invitationCompanyName = null;
+                
                 if (isFirstUser)
                 {
                     // First user becomes Super Admin
@@ -134,6 +136,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     }
                     
                     userTypeId = invitation.UserTypeId;
+                    invitationCompanyName = invitation.CompanyName;
                     Console.WriteLine($"User registration with invitation - assigning user type {invitation.UserType?.Name} to: {registerRequest.Email}");
                     
                     // Remove the used invitation
@@ -193,10 +196,10 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 // Create Customer record if user is a Property Manager
                 if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
                 {
-                    var customer = await _customerService.CreateCustomerAsync(user);
+                    var customer = await _customerService.CreateCustomerAsync(user, invitationCompanyName);
                     if (customer != null)
                     {
-                        Console.WriteLine($"Customer record created for Property Manager {user.Email} (Customer ID: {customer.CustomerId})");
+                        Console.WriteLine($"Customer record created for Property Manager {user.Email} (Customer ID: {customer.CustomerId}) with company: {invitationCompanyName ?? "N/A"}");
                     }
                     else
                     {

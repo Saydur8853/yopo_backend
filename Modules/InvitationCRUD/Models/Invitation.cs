@@ -30,6 +30,13 @@ namespace YopoBackend.Modules.InvitationCRUD.Models
         public int UserTypeId { get; set; }
 
         /// <summary>
+        /// Gets or sets the company name for Property Manager invitations (optional).
+        /// This will be stored in the Customer table when the Property Manager registers.
+        /// </summary>
+        [StringLength(300)]
+        public string? CompanyName { get; set; }
+
+        /// <summary>
         /// Gets or sets the date and time when the invitation expires.
         /// </summary>
         [Required]

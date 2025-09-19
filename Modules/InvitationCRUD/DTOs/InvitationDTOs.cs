@@ -28,6 +28,13 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         public int UserTypeId { get; set; }
 
         /// <summary>
+        /// Gets or sets the company name (optional, required for Property Manager invitations).
+        /// This company name will be stored in the Customer table when the Property Manager registers.
+        /// </summary>
+        [StringLength(300)]
+        public string? CompanyName { get; set; }
+
+        /// <summary>
         /// Gets or sets the number of days until the invitation expires (1-7 days).
         /// </summary>
         [Range(1, 7)]
@@ -49,6 +56,12 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// Gets or sets the user type ID for the invitation (optional for updates).
         /// </summary>
         public int? UserTypeId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the company name (optional for updates).
+        /// </summary>
+        [StringLength(300)]
+        public string? CompanyName { get; set; }
 
         /// <summary>
         /// Gets or sets the number of days until the invitation expires (optional for updates, 1-7 days).
@@ -82,6 +95,10 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// </summary>
         public string UserTypeName { get; set; } = string.Empty;
         
+        /// <summary>
+        /// Gets or sets the company name for Property Manager invitations.
+        /// </summary>
+        public string? CompanyName { get; set; }
         
         /// <summary>
         /// Gets or sets the date and time when the invitation expires.

@@ -3,6 +3,7 @@ using YopoBackend.Data;
 using YopoBackend.Modules.InvitationCRUD.DTOs;
 using YopoBackend.Modules.InvitationCRUD.Models;
 using YopoBackend.Services;
+using YopoBackend.Constants;
 
 namespace YopoBackend.Modules.InvitationCRUD.Services
 {
@@ -32,7 +33,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             query = await ApplyAccessControlAsync(query, currentUserId);
             
             var invitations = await query.ToListAsync();
-            return invitations.Select(MapToResponseDTO);
+            
+            // Check if user is Super Admin for CompanyName access
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+            
+            return invitations.Select(inv => FilterCompanyNameForUser(MapToResponseDTO(inv), isSuperAdmin));
         }
 
         /// <inheritdoc/>
@@ -53,16 +59,26 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 return null; // User doesn't have access to this invitation
             }
             
-            return MapToResponseDTO(invitation);
+            // Check if user is Super Admin for CompanyName access
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+            
+            return FilterCompanyNameForUser(MapToResponseDTO(invitation), isSuperAdmin);
         }
 
         /// <inheritdoc/>
         public async Task<InvitationResponseDTO> CreateInvitationAsync(CreateInvitationDTO createDto, int createdByUserId)
         {
+            // Check if user is Super Admin for CompanyName access
+            var currentUser = await GetUserWithAccessControlAsync(createdByUserId);
+            bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+            
             var invitation = new Invitation
             {
                 EmailAddress = createDto.EmailAddress.ToLowerInvariant(),
                 UserTypeId = createDto.UserTypeId,
+                // Only Super Admins can set CompanyName
+                CompanyName = isSuperAdmin ? createDto.CompanyName : null,
                 ExpiryTime = DateTime.UtcNow.AddDays(createDto.ExpiryDays),
                 CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow
@@ -78,7 +94,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
 
             _logger.LogInformation("Created invitation for email: {Email} with UserType: {UserTypeId}", 
                 createDto.EmailAddress, createDto.UserTypeId);
-            return MapToResponseDTO(invitation);
+            
+            // Return with proper CompanyName filtering (Super Admin check already done above)
+            var responseUser = await GetUserWithAccessControlAsync(createdByUserId);
+            bool isResponseSuperAdmin = responseUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+            
+            return FilterCompanyNameForUser(MapToResponseDTO(invitation), isResponseSuperAdmin);
         }
 
         /// <inheritdoc/>
@@ -108,6 +129,19 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 invitation.UserTypeId = updateDto.UserTypeId.Value;
             }
 
+            if (updateDto.CompanyName != null)
+            {
+                // Check if user is Super Admin for CompanyName access
+                var updateUser = await GetUserWithAccessControlAsync(currentUserId);
+                bool isUpdateSuperAdmin = updateUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+                
+                // Only Super Admins can update CompanyName
+                if (isUpdateSuperAdmin)
+                {
+                    invitation.CompanyName = updateDto.CompanyName;
+                }
+            }
+
             if (updateDto.ExpiryDays.HasValue)
             {
                 invitation.ExpiryTime = DateTime.UtcNow.AddDays(updateDto.ExpiryDays.Value);
@@ -125,7 +159,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             }
 
             _logger.LogInformation("Updated invitation ID: {Id}", id);
-            return MapToResponseDTO(invitation);
+            
+            // Check if user is Super Admin for CompanyName access
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+            
+            return FilterCompanyNameForUser(MapToResponseDTO(invitation), isSuperAdmin);
         }
 
         /// <inheritdoc/>
@@ -162,7 +201,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             query = await ApplyAccessControlAsync(query, currentUserId);
             
             var expiredInvitations = await query.ToListAsync();
-            return expiredInvitations.Select(MapToResponseDTO);
+            
+            // Check if user is Super Admin for CompanyName access
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+            
+            return expiredInvitations.Select(inv => FilterCompanyNameForUser(MapToResponseDTO(inv), isSuperAdmin));
         }
 
         /// <inheritdoc/>
@@ -177,7 +221,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             query = await ApplyAccessControlAsync(query, currentUserId);
             
             var activeInvitations = await query.ToListAsync();
-            return activeInvitations.Select(MapToResponseDTO);
+            
+            // Check if user is Super Admin for CompanyName access
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+            
+            return activeInvitations.Select(inv => FilterCompanyNameForUser(MapToResponseDTO(inv), isSuperAdmin));
         }
 
         /// <inheritdoc/>
@@ -231,6 +280,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 .Select(ut => new { ut.Id, ut.Name, ut.DataAccessControl })
                 .ToListAsync();
             
+            // First filter by allowed user types for invitations
             var allowedUserTypes = userTypes.Where(ut => 
             {
                 var fullUserType = fullUserTypes.FirstOrDefault(fut => fut.Id == ut.Id);
@@ -241,6 +291,27 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                     fullUserType.DataAccessControl == "PM"
                 );
             }).ToList();
+            
+            // Further filter based on current user's permissions
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            if (currentUser != null)
+            {
+                // If user is Property Manager, exclude Super Admin and Property Manager from the list
+                if (currentUser.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                {
+                    allowedUserTypes = allowedUserTypes.Where(ut => 
+                        ut.Name != "Super Admin" && ut.Name != "Property Manager"
+                    ).ToList();
+                }
+                // For PM-created user types, also exclude Super Admin and Property Manager
+                else if (currentUser.UserType?.DataAccessControl == "PM")
+                {
+                    allowedUserTypes = allowedUserTypes.Where(ut => 
+                        ut.Name != "Super Admin" && ut.Name != "Property Manager"
+                    ).ToList();
+                }
+                // Super Admins can see all allowed types (no additional filtering needed)
+            }
 
             return allowedUserTypes;
         }
@@ -262,8 +333,56 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                    userType.Name == "Property Manager" || 
                    userType.DataAccessControl == "PM";
         }
+        
+        /// <inheritdoc/>
+        public async Task<bool> CanUserInviteUserTypeAsync(int currentUserId, int targetUserTypeId)
+        {
+            // Get current user information
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            if (currentUser == null) return false;
+            
+            // Get target user type information
+            var targetUserType = await _context.UserTypes
+                .FirstOrDefaultAsync(ut => ut.Id == targetUserTypeId && ut.IsActive);
+            if (targetUserType == null) return false;
+            
+            // Super Admins can invite anyone
+            if (currentUser.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
+            {
+                return true;
+            }
+            
+            // Property Managers have restrictions
+            if (currentUser.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                // Property Managers CANNOT invite:
+                // - Other Property Managers
+                // - Super Admins
+                if (targetUserType.Name == "Property Manager" || targetUserType.Name == "Super Admin")
+                {
+                    return false;
+                }
+                
+                // Property Managers CAN only invite PM-created user types
+                return targetUserType.DataAccessControl == "PM";
+            }
+            
+            // Users with PM-created user types can only invite within their PM ecosystem
+            // but cannot invite Property Managers or Super Admins
+            if (currentUser.UserType?.DataAccessControl == "PM")
+            {
+                if (targetUserType.Name == "Property Manager" || targetUserType.Name == "Super Admin")
+                {
+                    return false;
+                }
+                return targetUserType.DataAccessControl == "PM";
+            }
+            
+            // Default: deny access for any other user types
+            return false;
+        }
 
-        private static InvitationResponseDTO MapToResponseDTO(Invitation invitation)
+        private InvitationResponseDTO MapToResponseDTO(Invitation invitation, int? requestingUserId = null)
         {
             return new InvitationResponseDTO
             {
@@ -271,12 +390,28 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 EmailAddress = invitation.EmailAddress,
                 UserTypeId = invitation.UserTypeId,
                 UserTypeName = invitation.UserType?.Name ?? "Unknown",
+                CompanyName = invitation.CompanyName, // Will be filtered in service methods
                 ExpiryTime = invitation.ExpiryTime,
                 CreatedAt = invitation.CreatedAt,
                 UpdatedAt = invitation.UpdatedAt,
                 IsExpired = invitation.IsExpired,
                 DaysUntilExpiry = invitation.DaysUntilExpiry
             };
+        }
+        
+        /// <summary>
+        /// Filters CompanyName field based on user permissions - only Super Admins can see CompanyName.
+        /// </summary>
+        /// <param name="invitation">The invitation response DTO</param>
+        /// <param name="isSuperAdmin">Whether the requesting user is a Super Admin</param>
+        /// <returns>The invitation DTO with CompanyName filtered if not Super Admin</returns>
+        private static InvitationResponseDTO FilterCompanyNameForUser(InvitationResponseDTO invitation, bool isSuperAdmin)
+        {
+            if (!isSuperAdmin)
+            {
+                invitation.CompanyName = null; // Hide company name from non-Super Admin users
+            }
+            return invitation;
         }
     }
 }
