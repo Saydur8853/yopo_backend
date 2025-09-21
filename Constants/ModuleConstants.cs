@@ -148,10 +148,25 @@ namespace YopoBackend.Constants
         /// </summary>
         public class ModuleInfo
         {
+            /// <summary>
+            /// Gets or sets the ID of the module.
+            /// </summary>
             public int Id { get; set; }
+            /// <summary>
+            /// Gets or sets the name of the module.
+            /// </summary>
             public string Name { get; set; } = string.Empty;
+            /// <summary>
+            /// Gets or sets the description of the module.
+            /// </summary>
             public string Description { get; set; } = string.Empty;
+            /// <summary>
+            /// Gets or sets the version of the module.
+            /// </summary>
             public string Version { get; set; } = string.Empty;
+            /// <summary>
+            /// Gets or sets a value indicating whether the module is active.
+            /// </summary>
             public bool IsActive { get; set; }
         }
     }

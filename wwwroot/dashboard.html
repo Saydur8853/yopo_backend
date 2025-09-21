@@ -1323,82 +1323,154 @@
     </div>
 
 
+    <script src="/js/config.js"></script>
     <script src="/js/avatar-utils.js"></script>
     <script>
-        // API Configuration
-        const API_BASE = '/api';
+        // API Configuration with fallback
+        const API_BASE = window.AppConfig ? window.AppConfig.getApiBase() : '/api';
         
         // Global state
         let userData = null;
         let availableUserTypes = [];
         let isInviteLoading = false;
 
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check authentication
-            if (!isAuthenticated()) {
-sessionStorage.setItem('redirectUrl', window.location.href);
-                window.location.href = '/auth.html';
-                return;
-            }
-            
-            loadUserData();
-            
-            // Setup modal form submission
-            const modalForm = document.getElementById('modalProfileForm');
-            if (modalForm) {
-                modalForm.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    await submitModalProfileUpdate();
-                });
-            }
-            
-            // Setup invitation form
-            const invitationForm = document.getElementById('invitation-form');
-            if (invitationForm) {
-                invitationForm.addEventListener('submit', handleInvitationSubmit);
-            }
-            
-            // Setup user type form
-            const userTypeForm = document.getElementById('user-type-form');
-            if (userTypeForm) {
-                userTypeForm.addEventListener('submit', handleUserTypeSubmit);
-            }
-            
-            // Setup user type edit form
-            const userTypeEditForm = document.getElementById('userTypeEditForm');
-            if (userTypeEditForm) {
-                userTypeEditForm.addEventListener('submit', handleUserTypeEditSubmit);
-            }
-            
-            // Setup customer search
-            const customerSearch = document.getElementById('customer-search');
-            if (customerSearch) {
-                customerSearch.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        searchCustomers();
-                    }
-                });
-            }
-            
-            // Setup customer filter changes
-            const customerFilters = ['customer-status-filter', 'customer-trial-filter', 'customer-paid-filter'];
-            customerFilters.forEach(filterId => {
-                const filter = document.getElementById(filterId);
-                if (filter) {
-                    filter.addEventListener('change', () => {
-                        currentCustomerPage = 1;
-                        loadCustomersList();
-                    });
-                }
-            });
-            
-            // Setup building form
-            const buildingForm = document.getElementById('add-building-form');
-            if (buildingForm) {
-                buildingForm.addEventListener('submit', handleBuildingSubmit);
+        // Add error handling for browser extension compatibility
+        window.addEventListener('error', function(e) {
+            // Suppress certain errors that are commonly caused by browser extensions
+            if (e.message && (
+                e.message.includes('runtime.lastError') ||
+                e.message.includes('Extension context invalidated') ||
+                e.message.includes('message port closed')
+            )) {
+                console.log('Suppressed extension-related error:', e.message);
+                e.preventDefault();
+                return false;
             }
         });
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+            if (e.reason && e.reason.message && (
+                e.reason.message.includes('runtime.lastError') ||
+                e.reason.message.includes('Extension context invalidated') ||
+                e.reason.message.includes('message port closed')
+            )) {
+                console.log('Suppressed extension-related promise rejection:', e.reason.message);
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication with enhanced validation
+            checkAuthenticationAndInitialize();
+        });
+        
+        // Enhanced authentication check and initialization
+        async function checkAuthenticationAndInitialize() {
+            try {
+                console.log('Checking authentication...');
+                
+                // Check for redirect loop prevention flag
+                const authVerified = sessionStorage.getItem('authVerified');
+                if (authVerified === 'true') {
+                    console.log('Auth already verified, proceeding to load dashboard');
+                    sessionStorage.removeItem('authVerified');
+                    await initializeDashboard();
+                    return;
+                }
+                
+                const token = localStorage.getItem('authToken');
+                const expiry = localStorage.getItem('tokenExpiry');
+                
+                if (!token || !expiry) {
+                    console.log('No authentication credentials found');
+                    redirectToAuth();
+                    return;
+                }
+                
+                // Check if token is expired
+                if (new Date() >= new Date(expiry)) {
+                    console.log('Token expired');
+                    clearAuthData();
+                    redirectToAuth('Your session has expired. Please log in again.');
+                    return;
+                }
+                
+                // Verify token with server
+                if (window.AppConfig && window.AppConfig.isDevelopment()) {
+                    console.log('Verifying token with server...');
+                }
+                const response = window.AppConfig && window.AppConfig.fetchWithRetry ? 
+                    await window.AppConfig.fetchWithRetry(`${API_BASE}/users/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }) :
+                    await fetch(`${API_BASE}/users/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                
+                if (response.ok) {
+                    console.log('Authentication verified, initializing dashboard');
+                    await initializeDashboard();
+                } else {
+                    console.log('Token verification failed:', response.status);
+                    clearAuthData();
+                    redirectToAuth('Authentication failed. Please log in again.');
+                }
+                
+            } catch (error) {
+                if (window.AppConfig && window.AppConfig.handleError) {
+                    window.AppConfig.handleError(error, 'Authentication Check');
+                } else {
+                    console.error('Error during authentication check:', error);
+                }
+                
+                // On network errors, try to use cached data if available
+                const userData = localStorage.getItem('userData');
+                if (userData && isAuthenticated()) {
+                    if (window.AppConfig && window.AppConfig.isDevelopment()) {
+                        console.log('Network error but cached auth data available, proceeding with caution');
+                    }
+                    showError('Connection issue detected. Some features may not work properly.');
+                    await initializeDashboard();
+                } else {
+                    const message = window.AppConfig && window.AppConfig.isProduction() ? 
+                        'Connection failed. Please check your internet and try again.' :
+                        'Network error occurred. Please check your connection and try again.';
+                    redirectToAuth(message);
+                }
+            }
+        }
+        
+        // Initialize dashboard components
+        async function initializeDashboard() {
+            console.log('Initializing dashboard components...');
+            
+            loadUserData();
+        }
+        
+        // Redirect to authentication page
+        function redirectToAuth(message) {
+            console.log('Redirecting to auth page:', message);
+            sessionStorage.setItem('redirectUrl', window.location.href);
+            if (message) {
+                sessionStorage.setItem('authMessage', message);
+            }
+            window.location.href = '/auth.html';
+        }
+        
+        // Clear authentication data
+        function clearAuthData() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('tokenExpiry');
+            localStorage.removeItem('userData');
+            sessionStorage.removeItem('authVerified');
+        }
 
         // Authentication check
         function isAuthenticated() {

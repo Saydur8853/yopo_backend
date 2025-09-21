@@ -216,7 +216,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
 
             // Get all users with pagination (requires module access)
             if (!User.HasClaim("module", ModuleConstants.USER_MODULE_ID.ToString()))
-                return Forbid("User module access required.");
+                return StatusCode(403, new { message = "User module access required." });
 
             var result = await _userService.GetAllUsersAsync(currentUserId, page, pageSize, searchTerm, userTypeId, isActive);
             return Ok(result);

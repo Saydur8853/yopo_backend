@@ -521,14 +521,42 @@
         </div>
     </div>
 
+    <script src="/js/config.js"></script>
     <script>
-        // API Configuration
-        const API_BASE = window.location.origin + '/api';
+        // API Configuration - use environment-aware config with fallback
+        const API_BASE = window.AppConfig ? window.AppConfig.getApiBase() : '/api';
         
         // Global state
         let isLoading = false;
         let selectedPhotoFile = null;
         let selectedPhotoBase64 = null;
+
+        // Add error handling for browser extension compatibility
+        window.addEventListener('error', function(e) {
+            // Suppress certain errors that are commonly caused by browser extensions
+            if (e.message && (
+                e.message.includes('runtime.lastError') ||
+                e.message.includes('Extension context invalidated') ||
+                e.message.includes('message port closed')
+            )) {
+                console.log('Suppressed extension-related error:', e.message);
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+            if (e.reason && e.reason.message && (
+                e.reason.message.includes('runtime.lastError') ||
+                e.reason.message.includes('Extension context invalidated') ||
+                e.reason.message.includes('message port closed')
+            )) {
+                console.log('Suppressed extension-related promise rejection:', e.reason.message);
+                e.preventDefault();
+                return false;
+            }
+        });
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
@@ -537,16 +565,80 @@
             // Photo field is optional, no need for initial error styling
             // document.querySelector('.photo-upload-area').classList.add('error');
             
-            // Check if user is already logged in
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                showMessage('You are already logged in!', 'success');
-                // Redirect to dashboard after a short delay
-                setTimeout(() => {
-                    window.location.href = '/dashboard.html';
-                }, 2000);
+            // Check if user is already logged in and validate token
+            checkExistingAuthentication();
+            
+            // Check for any messages from redirects
+            const authMessage = sessionStorage.getItem('authMessage');
+            if (authMessage) {
+                showMessage(authMessage, 'error');
+                sessionStorage.removeItem('authMessage');
             }
         });
+        
+        // Check existing authentication with proper validation
+        async function checkExistingAuthentication() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const expiry = localStorage.getItem('tokenExpiry');
+                
+                if (!token || !expiry) {
+                    console.log('No token or expiry found');
+                    return;
+                }
+                
+                // Check if token is expired
+                if (new Date() >= new Date(expiry)) {
+                    console.log('Token expired, clearing auth data');
+                    clearAuthData();
+                    return;
+                }
+                
+                console.log('Valid token found, verifying with server...');
+                
+                // Verify token with server
+                const response = await fetch(`${API_BASE}/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    console.log('Token verified successfully, redirecting to dashboard');
+                    showMessage('You are already logged in! Redirecting...', 'success');
+                    
+                    // Set a flag to prevent redirect loops
+                    sessionStorage.setItem('authVerified', 'true');
+                    
+                    // Redirect to dashboard after a short delay
+                    setTimeout(() => {
+                        const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
+                        sessionStorage.removeItem('redirectUrl');
+                        window.location.href = redirectUrl;
+                    }, 1500);
+                } else {
+                    console.log('Token verification failed, clearing auth data');
+                    clearAuthData();
+                    if (response.status === 401) {
+                        showMessage('Your session has expired. Please log in again.', 'error');
+                    } else {
+                        showMessage('Authentication verification failed. Please log in again.', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking existing authentication:', error);
+                // Don't clear auth data on network errors, just show the login form
+                console.log('Network error during auth check, showing login form');
+            }
+        }
+        
+        // Clear authentication data
+        function clearAuthData() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('tokenExpiry');
+            localStorage.removeItem('userData');
+            sessionStorage.removeItem('authVerified');
+        }
 
         // Setup form event handlers
         function setupFormHandlers() {
@@ -693,7 +785,7 @@
                 
                 // Redirect to dashboard
                 setTimeout(() => {
-const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
+                    const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
                     sessionStorage.removeItem('redirectUrl');
                     window.location.href = redirectUrl;
                 }, 1500);
