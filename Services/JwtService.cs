@@ -50,17 +50,29 @@ namespace YopoBackend.Services
             var key = Encoding.ASCII.GetBytes(_secretKey);
             var expiresAt = DateTime.UtcNow.AddHours(_expirationHours);
 
+            // Build claims list
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim("UserTypeId", user.UserTypeId.ToString()),
+                new Claim("IsActive", user.IsActive.ToString()),
+                new Claim("IsEmailVerified", user.IsEmailVerified.ToString())
+            };
+
+            // Add module claims based on user's permissions
+            if (user.UserType?.ModulePermissions != null)
+            {
+                foreach (var permission in user.UserType.ModulePermissions.Where(mp => mp.IsActive && mp.Module != null && mp.Module.IsActive))
+                {
+                    claims.Add(new Claim("module", permission.ModuleId.ToString()));
+                }
+            }
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Name, user.Name),
-                    new Claim("UserTypeId", user.UserTypeId.ToString()),
-                    new Claim("IsActive", user.IsActive.ToString()),
-                    new Claim("IsEmailVerified", user.IsEmailVerified.ToString())
-                }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = expiresAt,
                 Issuer = _issuer,
                 Audience = _audience,

@@ -178,23 +178,20 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         }
 
         /// <summary>
-        /// Gets users with pagination and filtering, or gets a specific user by email.
+        /// Gets users with pagination and filtering.
         /// </summary>
-        /// <param name="email">User email to search for (optional)</param>
         /// <param name="page">Page number for listing users</param>
         /// <param name="pageSize">Page size for listing users</param>
         /// <param name="searchTerm">Search term for filtering users</param>
         /// <param name="userTypeId">Filter by user type</param>
         /// <param name="isActive">Filter by active status</param>
-        /// <returns>User details or paginated list of users.</returns>
+        /// <returns>Paginated list of users.</returns>
         [HttpGet]
         [Authorize]
-        [ProducesResponseType(typeof(UserResponseDTO), 200)]
         [ProducesResponseType(typeof(UserListResponseDTO), 200)]
         [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
+        [ProducesResponseType(403)]
         public async Task<IActionResult> GetUsers(
-            [FromQuery] string? email = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
@@ -204,15 +201,6 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!int.TryParse(userIdClaim, out int currentUserId))
                 return Unauthorized(new { message = "Invalid token." });
-
-            // Get specific user by email
-            if (!string.IsNullOrEmpty(email))
-            {
-                var user = await _userService.GetUserByEmailAsync(email);
-                if (user == null)
-                    return NotFound(new { message = "User not found." });
-                return Ok(user);
-            }
 
             // Get all users with pagination (requires module access)
             if (!User.HasClaim("module", ModuleConstants.USER_MODULE_ID.ToString()))
@@ -256,7 +244,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 if (result == null)
                     return BadRequest(new { message = "User creation failed. Email may already be registered or user type is invalid." });
 
-                return CreatedAtAction(nameof(GetUsers), new { email = result.Email }, result);
+                return CreatedAtAction(nameof(GetUsers), result);
             }
 
             // Update existing user
