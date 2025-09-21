@@ -156,23 +156,45 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         // ==== USER CRUD ENDPOINTS ====
 
         /// <summary>
-        /// Gets users with pagination and filtering. Use "me" as email to get current user profile.
+        /// Gets the current user's profile.
         /// </summary>
-        /// <param name="email">User email or "me" for current user</param>
-        /// <param name="page">Page number for listing users (when email is not provided)</param>
+        /// <returns>Current user's profile details.</returns>
+        [HttpGet("me")]
+        [Authorize]
+        [ProducesResponseType(typeof(UserResponseDTO), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetMyProfile()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+                return Unauthorized(new { message = "Invalid token." });
+
+            var currentUser = await _userService.GetUserByIdAsync(currentUserId, currentUserId);
+            if (currentUser == null)
+                return NotFound(new { message = "User not found." });
+                
+            return Ok(currentUser);
+        }
+
+        /// <summary>
+        /// Gets users with pagination and filtering, or gets a specific user by email.
+        /// </summary>
+        /// <param name="email">User email to search for (optional)</param>
+        /// <param name="page">Page number for listing users</param>
         /// <param name="pageSize">Page size for listing users</param>
         /// <param name="searchTerm">Search term for filtering users</param>
         /// <param name="userTypeId">Filter by user type</param>
         /// <param name="isActive">Filter by active status</param>
         /// <returns>User details or paginated list of users.</returns>
-        [HttpGet("{email?}")]
+        [HttpGet]
         [Authorize]
         [ProducesResponseType(typeof(UserResponseDTO), 200)]
         [ProducesResponseType(typeof(UserListResponseDTO), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> GetUsers(
-            string? email = null,
+            [FromQuery] string? email = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
@@ -182,15 +204,6 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!int.TryParse(userIdClaim, out int currentUserId))
                 return Unauthorized(new { message = "Invalid token." });
-
-            // Get current user profile
-            if (email == "me")
-            {
-                var currentUser = await _userService.GetUserByIdAsync(currentUserId, currentUserId);
-                if (currentUser == null)
-                    return NotFound(new { message = "User not found." });
-                return Ok(currentUser);
-            }
 
             // Get specific user by email
             if (!string.IsNullOrEmpty(email))
@@ -215,7 +228,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// <param name="email">User email for update, or omit for create</param>
         /// <param name="userRequest">User data</param>
         /// <returns>Created or updated user.</returns>
-        [HttpPost("{email?}")]
+        [HttpPost]
         [Authorize]
         [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(typeof(UserResponseDTO), 200)]
@@ -223,7 +236,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> CreateOrUpdateUser(string? email, [FromBody] object userRequest)
+        public async Task<IActionResult> CreateOrUpdateUser([FromQuery] string? email, [FromBody] object userRequest)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -300,14 +313,18 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// </summary>
         /// <param name="email">The user email to delete.</param>
         /// <returns>Success status.</returns>
-        [HttpDelete("{email}")]
+        [HttpDelete]
         [Authorize]
         [RequireModule(ModuleConstants.USER_MODULE_ID)]
         [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteUser(string email)
+        public async Task<IActionResult> DeleteUser([FromQuery] string email)
         {
+            if (string.IsNullOrEmpty(email))
+                return BadRequest(new { message = "Email parameter is required." });
+                
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!int.TryParse(userIdClaim, out int currentUserId))
                 return Unauthorized(new { message = "Invalid token." });
