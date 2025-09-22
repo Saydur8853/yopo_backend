@@ -5,6 +5,7 @@ using YopoBackend.Modules.UserTypeCRUD.DTOs;
 using YopoBackend.Modules.UserTypeCRUD.Models;
 using YopoBackend.Models;
 using YopoBackend.Services;
+using System.Text.RegularExpressions;
 
 namespace YopoBackend.Modules.UserTypeCRUD.Services
 {
@@ -83,6 +84,15 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 .Include(u => u.UserType)
                 .FirstOrDefaultAsync(u => u.Id == createdByUserId);
 
+            // Security rule: Property Managers cannot create user types related to "Property Manager"
+            if (creatorUser?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                if (IsProhibitedPropertyManagerName(createUserTypeDto.Name))
+                {
+                    throw new UnauthorizedAccessException("You don't have permission to make this user type.");
+                }
+            }
+
             string dataAccessControl = createUserTypeDto.DataAccessControl;
             
             // If created by Property Manager, automatically set DataAccessControl to "PM"
@@ -127,6 +137,16 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             if (!await HasAccessToEntityAsync(userType, currentUserId))
             {
                 return null; // User doesn't have access to update this user type
+            }
+
+            // Security rule on update as well: PM cannot rename to a prohibited name
+            var updatingUser = await _context.Users.Include(u => u.UserType).FirstOrDefaultAsync(u => u.Id == currentUserId);
+            if (updatingUser?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                if (IsProhibitedPropertyManagerName(updateUserTypeDto.Name))
+                {
+                    throw new UnauthorizedAccessException("You don't have permission to make this user type.");
+                }
             }
 
             userType.Name = updateUserTypeDto.Name;
@@ -496,6 +516,26 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 ModuleIds = activePermissions.Select(mp => mp.ModuleId).ToList(),
                 ModuleNames = activePermissions.Select(mp => mp.Module.Name).ToList()
             };
+        }
+
+        /// <summary>
+        /// Determines if a provided user type name is prohibited for Property Managers.
+        /// Matches variations like "Property Manager", "Prop Manager", "PM", etc.
+        /// </summary>
+        private static bool IsProhibitedPropertyManagerName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return false;
+
+            // Normalize: lowercase and remove non-alphanumeric characters
+            var normalized = Regex.Replace(name, "[^a-zA-Z0-9]", "").ToLowerInvariant();
+
+            // Direct matches and common variants
+            if (normalized == "pm") return true;
+            if (normalized.Contains("propertymanager")) return true;
+            if (normalized.Contains("propmanager")) return true;
+            if (normalized == "propertymgr" || normalized.Contains("propertymgr")) return true;
+
+            return false;
         }
     }
 }

@@ -151,6 +151,10 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                 var createdUserType = await _userTypeService.CreateUserTypeAsync(createUserTypeDto, userId);
                 return CreatedAtAction(nameof(GetUserType), new { id = createdUserType.Id }, createdUserType);
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
@@ -187,6 +191,10 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                 }
 
                 return Ok(updatedUserType);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
             }
             catch (Exception ex)
             {
