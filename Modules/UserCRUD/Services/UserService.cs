@@ -891,11 +891,16 @@ namespace YopoBackend.Modules.UserCRUD.Services
             if (user.UserType?.Name == "Property Manager")
             {
                 var userBuildings = _context.Buildings
+                    .Include(b => b.Customer)
                     .Where(b => b.CustomerId == user.Id && b.IsActive)
                     .Select(b => new UserBuildingDto
                     {
                         BuildingId = b.BuildingId,
-                        Name = b.Name
+                        BuildingName = b.Name,
+                        BuildingAddress = b.Address,
+                        CustomerName = b.Customer.CustomerName,
+                        CompanyName = b.Customer.CompanyName,
+                        CompanyAddress = b.Customer.CompanyAddress
                     })
                     .ToList();
                 buildings = userBuildings;

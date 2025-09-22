@@ -363,11 +363,31 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Gets or sets the building ID.
         /// </summary>
         public int BuildingId { get; set; }
-
+        
         /// <summary>
         /// Gets or sets the building name.
         /// </summary>
-        public string Name { get; set; } = string.Empty;
+        public string BuildingName { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Gets or sets the building address.
+        /// </summary>
+        public string BuildingAddress { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Gets or sets the customer name (Property Manager) who owns/manages the building.
+        /// </summary>
+        public string CustomerName { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Gets or sets the company name of the customer.
+        /// </summary>
+        public string? CompanyName { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the company address of the customer.
+        /// </summary>
+        public string? CompanyAddress { get; set; }
     }
 
 
