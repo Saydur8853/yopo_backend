@@ -1809,7 +1809,11 @@
         }
 
 
-        async function submitModalProfileUpdate() {
+        async function submitModalProfileUpdate(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            
             try {
                 const saveButton = document.getElementById('modalSaveButton');
                 saveButton.disabled = true;
@@ -3210,7 +3214,7 @@
                 </div>
 
                 <!-- Profile Form -->
-                <form id="modalProfileForm">
+                <form id="modalProfileForm" onsubmit="submitModalProfileUpdate(event)">
                     <div class="form-group">
                         <label for="modalName">Full Name *</label>
                         <input type="text" id="modalName" name="name" required maxlength="200" placeholder="Enter your full name">
