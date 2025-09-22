@@ -39,6 +39,50 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         }
 
         /// <inheritdoc/>
+        public async Task<UserTypeListResponseDTO> GetUserTypesAsync(int currentUserId, int page = 1, int pageSize = 10, string? searchTerm = null, bool? isActive = null)
+        {
+            var query = _context.UserTypes
+                .Include(ut => ut.ModulePermissions)
+                    .ThenInclude(mp => mp.Module)
+                .AsQueryable();
+
+            // Apply access control
+            query = await ApplyAccessControlAsync(query, currentUserId);
+
+            // Filters
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var lower = searchTerm.ToLower();
+                query = query.Where(ut => ut.Name.ToLower().Contains(lower));
+            }
+            if (isActive.HasValue)
+            {
+                query = query.Where(ut => ut.IsActive == isActive.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(ut => ut.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+            return new UserTypeListResponseDTO
+            {
+                UserTypes = items.Select(MapToDto).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
+        }
+
+        /// <inheritdoc/>
         public async Task<IEnumerable<UserTypeDto>> GetActiveUserTypesAsync(int currentUserId)
         {
             var query = _context.UserTypes

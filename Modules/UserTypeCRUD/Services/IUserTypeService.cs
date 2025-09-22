@@ -15,6 +15,17 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of user type DTOs.</returns>
         Task<IEnumerable<UserTypeDto>> GetAllUserTypesAsync(int currentUserId);
+        
+        /// <summary>
+        /// Gets paginated user types with optional filters.
+        /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <param name="page">Page number (starting from 1)</param>
+        /// <param name="pageSize">Items per page</param>
+        /// <param name="searchTerm">Optional search by name</param>
+        /// <param name="isActive">Optional filter by active status</param>
+        /// <returns>Paginated user type list response</returns>
+        Task<UserTypeListResponseDTO> GetUserTypesAsync(int currentUserId, int page = 1, int pageSize = 10, string? searchTerm = null, bool? isActive = null);
 
         /// <summary>
         /// Gets all active user types with access control.

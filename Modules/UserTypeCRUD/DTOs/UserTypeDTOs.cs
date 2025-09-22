@@ -79,48 +79,89 @@ namespace YopoBackend.Modules.UserTypeCRUD.DTOs
         /// Gets or sets the unique identifier for the user type.
         /// </summary>
         public int Id { get; set; }
-
+        
         /// <summary>
         /// Gets or sets the name of the user type.
         /// </summary>
         public string Name { get; set; } = string.Empty;
-
+        
         /// <summary>
         /// Gets or sets the description of the user type.
         /// </summary>
         public string? Description { get; set; }
-
+        
         /// <summary>
         /// Gets or sets whether this user type is active.
         /// </summary>
         public bool IsActive { get; set; }
-
+        
         /// <summary>
         /// Gets or sets when the user type was created.
         /// </summary>
         public DateTime CreatedAt { get; set; }
-
+        
         /// <summary>
         /// Gets or sets when the user type was last updated.
         /// </summary>
         public DateTime? UpdatedAt { get; set; }
-
+        
         /// <summary>
         /// Gets or sets the list of module IDs this user type has access to.
         /// </summary>
         public List<int> ModuleIds { get; set; } = new List<int>();
-
+        
         /// <summary>
         /// Gets or sets the list of module names this user type has access to.
         /// </summary>
         public List<string> ModuleNames { get; set; } = new List<string>();
-
+        
         /// <summary>
         /// Gets or sets the data access control type for this user type.
         /// "OWN" = Users can only access their own created data
         /// "ALL" = Users can access all data for their user type
         /// </summary>
         public string DataAccessControl { get; set; } = "ALL";
+    }
+    
+    /// <summary>
+    /// DTO for paginated user type list responses.
+    /// </summary>
+    public class UserTypeListResponseDTO
+    {
+        /// <summary>
+        /// Gets or sets the list of user types.
+        /// </summary>
+        public List<UserTypeDto> UserTypes { get; set; } = new();
+        
+        /// <summary>
+        /// Gets or sets the total count of user types.
+        /// </summary>
+        public int TotalCount { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the current page number.
+        /// </summary>
+        public int Page { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the page size.
+        /// </summary>
+        public int PageSize { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the total number of pages.
+        /// </summary>
+        public int TotalPages { get; set; }
+        
+        /// <summary>
+        /// Gets or sets whether there is a previous page.
+        /// </summary>
+        public bool HasPreviousPage { get; set; }
+        
+        /// <summary>
+        /// Gets or sets whether there is a next page.
+        /// </summary>
+        public bool HasNextPage { get; set; }
     }
 
     /// <summary>

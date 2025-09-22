@@ -44,11 +44,46 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         }
 
         /// <summary>
-        /// Gets all user types based on current user's access control.
+        /// Gets paginated user types with optional filters.
         /// </summary>
-        /// <returns>A list of all user types the current user has access to.</returns>
+        /// <param name="page">Page number (starting from 1)</param>
+        /// <param name="pageSize">Items per page (default 10, max 50)</param>
+        /// <param name="searchTerm">Optional search by name</param>
+        /// <param name="isActive">Optional filter by active status</param>
+        /// <returns>Paginated list of user types the current user has access to.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserTypeDto>>> GetAllUserTypes()
+        public async Task<ActionResult<UserTypeListResponseDTO>> GetAllUserTypes(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = null,
+            [FromQuery] bool? isActive = null)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized(new { message = "Invalid token." });
+                }
+
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+                if (pageSize > 50) pageSize = 50;
+
+                var result = await _userTypeService.GetUserTypesAsync(userId, page, pageSize, searchTerm, isActive);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gets all user types (non-paginated - for backwards compatibility).
+        /// </summary>
+        [HttpGet("list")]
+        public async Task<ActionResult<IEnumerable<UserTypeDto>>> GetAllUserTypesList()
         {
             try
             {
