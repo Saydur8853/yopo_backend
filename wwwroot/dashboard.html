@@ -478,6 +478,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .list-header h4 {
@@ -1096,6 +1098,7 @@
             <div class="invitations-list-section">
                 <div class="list-header">
                     <h4>📋 Sent Invitations</h4>
+                    <div class="pagination-info" id="invitations-pagination-info"></div>
                     <button type="button" class="btn btn-secondary btn-small" onclick="loadInvitationsList()">
                         🔄 Refresh
                     </button>
@@ -1105,6 +1108,9 @@
                 </div>
                 <div id="invitations-list-container">
                     <!-- Invitations will be loaded here -->
+                </div>
+                <div class="pagination-controls" id="invitations-pagination-controls" style="display: none;">
+                    <!-- Pagination buttons will be added here -->
                 </div>
             </div>
         </div>
@@ -1365,7 +1371,37 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Check authentication with enhanced validation
             checkAuthenticationAndInitialize();
+            
+            // Set up form event listeners
+            setupFormEventListeners();
         });
+        
+        // Set up form event listeners
+        function setupFormEventListeners() {
+            // Invitation form
+            const invitationForm = document.getElementById('invitation-form');
+            if (invitationForm) {
+                invitationForm.addEventListener('submit', handleInvitationSubmit);
+            }
+            
+            // User type form
+            const userTypeForm = document.getElementById('user-type-form');
+            if (userTypeForm) {
+                userTypeForm.addEventListener('submit', handleUserTypeSubmit);
+            }
+            
+            // User type edit form
+            const userTypeEditForm = document.getElementById('userTypeEditForm');
+            if (userTypeEditForm) {
+                userTypeEditForm.addEventListener('submit', handleUserTypeEditSubmit);
+            }
+            
+            // Building form
+            const buildingForm = document.getElementById('add-building-form');
+            if (buildingForm) {
+                buildingForm.addEventListener('submit', handleBuildingSubmit);
+            }
+        }
         
         // Enhanced authentication check and initialization
         async function checkAuthenticationAndInitialize() {
@@ -2120,7 +2156,11 @@
         }
         
         // Invitations List Management Functions
-        async function loadInvitationsList() {
+        let currentInvitationsPage = 1;
+        const invitationsPerPage = 3; // Show 3 invitations per page
+        
+        async function loadInvitationsList(page = 1) {
+            currentInvitationsPage = page;
             const loadingElement = document.getElementById('invitations-loading');
             const containerElement = document.getElementById('invitations-list-container');
             
@@ -2129,7 +2169,8 @@
                 containerElement.innerHTML = '';
                 
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE}/invitations`, {
+                const url = `${API_BASE}/invitations?page=${page}&pageSize=${invitationsPerPage}`;
+                const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -2139,8 +2180,9 @@
                     throw new Error('Failed to load invitations');
                 }
                 
-                const invitations = await response.json();
-                displayInvitationsList(invitations);
+                const data = await response.json();
+                displayInvitationsList(data.invitations || data); // Handle both paginated and legacy responses
+                updateInvitationsPagination(data);
                 
             } catch (error) {
                 console.error('Error loading invitations:', error);
@@ -2218,6 +2260,119 @@
             container.innerHTML = tableHTML;
         }
         
+        function updateInvitationsPagination(data) {
+            const paginationInfo = document.getElementById('invitations-pagination-info');
+            const paginationControls = document.getElementById('invitations-pagination-controls');
+            
+            // Handle both paginated response and legacy response
+            // Only show pagination if we have more than 1 page of data
+            if (!data.totalCount || data.totalCount <= invitationsPerPage) {
+                paginationInfo.innerHTML = '';
+                paginationControls.style.display = 'none';
+                return;
+            }
+            
+            // Update pagination info
+            const start = (data.page - 1) * data.pageSize + 1;
+            const end = Math.min(data.page * data.pageSize, data.totalCount);
+            paginationInfo.innerHTML = `Showing ${start}-${end} of ${data.totalCount} invitations`;
+            
+            // Update pagination controls
+            paginationControls.style.display = 'flex';
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `
+                <button class="page-btn" onclick="goToInvitationsPage(${data.page - 1})" ${!data.hasPreviousPage ? 'disabled' : ''}>
+                    ← Previous
+                </button>
+            `;
+            
+            // Page numbers - for small datasets, show all pages
+            if (data.totalPages <= 7) {
+                // Show all pages if 7 or fewer
+                for (let i = 1; i <= data.totalPages; i++) {
+                    paginationHTML += `
+                        <button class="page-btn ${i === data.page ? 'active' : ''}" onclick="goToInvitationsPage(${i})">
+                            ${i}
+                        </button>
+                    `;
+                }
+            } else {
+                // Show page range with ellipsis for larger datasets
+                const startPage = Math.max(1, data.page - 2);
+                const endPage = Math.min(data.totalPages, data.page + 2);
+                
+                if (startPage > 1) {
+                    paginationHTML += `<button class="page-btn" onclick="goToInvitationsPage(1)">1</button>`;
+                    if (startPage > 2) {
+                        paginationHTML += `<span style="padding: 0.5rem;">...</span>`;
+                    }
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHTML += `
+                        <button class="page-btn ${i === data.page ? 'active' : ''}" onclick="goToInvitationsPage(${i})">
+                            ${i}
+                        </button>
+                    `;
+                }
+                
+                if (endPage < data.totalPages) {
+                    if (endPage < data.totalPages - 1) {
+                        paginationHTML += `<span style="padding: 0.5rem;">...</span>`;
+                    }
+                    paginationHTML += `<button class="page-btn" onclick="goToInvitationsPage(${data.totalPages})">${data.totalPages}</button>`;
+                }
+            }
+            
+            // Next button
+            paginationHTML += `
+                <button class="page-btn" onclick="goToInvitationsPage(${data.page + 1})" ${!data.hasNextPage ? 'disabled' : ''}>
+                    Next →
+                </button>
+            `;
+            
+            paginationControls.innerHTML = paginationHTML;
+        }
+        
+        function goToInvitationsPage(page) {
+            currentInvitationsPage = page;
+            loadInvitationsList(page);
+        }
+        
+        // Smart load that adjusts page if current page becomes empty
+        async function smartLoadInvitationsList() {
+            try {
+                // First try the current page
+                const token = localStorage.getItem('authToken');
+                const url = `${API_BASE}/invitations?page=${currentInvitationsPage}&pageSize=${invitationsPerPage}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // If current page is empty and we have previous pages, go back one page
+                    if (data.invitations && data.invitations.length === 0 && currentInvitationsPage > 1) {
+                        currentInvitationsPage = currentInvitationsPage - 1;
+                        loadInvitationsList(currentInvitationsPage);
+                        return;
+                    }
+                }
+                
+                // Otherwise, just load normally
+                loadInvitationsList(currentInvitationsPage);
+            } catch (error) {
+                // Fallback to normal load
+                loadInvitationsList(currentInvitationsPage);
+            }
+        }
+        
         async function deleteInvitation(invitationId, email) {
             const action = document.querySelector(`button[onclick*="${invitationId}"]`).textContent.includes('Cancel') ? 'cancel' : 'remove';
             const confirmMessage = `Are you sure you want to ${action} the invitation for ${email}?`;
@@ -2248,7 +2403,9 @@
                 }
                 
                 showInvitationMessage(`\u2713 Invitation for ${email} ${action}ed successfully!`, 'success');
-                loadInvitationsList(); // Refresh the list
+                
+                // Use smart reload that adjusts page if needed
+                smartLoadInvitationsList();
                 
             } catch (error) {
                 console.error(`Error ${action}ing invitation:`, error);

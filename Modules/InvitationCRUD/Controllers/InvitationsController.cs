@@ -49,16 +49,45 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         }
 
         /// <summary>
-        /// Get all invitations
+        /// Get all invitations with pagination and filtering
+        /// </summary>
+        /// <param name="page">Page number (starting from 1)</param>
+        /// <param name="pageSize">Number of items per page (default: 10, max: 50)</param>
+        /// <param name="searchTerm">Search term to filter invitations by email address</param>
+        /// <param name="userTypeId">Filter by user type ID</param>
+        /// <param name="isExpired">Filter by expiration status (true for expired, false for active, null for all)</param>
+        /// <returns>Paginated list of invitations</returns>
+        /// <response code="200">Returns the paginated list of invitations</response>
+        [HttpGet]
+        [ProducesResponseType(typeof(InvitationListResponseDTO), StatusCodes.Status200OK)]
+        public async Task<ActionResult<InvitationListResponseDTO>> GetAllInvitations(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = null,
+            [FromQuery] int? userTypeId = null,
+            [FromQuery] bool? isExpired = null)
+        {
+            // Validate pagination parameters
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 50) pageSize = 50; // Limit max page size
+            
+            var currentUserId = GetCurrentUserId();
+            var result = await _invitationService.GetAllInvitationsAsync(currentUserId, page, pageSize, searchTerm, userTypeId, isExpired);
+            return Ok(result);
+        }
+        
+        /// <summary>
+        /// Get all invitations (non-paginated - for backwards compatibility)
         /// </summary>
         /// <returns>List of all invitations</returns>
         /// <response code="200">Returns the list of invitations</response>
-        [HttpGet]
+        [HttpGet("list")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<InvitationResponseDTO>>> GetAllInvitations()
+        public async Task<ActionResult<IEnumerable<InvitationResponseDTO>>> GetAllInvitationsList()
         {
             var currentUserId = GetCurrentUserId();
-            var invitations = await _invitationService.GetAllInvitationsAsync(currentUserId);
+            var invitations = await _invitationService.GetAllInvitationsListAsync(currentUserId);
             return Ok(invitations);
         }
 

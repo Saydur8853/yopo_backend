@@ -127,6 +127,47 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
     }
 
     /// <summary>
+    /// DTO for paginated invitation list response.
+    /// </summary>
+    public class InvitationListResponseDTO
+    {
+        /// <summary>
+        /// Gets or sets the list of invitations.
+        /// </summary>
+        public List<InvitationResponseDTO> Invitations { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the total number of invitations.
+        /// </summary>
+        public int TotalCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the current page number.
+        /// </summary>
+        public int Page { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of items per page.
+        /// </summary>
+        public int PageSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the total number of pages.
+        /// </summary>
+        public int TotalPages { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether there is a next page.
+        /// </summary>
+        public bool HasNextPage { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether there is a previous page.
+        /// </summary>
+        public bool HasPreviousPage { get; set; }
+    }
+
+    /// <summary>
     /// DTO for user type dropdown selection in invitations.
     /// 
     /// **Security Note:** This DTO only contains user types that are allowed for invitations:

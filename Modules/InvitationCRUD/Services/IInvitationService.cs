@@ -9,11 +9,23 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
     public interface IInvitationService
     {
         /// <summary>
-        /// Gets all invitations asynchronously with access control.
+        /// Gets all invitations asynchronously with access control and pagination.
+        /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request.</param>
+        /// <param name="page">The page number (starting from 1).</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <param name="searchTerm">Optional search term to filter invitations by email address.</param>
+        /// <param name="userTypeId">Optional user type ID to filter invitations.</param>
+        /// <param name="isExpired">Optional filter by expiration status (true for expired, false for active, null for all).</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a paginated invitation list response DTO.</returns>
+        Task<InvitationListResponseDTO> GetAllInvitationsAsync(int currentUserId, int page = 1, int pageSize = 10, string? searchTerm = null, int? userTypeId = null, bool? isExpired = null);
+        
+        /// <summary>
+        /// Gets all invitations asynchronously with access control (non-paginated - for backwards compatibility).
         /// </summary>
         /// <param name="currentUserId">The ID of the current user making the request.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of invitation response DTOs.</returns>
-        Task<IEnumerable<InvitationResponseDTO>> GetAllInvitationsAsync(int currentUserId);
+        Task<IEnumerable<InvitationResponseDTO>> GetAllInvitationsListAsync(int currentUserId);
         
         /// <summary>
         /// Gets an invitation by its ID asynchronously with access control.

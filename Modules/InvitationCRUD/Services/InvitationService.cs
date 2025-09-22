@@ -25,7 +25,71 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         }
 
         /// <inheritdoc/>
-        public async Task<IEnumerable<InvitationResponseDTO>> GetAllInvitationsAsync(int currentUserId)
+        public async Task<InvitationListResponseDTO> GetAllInvitationsAsync(int currentUserId, int page = 1, int pageSize = 10, string? searchTerm = null, int? userTypeId = null, bool? isExpired = null)
+        {
+            var query = _context.Invitations.Include(i => i.UserType).AsQueryable();
+            
+            // Apply access control
+            query = await ApplyAccessControlAsync(query, currentUserId);
+            
+            // Apply filters
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var lowerSearchTerm = searchTerm.ToLowerInvariant();
+                query = query.Where(i => i.EmailAddress.ToLower().Contains(lowerSearchTerm));
+            }
+            
+            if (userTypeId.HasValue)
+            {
+                query = query.Where(i => i.UserTypeId == userTypeId.Value);
+            }
+            
+            if (isExpired.HasValue)
+            {
+                var now = DateTime.UtcNow;
+                if (isExpired.Value)
+                {
+                    query = query.Where(i => i.ExpiryTime < now);
+                }
+                else
+                {
+                    query = query.Where(i => i.ExpiryTime >= now);
+                }
+            }
+            
+            // Get total count for pagination
+            var totalCount = await query.CountAsync();
+            
+            // Apply pagination
+            var invitations = await query
+                .OrderByDescending(i => i.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            
+            // Check if user is Super Admin for CompanyName access
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+            
+            var invitationDtos = invitations.Select(inv => FilterCompanyNameForUser(MapToResponseDTO(inv), isSuperAdmin)).ToList();
+            
+            // Calculate pagination info
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+            
+            return new InvitationListResponseDTO
+            {
+                Invitations = invitationDtos,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
+        }
+        
+        /// <inheritdoc/>
+        public async Task<IEnumerable<InvitationResponseDTO>> GetAllInvitationsListAsync(int currentUserId)
         {
             var query = _context.Invitations.Include(i => i.UserType).AsQueryable();
             
