@@ -144,16 +144,17 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
 
     /// <summary>
     /// DTO for updating an existing user's profile.
+    /// All fields are optional - only provided fields will be updated.
     /// </summary>
     public class UpdateUserRequestDTO
     {
         /// <summary>
         /// Gets or sets the email address of the user.
+        /// If not provided, email will not be changed.
         /// </summary>
-        [Required(ErrorMessage = "Email address is required")]
         [EmailAddress(ErrorMessage = "Invalid email address format")]
         [MaxLength(255, ErrorMessage = "Email address cannot exceed 255 characters")]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         /// <summary>
         /// Gets or sets the password of the user.
@@ -165,10 +166,10 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
 
         /// <summary>
         /// Gets or sets the full name of the user.
+        /// If not provided, name will not be changed.
         /// </summary>
-        [Required(ErrorMessage = "Name is required")]
         [MaxLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; }
 
         /// <summary>
         /// Gets or sets the address of the user.
@@ -186,6 +187,7 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Gets or sets the profile photo as a base64 encoded string.
         /// Maximum size: 5MB (after base64 encoding: ~6.7MB)
         /// Supported formats: JPEG, PNG, GIF, BMP, WebP
+        /// Set to empty string to remove photo, null or omit to keep existing photo.
         /// </summary>
         public string? ProfilePhotoBase64 { get; set; }
     }

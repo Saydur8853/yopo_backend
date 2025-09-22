@@ -1735,8 +1735,8 @@
                 try {
                     const token = localStorage.getItem('authToken');
                     
-                    const response = await fetch(`${API_BASE}/users/me/profile-photo`, {
-                        method: 'PATCH',
+                    const response = await fetch(`${API_BASE}/users/me`, {
+                        method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
@@ -1822,18 +1822,20 @@
                     throw new Error('No authentication token found');
                 }
 
-                const profileData = {
-                    email: document.getElementById('modalEmail').value.trim(),
-                    name: document.getElementById('modalName').value.trim(),
-                    phoneNumber: document.getElementById('modalPhone').value.trim() || null,
-                    address: document.getElementById('modalAddress').value.trim() || null
-                };
+                const profileData = {};
                 
-                // Add password only if provided
+                // Only include fields that have values (partial update)
+                const email = document.getElementById('modalEmail').value.trim();
+                const name = document.getElementById('modalName').value.trim();
+                const phoneNumber = document.getElementById('modalPhone').value.trim();
+                const address = document.getElementById('modalAddress').value.trim();
                 const password = document.getElementById('modalPassword').value.trim();
-                if (password) {
-                    profileData.password = password;
-                }
+                
+                if (email) profileData.email = email;
+                if (name) profileData.name = name;
+                if (phoneNumber) profileData.phoneNumber = phoneNumber;
+                if (address) profileData.address = address;
+                if (password) profileData.password = password;
                 
                 // Add profile photo if selected (convert to base64)
                 if (selectedPhotoFile) {
@@ -1841,12 +1843,12 @@
                     profileData.profilePhotoBase64 = base64;
                 }
 
-                // Basic validation
-                if (!profileData.email) {
-                    throw new Error('Email is required.');
+                // Basic validation - only validate if trying to update these fields
+                if (profileData.hasOwnProperty('email') && !profileData.email) {
+                    throw new Error('Email cannot be empty.');
                 }
-                if (!profileData.name) {
-                    throw new Error('Name is required.');
+                if (profileData.hasOwnProperty('name') && !profileData.name) {
+                    throw new Error('Name cannot be empty.');
                 }
 
                 const response = await fetch(`${API_BASE}/users/me`, {

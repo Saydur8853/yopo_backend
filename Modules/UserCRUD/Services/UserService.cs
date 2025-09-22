@@ -474,7 +474,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 }
 
                 // Check if email is being changed and if it's already taken by another user
-                if (updateRequest.Email.ToLower() != user.Email.ToLower())
+                if (!string.IsNullOrEmpty(updateRequest.Email) && updateRequest.Email.ToLower() != user.Email.ToLower())
                 {
                     var existingUser = await _context.Users
                         .FirstOrDefaultAsync(u => u.Email.ToLower() == updateRequest.Email.ToLower() && u.Id != id);
@@ -485,29 +485,44 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 }
 
                 // Process profile photo if provided
-                if (!string.IsNullOrEmpty(updateRequest.ProfilePhotoBase64))
+                if (updateRequest.ProfilePhotoBase64 != null)
                 {
-                    var validationResult = ImageUtils.ValidateBase64Image(updateRequest.ProfilePhotoBase64);
-                    if (!validationResult.IsValid)
+                    if (!string.IsNullOrEmpty(updateRequest.ProfilePhotoBase64))
                     {
-                        throw new ArgumentException($"Invalid profile photo: {validationResult.ErrorMessage}");
+                        var validationResult = ImageUtils.ValidateBase64Image(updateRequest.ProfilePhotoBase64);
+                        if (!validationResult.IsValid)
+                        {
+                            throw new ArgumentException($"Invalid profile photo: {validationResult.ErrorMessage}");
+                        }
+                        
+                        user.ProfilePhoto = validationResult.ImageBytes;
+                        user.ProfilePhotoMimeType = validationResult.MimeType;
                     }
-                    
-                    user.ProfilePhoto = validationResult.ImageBytes;
-                    user.ProfilePhotoMimeType = validationResult.MimeType;
-                }
-                else if (updateRequest.ProfilePhotoBase64 == string.Empty) // Explicitly removing photo
-                {
-                    user.ProfilePhoto = null;
-                    user.ProfilePhotoMimeType = null;
+                    else if (updateRequest.ProfilePhotoBase64 == string.Empty) // Explicitly removing photo
+                    {
+                        user.ProfilePhoto = null;
+                        user.ProfilePhotoMimeType = null;
+                    }
                 }
                 // If ProfilePhotoBase64 is null, don't change the existing photo
 
-                // Update user properties
-                user.Email = updateRequest.Email.ToLower();
-                user.Name = updateRequest.Name;
-                user.Address = updateRequest.Address;
-                user.PhoneNumber = updateRequest.PhoneNumber;
+                // Update user properties only if provided (partial update support)
+                if (!string.IsNullOrEmpty(updateRequest.Email))
+                {
+                    user.Email = updateRequest.Email.ToLower();
+                }
+                if (!string.IsNullOrEmpty(updateRequest.Name))
+                {
+                    user.Name = updateRequest.Name;
+                }
+                if (updateRequest.Address != null)
+                {
+                    user.Address = updateRequest.Address;
+                }
+                if (updateRequest.PhoneNumber != null)
+                {
+                    user.PhoneNumber = updateRequest.PhoneNumber;
+                }
                 
                 // Update password if provided
                 if (!string.IsNullOrEmpty(updateRequest.Password))
