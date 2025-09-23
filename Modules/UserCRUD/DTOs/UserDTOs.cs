@@ -388,6 +388,12 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Gets or sets the company address of the customer.
         /// </summary>
         public string? CompanyAddress { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the user ID (Customer ID) associated with this building.
+        /// Used for efficient lookup and grouping operations.
+        /// </summary>
+        public int UserId { get; set; }
     }
 
 

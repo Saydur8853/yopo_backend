@@ -294,9 +294,38 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                 var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
+                // Pre-load buildings for Property Managers to avoid N+1 queries
+                var buildingsLookup = new Dictionary<int, List<UserBuildingDto>>();
+                var propertyManagerIds = users
+                    .Where(u => u.UserType?.Name == "Property Manager")
+                    .Select(u => u.Id)
+                    .ToList();
+
+                if (propertyManagerIds.Any())
+                {
+                    var allBuildings = await _context.Buildings
+                        .Include(b => b.Customer)
+                        .Where(b => propertyManagerIds.Contains(b.CustomerId) && b.IsActive)
+                        .Select(b => new UserBuildingDto
+                        {
+                            BuildingId = b.BuildingId,
+                            BuildingName = b.Name,
+                            BuildingAddress = b.Address,
+                            CustomerName = b.Customer.CustomerName,
+                            CompanyName = b.Customer.CompanyName,
+                            CompanyAddress = b.Customer.CompanyAddress,
+                            UserId = b.CustomerId // Add UserId to group by
+                        })
+                        .ToListAsync();
+
+                    buildingsLookup = allBuildings
+                        .GroupBy(b => b.UserId)
+                        .ToDictionary(g => g.Key, g => g.ToList());
+                }
+
                 return new UserListResponseDTO
                 {
-                    Users = users.Select(MapToUserResponse).ToList(),
+                    Users = users.Select(u => MapToUserResponse(u, buildingsLookup.GetValueOrDefault(u.Id))).ToList(),
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
@@ -871,6 +900,17 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// <returns>The mapped UserResponseDTO.</returns>
         private UserResponseDTO MapToUserResponse(User user)
         {
+            return MapToUserResponse(user, null);
+        }
+
+        /// <summary>
+        /// Maps a User entity to a UserResponseDTO with optional pre-loaded buildings to avoid N+1 queries.
+        /// </summary>
+        /// <param name="user">The user entity to map.</param>
+        /// <param name="userBuildings">Optional pre-loaded buildings for the user.</param>
+        /// <returns>The mapped UserResponseDTO.</returns>
+        private UserResponseDTO MapToUserResponse(User user, List<UserBuildingDto>? userBuildings)
+        {
             // Get permitted modules from user type
             var permittedModules = new List<PermittedModuleDto>();
             if (user.UserType?.ModulePermissions != null)
@@ -886,25 +926,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     .ToList();
             }
 
-            // Get buildings for Property Managers (where CustomerId = User.Id)
-            var buildings = new List<UserBuildingDto>();
-            if (user.UserType?.Name == "Property Manager")
-            {
-                var userBuildings = _context.Buildings
-                    .Include(b => b.Customer)
-                    .Where(b => b.CustomerId == user.Id && b.IsActive)
-                    .Select(b => new UserBuildingDto
-                    {
-                        BuildingId = b.BuildingId,
-                        BuildingName = b.Name,
-                        BuildingAddress = b.Address,
-                        CustomerName = b.Customer.CustomerName,
-                        CompanyName = b.Customer.CompanyName,
-                        CompanyAddress = b.Customer.CompanyAddress
-                    })
-                    .ToList();
-                buildings = userBuildings;
-            }
+            // Use pre-loaded buildings if provided, otherwise return empty list to avoid N+1 queries
+            var buildings = userBuildings ?? new List<UserBuildingDto>();
 
             return new UserResponseDTO
             {

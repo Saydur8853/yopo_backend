@@ -13,6 +13,10 @@ namespace YopoBackend.Services
     public abstract class BaseAccessControlService
     {
         protected readonly ApplicationDbContext _context;
+        
+        // Cache for user access control data to prevent N+1 queries
+        private readonly Dictionary<int, (User User, string? DataAccessControl)> _userCache = new();
+        private readonly Dictionary<int, List<int>> _pmEcosystemCache = new();
 
         /// <summary>
         /// Initializes a new instance of the BaseAccessControlService class.
@@ -30,11 +34,8 @@ namespace YopoBackend.Services
         /// <returns>The DataAccessControl setting ("OWN", "ALL", "PM", or null if user not found).</returns>
         protected async Task<string?> GetUserDataAccessControlAsync(int userId)
         {
-            var user = await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            return user?.UserType?.DataAccessControl;
+            var (_, dataAccessControl) = await GetUserCacheDataAsync(userId);
+            return dataAccessControl;
         }
 
         /// <summary>
@@ -106,9 +107,8 @@ namespace YopoBackend.Services
         /// <returns>The user with their user type information, or null if not found.</returns>
         protected async Task<User?> GetUserWithAccessControlAsync(int userId)
         {
-            return await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var (user, _) = await GetUserCacheDataAsync(userId);
+            return user;
         }
 
         /// <summary>
@@ -130,18 +130,29 @@ namespace YopoBackend.Services
         /// <returns>List of user IDs in the same PM ecosystem.</returns>
         protected async Task<List<int>> GetPMEcosystemUserIdsAsync(int userId)
         {
-            var user = await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            // Check cache first
+            if (_pmEcosystemCache.TryGetValue(userId, out var cachedEcosystem))
+            {
+                return cachedEcosystem;
+            }
 
+            var (user, _) = await GetUserCacheDataAsync(userId);
             if (user == null)
-                return new List<int>();
+            {
+                var emptyResult = new List<int>();
+                _pmEcosystemCache[userId] = emptyResult;
+                return emptyResult;
+            }
 
             // Find the Property Manager for this user's ecosystem
             var propertyManagerId = await FindPropertyManagerForUserAsync(userId);
             
             if (propertyManagerId == null)
-                return new List<int> { userId }; // If no PM found, user can only see their own data
+            {
+                var singleUserResult = new List<int> { userId }; // If no PM found, user can only see their own data
+                _pmEcosystemCache[userId] = singleUserResult;
+                return singleUserResult;
+            }
 
             // Get all users in this PM's ecosystem (PM + all users created by the PM)
             var ecosystemUserIds = await _context.Users
@@ -149,6 +160,8 @@ namespace YopoBackend.Services
                 .Select(u => u.Id)
                 .ToListAsync();
 
+            // Cache the result
+            _pmEcosystemCache[userId] = ecosystemUserIds;
             return ecosystemUserIds;
         }
 
@@ -160,10 +173,24 @@ namespace YopoBackend.Services
         /// <returns>The Property Manager ID, or null if not found.</returns>
         protected async Task<int?> FindPropertyManagerForUserAsync(int userId)
         {
-            var user = await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            return await FindPropertyManagerForUserAsync(userId, new HashSet<int>());
+        }
 
+        /// <summary>
+        /// Internal method to find the Property Manager ID with visited tracking to prevent infinite recursion.
+        /// </summary>
+        /// <param name="userId">The user ID to find the PM for.</param>
+        /// <param name="visited">Set of already visited user IDs to prevent infinite loops.</param>
+        /// <returns>The Property Manager ID, or null if not found.</returns>
+        private async Task<int?> FindPropertyManagerForUserAsync(int userId, HashSet<int> visited)
+        {
+            // Prevent infinite loops by checking if we've already visited this user
+            if (visited.Contains(userId))
+                return null;
+            
+            visited.Add(userId);
+            
+            var (user, _) = await GetUserCacheDataAsync(userId);
             if (user == null)
                 return null;
 
@@ -174,19 +201,16 @@ namespace YopoBackend.Services
             }
 
             // If user was created by a Property Manager, find that PM
-            var creator = await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.Id == user.CreatedBy);
-
+            var (creator, _) = await GetUserCacheDataAsync(user.CreatedBy);
             if (creator?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
             {
                 return creator.Id;
             }
 
             // Recursively check up the creation chain to find the PM
-            if (creator != null)
+            if (creator != null && !visited.Contains(creator.Id))
             {
-                return await FindPropertyManagerForUserAsync(creator.Id);
+                return await FindPropertyManagerForUserAsync(creator.Id, visited);
             }
 
             return null;
@@ -202,6 +226,44 @@ namespace YopoBackend.Services
         {
             var pmEcosystemIds = await GetPMEcosystemUserIdsAsync(propertyManagerId);
             return pmEcosystemIds.Contains(userId);
+        }
+
+        /// <summary>
+        /// Internal method to get user data from cache or database.
+        /// This prevents N+1 queries by caching user data for the duration of the request.
+        /// </summary>
+        /// <param name="userId">The user ID to fetch.</param>
+        /// <returns>Tuple of User and DataAccessControl, or (null, null) if not found.</returns>
+        private async Task<(User?, string?)> GetUserCacheDataAsync(int userId)
+        {
+            // Check cache first
+            if (_userCache.TryGetValue(userId, out var cachedData))
+            {
+                return (cachedData.User, cachedData.DataAccessControl);
+            }
+
+            // Fetch from database if not in cache
+            var user = await _context.Users
+                .AsNoTracking() // Use AsNoTracking for better performance since we're only reading
+                .Include(u => u.UserType)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            var dataAccessControl = user?.UserType?.DataAccessControl;
+
+            // Cache the result
+            _userCache[userId] = (user, dataAccessControl);
+
+            return (user, dataAccessControl);
+        }
+
+        /// <summary>
+        /// Clears the internal cache. Call this method when user data might have changed
+        /// or at the end of a request to free memory.
+        /// </summary>
+        protected void ClearCache()
+        {
+            _userCache.Clear();
+            _pmEcosystemCache.Clear();
         }
     }
 
