@@ -182,6 +182,17 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden, 
                     new { message = "You do not have permission to invite users of this type. Property Managers cannot invite other Property Managers or Super Admins." });
             }
+
+            // Business Rule: CompanyName required when inviting a Property Manager
+            if (createDto.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                if (string.IsNullOrWhiteSpace(createDto.CompanyName))
+                {
+                    ModelState.AddModelError(nameof(createDto.CompanyName), "Company Name is required when inviting a Property Manager.");
+                    return BadRequest(ModelState);
+                }
+            }
+
             var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
             
             return CreatedAtAction(

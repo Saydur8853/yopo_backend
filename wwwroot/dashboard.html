@@ -1075,7 +1075,7 @@
                     </select>
                 </div>
                 <div class="form-group" id="company-name-group" style="display: none;">
-                    <label for="invite-company">Company Name (Optional)</label>
+                    <label for="invite-company">Company Name <span class="required-asterisk" style="color: #dc3545;">*</span></label>
                     <input type="text" id="invite-company" class="form-control" placeholder="Enter company name" maxlength="300">
                     <small style="color: #666; font-size: 0.85rem; margin-top: 0.25rem; display: block;">This will be stored in the customer record when the Property Manager registers.</small>
                 </div>
@@ -2064,13 +2064,19 @@
                 // Show company name field for Property Manager invitations only for Super Admins
                 if (selectedUserType && selectedUserType.name === 'Property Manager') {
                     companyGroup.style.display = 'block';
+                    const companyInput = document.getElementById('invite-company');
+                    companyInput.required = true;
                 } else {
                     companyGroup.style.display = 'none';
-                    document.getElementById('invite-company').value = ''; // Clear the field
+                    const companyInput = document.getElementById('invite-company');
+                    companyInput.required = false;
+                    companyInput.value = ''; // Clear the field
                 }
             } else {
                 companyGroup.style.display = 'none';
-                document.getElementById('invite-company').value = ''; // Clear the field
+                const companyInput = document.getElementById('invite-company');
+                companyInput.required = false;
+                companyInput.value = ''; // Clear the field
             }
         }
         
@@ -2086,6 +2092,13 @@
             
             if (!email || !roleId || !days) {
                 showInvitationMessage('Please fill in all fields', 'error');
+                return;
+            }
+
+            // Enforce Company Name when inviting a Property Manager (Super Admin only UI)
+            const selectedUserType = availableUserTypes.find(t => t.id == roleId);
+            if (userData && userData.userTypeName === 'Super Admin' && selectedUserType && selectedUserType.name === 'Property Manager' && !companyName) {
+                showInvitationMessage('Company Name is required when inviting a Property Manager.', 'error');
                 return;
             }
             
