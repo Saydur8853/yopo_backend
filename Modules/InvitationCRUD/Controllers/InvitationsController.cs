@@ -173,6 +173,13 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
                 return BadRequest($"User type with ID {createDto.UserTypeId} is not valid or not active.");
             }
 
+            // If not already invited, ensure the email is not already a registered user
+            var emailAlreadyRegistered = await _invitationService.EmailAlreadyRegisteredAsync(createDto.EmailAddress);
+            if (emailAlreadyRegistered)
+            {
+                return Conflict($"User {createDto.EmailAddress} already exists and cannot be invited again.");
+            }
+
             var currentUserId = GetCurrentUserId();
             
             // Business Rule: Validate invitation permissions based on current user type

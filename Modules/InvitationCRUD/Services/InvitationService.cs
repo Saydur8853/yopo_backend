@@ -307,6 +307,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         }
 
         /// <inheritdoc/>
+        public async Task<bool> EmailAlreadyRegisteredAsync(string email)
+        {
+            return await _context.Users.AnyAsync(u => u.Email == email.ToLowerInvariant());
+        }
+
+        /// <inheritdoc/>
         public async Task<IEnumerable<UserTypeDropdownDTO>> GetAvailableUserTypesAsync(int currentUserId)
         {
             var query = _context.UserTypes

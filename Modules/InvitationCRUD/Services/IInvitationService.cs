@@ -89,6 +89,13 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         Task<bool> EmailAlreadyInvitedAsync(string email);
         
         /// <summary>
+        /// Checks if an email address already belongs to an existing registered user.
+        /// </summary>
+        /// <param name="email">The email address to check.</param>
+        /// <returns>True if a user with this email exists; otherwise, false.</returns>
+        Task<bool> EmailAlreadyRegisteredAsync(string email);
+        
+        /// <summary>
         /// Gets all available user types for invitation dropdown selection with access control.
         /// 
         /// **Security Note:** This method only returns user types that are allowed for invitations:
