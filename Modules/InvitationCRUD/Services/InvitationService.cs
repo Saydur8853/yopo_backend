@@ -374,7 +374,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                         ut.Name != "Super Admin" && ut.Name != "Property Manager"
                     ).ToList();
                 }
-                // Super Admins can see all allowed types (no additional filtering needed)
+                // Super Admins can only see default system user types (Super Admin + Property Manager)
+                if (currentUser.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
+                {
+                    var defaultIds = new[] { UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID, UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID };
+                    allowedUserTypes = allowedUserTypes.Where(ut => defaultIds.Contains(ut.Id)).ToList();
+                }
             }
 
             return allowedUserTypes;
@@ -410,10 +415,11 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 .FirstOrDefaultAsync(ut => ut.Id == targetUserTypeId && ut.IsActive);
             if (targetUserType == null) return false;
             
-            // Super Admins can invite anyone
+            // Super Admins can only invite default system user types
             if (currentUser.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
             {
-                return true;
+                return targetUserType.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID ||
+                       targetUserType.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID;
             }
             
             // Property Managers have restrictions

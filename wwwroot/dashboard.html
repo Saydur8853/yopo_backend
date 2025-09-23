@@ -1120,29 +1120,36 @@
             <h3>👥 User Type Management</h3>
             <div id="user-type-message"></div>
             
-            <!-- Create User Type Form -->
-            <form id="user-type-form" class="invitation-form">
-                <div class="form-group">
-                    <label for="user-type-name">User Type Name</label>
-                    <input type="text" id="user-type-name" class="form-control" required placeholder="Enter user type name" maxlength="100">
-                </div>
-                <div class="form-group">
-                    <label for="user-type-description">Description</label>
-                    <input type="text" id="user-type-description" class="form-control" placeholder="Enter description" maxlength="500">
-                </div>
-                <div class="form-group">
-                    <label>Status</label>
-                    <select id="user-type-status" class="form-control" required>
-                        <option value="true" selected>Active</option>
-                        <option value="false">Inactive</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary" id="user-type-btn">
-                        ➕ Create User Type
-                    </button>
-                </div>
-            </form>
+            <!-- Create User Type Form - Hidden for Super Admin users -->
+            <div id="user-type-create-form-section" style="display: none;">
+                <form id="user-type-form" class="invitation-form">
+                    <div class="form-group">
+                        <label for="user-type-name">User Type Name</label>
+                        <input type="text" id="user-type-name" class="form-control" required placeholder="Enter user type name" maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-type-description">Description</label>
+                        <input type="text" id="user-type-description" class="form-control" placeholder="Enter description" maxlength="500">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="user-type-status" class="form-control" required>
+                            <option value="true" selected>Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" id="user-type-btn">
+                            ➕ Create User Type
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Information message for Super Admin users -->
+            <div id="user-type-super-admin-info" class="message" style="display: none; background: #e3f2fd; color: #0277bd; border: 1px solid #90caf9; margin-bottom: 1.5rem;">
+                <strong>ℹ️ Information:</strong> Super Admin users can only manage the existing "Super Admin" and "Property Manager" user types. Creating new user types is not permitted to maintain system integrity.
+            </div>
             
             <!-- User Types List -->
             <div class="invitations-list-section">
@@ -1549,12 +1556,19 @@
             
             // Show sections based on user type
             if (user.userTypeName === 'Super Admin') {
-                console.log(`User is ${user.userTypeName} - showing all sections`);
+                console.log(`User is ${user.userTypeName} - showing all sections (with create restrictions for user types)`);
                 document.getElementById('invitation-section').style.display = 'block';
                 document.getElementById('user-type-section').style.display = 'block';
                 document.getElementById('buildings-section').style.display = 'block';
                 document.getElementById('customer-section').style.display = 'block';
                 document.getElementById('add-building-form-section').style.display = 'none'; // Super Admin can only view
+
+                // Hide user type creation form for Super Admin and show info banner
+                const userTypeCreateFormSection = document.getElementById('user-type-create-form-section');
+                const userTypeInfoBanner = document.getElementById('user-type-super-admin-info');
+                if (userTypeCreateFormSection) userTypeCreateFormSection.style.display = 'none';
+                if (userTypeInfoBanner) userTypeInfoBanner.style.display = 'block';
+
                 loadUserTypesForInvitation();
                 loadInvitationsList();
                 loadUserTypesList();
@@ -1568,6 +1582,13 @@
                 document.getElementById('buildings-section').style.display = 'block';
                 document.getElementById('customer-section').style.display = 'none'; // Property managers shouldn't see customer data
                 document.getElementById('add-building-form-section').style.display = 'block'; // PM can add buildings
+                
+                // Show user type creation form for Property Managers (as per backend rules)
+                const userTypeCreateFormSection = document.getElementById('user-type-create-form-section');
+                const userTypeInfoBanner = document.getElementById('user-type-super-admin-info');
+                if (userTypeCreateFormSection) userTypeCreateFormSection.style.display = 'block';
+                if (userTypeInfoBanner) userTypeInfoBanner.style.display = 'none';
+                
                 loadUserTypesForInvitation();
                 loadInvitationsList();
                 loadUserTypesList();
@@ -2010,16 +2031,20 @@
         function populateUserTypeDropdown() {
             const dropdown = document.getElementById('invite-role');
             
-            // Backend API now handles filtering to only return allowed user types
-            // (Super Admin and Property Manager) so no frontend filtering needed
-            if (availableUserTypes.length === 0) {
+            // Defensive frontend filter: if current user is Super Admin, only allow default user types (IDs 1 and 2)
+            let list = [...availableUserTypes];
+            if (userData && userData.userTypeName === 'Super Admin') {
+                list = list.filter(t => t.id === 1 || t.id === 2);
+            }
+            
+            if (list.length === 0) {
                 dropdown.innerHTML = '<option value="">No available roles</option>';
                 return;
             }
             
             dropdown.innerHTML = [
                 '<option value="">Select a role...</option>',
-                ...availableUserTypes.map(type => 
+                ...list.map(type => 
                     `<option value="${type.id}">${type.name}</option>`
                 )
             ].join('');
