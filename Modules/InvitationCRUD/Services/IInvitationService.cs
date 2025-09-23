@@ -96,6 +96,20 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         Task<bool> EmailAlreadyRegisteredAsync(string email);
         
         /// <summary>
+        /// Checks if there is an active Property Manager invitation with the given company name.
+        /// </summary>
+        /// <param name="companyName">The company name to check.</param>
+        /// <returns>True if a PM invitation already exists for this company; otherwise, false.</returns>
+        Task<bool> CompanyAlreadyInvitedAsync(string companyName);
+        
+        /// <summary>
+        /// Checks if there is a registered Property Manager (Customer) with the given company name.
+        /// </summary>
+        /// <param name="companyName">The company name to check.</param>
+        /// <returns>True if a PM is already registered for this company; otherwise, false.</returns>
+        Task<bool> CompanyAlreadyRegisteredAsync(string companyName);
+        
+        /// <summary>
         /// Gets all available user types for invitation dropdown selection with access control.
         /// 
         /// **Security Note:** This method only returns user types that are allowed for invitations:

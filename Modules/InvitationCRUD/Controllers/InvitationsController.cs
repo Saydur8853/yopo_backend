@@ -198,6 +198,24 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
                     ModelState.AddModelError(nameof(createDto.CompanyName), "Company Name is required when inviting a Property Manager.");
                     return BadRequest(ModelState);
                 }
+
+                // Super Admin-only flow inherently: only Super Admin can set CompanyName and invite PMs.
+                // Perform company-level duplicate checks in required order.
+                var companyName = createDto.CompanyName!.Trim();
+
+                // 1) Check invitations table for an active PM invitation with same company
+                var companyAlreadyInvited = await _invitationService.CompanyAlreadyInvitedAsync(companyName);
+                if (companyAlreadyInvited)
+                {
+                    return Conflict("This company's PM is already invited.");
+                }
+
+                // 2) Check customers table for an existing PM (customer) with same company
+                var companyAlreadyRegistered = await _invitationService.CompanyAlreadyRegisteredAsync(companyName);
+                if (companyAlreadyRegistered)
+                {
+                    return Conflict("This company's PM is already registered.");
+                }
             }
 
             var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);

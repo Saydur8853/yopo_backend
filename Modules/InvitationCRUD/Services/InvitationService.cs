@@ -313,6 +313,23 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
         }
 
         /// <inheritdoc/>
+        public async Task<bool> CompanyAlreadyInvitedAsync(string companyName)
+        {
+            var lower = companyName.ToLowerInvariant();
+            return await _context.Invitations.AnyAsync(i => 
+                i.CompanyName != null && i.CompanyName.ToLower() == lower &&
+                i.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID &&
+                i.ExpiryTime >= DateTime.UtcNow);
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> CompanyAlreadyRegisteredAsync(string companyName)
+        {
+            var lower = companyName.ToLowerInvariant();
+            return await _context.Customers.AnyAsync(c => c.CompanyName != null && c.CompanyName.ToLower() == lower);
+        }
+
+        /// <inheritdoc/>
         public async Task<IEnumerable<UserTypeDropdownDTO>> GetAvailableUserTypesAsync(int currentUserId)
         {
             var query = _context.UserTypes
