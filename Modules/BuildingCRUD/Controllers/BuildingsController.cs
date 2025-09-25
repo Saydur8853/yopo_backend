@@ -117,7 +117,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
         /// <summary>
         /// Creates a new building.
         /// </summary>
-        /// <param name="createBuildingDto">The building data to create.</param>
+        /// <param name="createBuildingDto">The building data to create. The CustomerId is automatically derived from the current user's token.</param>
         /// <returns>The created building information.</returns>
         /// <response code="201">Returns the created building</response>
         /// <response code="400">If the building data is invalid</response>
@@ -154,7 +154,8 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                // Show a friendly message specific to building creation privilege
+                return StatusCode(403, new { message = "Sorry! Building create privilege is only for Property managers." });
             }
             catch (Exception ex)
             {

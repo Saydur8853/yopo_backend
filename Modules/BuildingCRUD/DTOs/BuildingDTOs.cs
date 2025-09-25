@@ -8,11 +8,6 @@ namespace YopoBackend.Modules.BuildingCRUD.DTOs
     /// </summary>
     public class CreateBuildingDTO
     {
-        /// <summary>
-        /// Gets or sets the customer ID who owns/manages this building.
-        /// </summary>
-        [Required]
-        public int CustomerId { get; set; }
 
         /// <summary>
         /// Gets or sets the name of the building.

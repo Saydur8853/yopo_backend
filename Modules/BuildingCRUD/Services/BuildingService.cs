@@ -161,8 +161,26 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// </summary>
         public async Task<BuildingResponseDTO> CreateBuildingAsync(CreateBuildingDTO createBuildingDto, int currentUserId)
         {
+            // Determine target customerId based on current user's access level
+            var userDataAccessControl = await GetUserDataAccessControlAsync(currentUserId);
+            int targetCustomerId;
+
+            if (userDataAccessControl == YopoBackend.Constants.UserTypeConstants.DATA_ACCESS_ALL)
+            {
+                // Super Admin: For now, derive from property manager relationship
+                // TODO: Consider adding a separate DTO for Super Admin if CustomerId specification is needed
+                var propertyManagerId = await FindPropertyManagerForUserAsync(currentUserId) ?? currentUserId;
+                targetCustomerId = propertyManagerId;
+            }
+            else
+            {
+                // For PM ecosystem or OWN access, derive PM's customerId from token/user
+                var propertyManagerId = await FindPropertyManagerForUserAsync(currentUserId) ?? currentUserId;
+                targetCustomerId = propertyManagerId;
+            }
+
             // Validate that the customer exists and is accessible
-            var hasCustomerAccess = await ValidateCustomerAccessAsync(createBuildingDto.CustomerId, currentUserId);
+            var hasCustomerAccess = await ValidateCustomerAccessAsync(targetCustomerId, currentUserId);
             if (!hasCustomerAccess)
             {
                 throw new UnauthorizedAccessException("Access denied to the specified customer.");
@@ -170,7 +188,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
 
             var building = new Building
             {
-                CustomerId = createBuildingDto.CustomerId,
+                CustomerId = targetCustomerId,
                 Name = createBuildingDto.Name,
                 Address = createBuildingDto.Address,
                 Floors = createBuildingDto.Floors,

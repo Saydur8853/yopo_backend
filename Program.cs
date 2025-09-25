@@ -68,6 +68,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                var payload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    message = "You are not authenticated."
+                });
+                return context.Response.WriteAsync(payload);
+            },
+            OnForbidden = context =>
+            {
+                context.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                var payload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    message = "Access denied to the specified customer."
+                });
+                return context.Response.WriteAsync(payload);
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
