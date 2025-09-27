@@ -73,6 +73,26 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     return null; // Invalid password
                 }
 
+                // Pre-load buildings for Property Managers so login response includes buildings
+                List<UserBuildingDto>? userBuildings = null;
+                if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                {
+                    userBuildings = await _context.Buildings
+                        .Include(b => b.Customer)
+                        .Where(b => b.CustomerId == user.Id && b.IsActive)
+                        .Select(b => new UserBuildingDto
+                        {
+                            BuildingId = b.BuildingId,
+                            BuildingName = b.Name,
+                            BuildingAddress = b.Address,
+                            CustomerName = b.Customer.CustomerName,
+                            CompanyName = b.Customer.CompanyName,
+                            CompanyAddress = b.Customer.CompanyAddress,
+                            UserId = b.CustomerId
+                        })
+                        .ToListAsync();
+                }
+
                 // Generate JWT token with IP and device info if available
                 var (token, expiresAt) = await _jwtService.GenerateTokenAsync(user, null, null);
 
@@ -81,7 +101,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 {
                     Token = token,
                     ExpiresAt = expiresAt,
-                    User = MapToUserResponse(user),
+                    User = MapToUserResponse(user, userBuildings),
                     Message = "Login successful"
                 };
             }
