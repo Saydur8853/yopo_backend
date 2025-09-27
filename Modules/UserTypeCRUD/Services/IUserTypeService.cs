@@ -95,7 +95,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         /// <param name="userTypeId">The ID of the user type.</param>
         /// <param name="moduleIds">The list of module IDs to assign to the user type.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains true if successful, otherwise false.</returns>
-        Task<bool> UpdateUserTypeModulePermissionsAsync(int userTypeId, List<int> moduleIds);
+        Task<bool> UpdateUserTypeModulePermissionsAsync(int userTypeId, List<int> moduleIds, int actingUserId);
 
         /// <summary>
         /// Validates if all provided module IDs exist in the system.

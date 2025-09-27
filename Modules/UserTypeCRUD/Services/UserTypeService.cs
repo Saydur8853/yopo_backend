@@ -170,6 +170,11 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 {
                     throw new UnauthorizedAccessException("You don't have permission to make this user type.");
                 }
+                // Additional security rule: PM cannot grant access to core admin modules
+                if (createUserTypeDto.ModuleIds.Any(id => id == ModuleConstants.USER_TYPE_MODULE_ID || id == ModuleConstants.INVITATION_MODULE_ID || id == ModuleConstants.USER_MODULE_ID))
+                {
+                    throw new UnauthorizedAccessException("Property Managers cannot grant access to UserTypeCRUD, InvitationCRUD, or UserCRUD modules.");
+                }
             }
 
             string dataAccessControl = createUserTypeDto.DataAccessControl;
@@ -197,7 +202,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             // Add module permissions if provided
             if (createUserTypeDto.ModuleIds.Any())
             {
-                await UpdateUserTypeModulePermissionsAsync(userType.Id, createUserTypeDto.ModuleIds);
+                await UpdateUserTypeModulePermissionsAsync(userType.Id, createUserTypeDto.ModuleIds, createdByUserId);
             }
 
             return await GetUserTypeByIdAsync(userType.Id, createdByUserId) ?? throw new InvalidOperationException("Failed to retrieve created user type");
@@ -232,6 +237,11 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 {
                     throw new UnauthorizedAccessException("You don't have permission to make this user type.");
                 }
+                // Additional security rule: PM cannot grant access to core admin modules
+                if (updateUserTypeDto.ModuleIds.Any(id => id == ModuleConstants.USER_TYPE_MODULE_ID || id == ModuleConstants.INVITATION_MODULE_ID || id == ModuleConstants.USER_MODULE_ID))
+                {
+                    throw new UnauthorizedAccessException("Property Managers cannot grant access to UserTypeCRUD, InvitationCRUD, or UserCRUD modules.");
+                }
             }
 
             userType.Name = updateUserTypeDto.Name;
@@ -244,7 +254,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             await _context.SaveChangesAsync();
 
             // Update module permissions
-            await UpdateUserTypeModulePermissionsAsync(id, updateUserTypeDto.ModuleIds);
+            await UpdateUserTypeModulePermissionsAsync(id, updateUserTypeDto.ModuleIds, currentUserId);
 
             return await GetUserTypeByIdAsync(id, currentUserId);
         }
@@ -336,7 +346,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> UpdateUserTypeModulePermissionsAsync(int userTypeId, List<int> moduleIds)
+        public async Task<bool> UpdateUserTypeModulePermissionsAsync(int userTypeId, List<int> moduleIds, int actingUserId)
         {
             // Validate that the user type exists
             if (!await _context.UserTypes.AnyAsync(ut => ut.Id == userTypeId))
@@ -348,6 +358,22 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             if (!await ValidateModuleIdsAsync(moduleIds))
             {
                 return false;
+            }
+
+            // Enforce restriction: Property Managers cannot grant access to UserTypeCRUD, InvitationCRUD, or UserCRUD
+            var actingUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == actingUserId);
+            if (actingUser?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                var prohibited = new HashSet<int>
+                {
+                    ModuleConstants.USER_TYPE_MODULE_ID,
+                    ModuleConstants.INVITATION_MODULE_ID,
+                    ModuleConstants.USER_MODULE_ID
+                };
+                if (moduleIds.Any(id => prohibited.Contains(id)))
+                {
+                    throw new UnauthorizedAccessException("Property Managers cannot grant access to UserTypeCRUD, InvitationCRUD, or UserCRUD modules.");
+                }
             }
 
             // Remove existing permissions

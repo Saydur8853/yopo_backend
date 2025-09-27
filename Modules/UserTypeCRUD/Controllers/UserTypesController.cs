@@ -317,13 +317,17 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                     }
                 }
 
-                var result = await _userTypeService.UpdateUserTypeModulePermissionsAsync(id, moduleIds);
+                var result = await _userTypeService.UpdateUserTypeModulePermissionsAsync(id, moduleIds, currentUserId);
                 if (!result)
                 {
                     return BadRequest(new { message = "Failed to update user type permissions." });
                 }
 
                 return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
             }
             catch (Exception ex)
             {
