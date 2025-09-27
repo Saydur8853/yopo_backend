@@ -1,6 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using YopoBackend.DTOs;
 using YopoBackend.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using YopoBackend.Data;
+using YopoBackend.Constants;
 
 namespace YopoBackend.Controllers
 {
@@ -10,34 +15,73 @@ namespace YopoBackend.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Tags("01-Modules")]
-    [ApiExplorerSettings(IgnoreApi = true)]
     public class ModulesController : ControllerBase
     {
         private readonly IModuleService _moduleService;
+        private readonly ApplicationDbContext _context;
 
         /// <summary>
         /// Initializes a new instance of the ModulesController class.
         /// </summary>
         /// <param name="moduleService">The module service.</param>
-        public ModulesController(IModuleService moduleService)
+        /// <param name="context">The database context.</param>
+        public ModulesController(IModuleService moduleService, ApplicationDbContext context)
         {
             _moduleService = moduleService;
+            _context = context;
         }
 
         /// <summary>
-        /// Gets all modules in the system.
+        /// Gets modules in the system with pagination and filtering.
+        /// Property Managers will not see core admin modules (1, 2, 3).
         /// </summary>
-        /// <returns>List of all modules with their IDs, names, and metadata.</returns>
-        /// <response code="200">Returns the list of modules</response>
+        /// <param name="page">Page number (starting from 1). Default: 1</param>
+        /// <param name="pageSize">Number of items per page. Default: 10</param>
+        /// <param name="isActive">Optional filter by active status.</param>
+        /// <returns>Paginated list of modules with their IDs, names, and metadata.</returns>
+        /// <response code="200">Returns the paginated list of modules</response>
+        /// <response code="401">If the user is not authenticated</response>
         /// <response code="500">If there was an internal server error</response>
         [HttpGet]
+        [Authorize]
         [ProducesResponseType(typeof(ModuleListDto), 200)]
+        [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<ModuleListDto>> GetAllModules()
+        public async Task<ActionResult<ModuleListDto>> GetModules(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] bool? isActive = null)
         {
             try
             {
-                var modules = await _moduleService.GetAllModulesAsync();
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized(new { message = "Invalid token." });
+                }
+
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+                if (pageSize > 50) pageSize = 50;
+
+                var modules = await _moduleService.GetModulesAsync(page, pageSize, isActive);
+
+                // Filter out restricted modules for Property Managers
+                var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+                if (user?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                {
+                    modules.Modules = modules.Modules
+                        .Where(m => m.Id != ModuleConstants.USER_TYPE_MODULE_ID
+                                    && m.Id != ModuleConstants.INVITATION_MODULE_ID
+                                    && m.Id != ModuleConstants.USER_MODULE_ID)
+                        .ToList();
+                    modules.TotalCount = modules.Modules.Count;
+                    // Recalculate pagination info
+                    modules.TotalPages = (int)Math.Ceiling((double)modules.TotalCount / pageSize);
+                    modules.HasPreviousPage = page > 1;
+                    modules.HasNextPage = page < modules.TotalPages;
+                }
+
                 return Ok(modules);
             }
             catch (Exception ex)
@@ -46,80 +90,8 @@ namespace YopoBackend.Controllers
             }
         }
 
-        /// <summary>
-        /// Gets a specific module by its ID.
-        /// </summary>
-        /// <param name="id">The module ID to retrieve.</param>
-        /// <returns>The module information if found.</returns>
-        /// <response code="200">Returns the module information</response>
-        /// <response code="404">If the module is not found</response>
-        /// <response code="500">If there was an internal server error</response>
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ModuleDto), 200)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<ModuleDto>> GetModuleById(int id)
-        {
-            try
-            {
-                var module = await _moduleService.GetModuleByIdAsync(id);
-                
-                if (module == null)
-                {
-                    return NotFound(new { message = $"Module with ID {id} not found." });
-                }
 
-                return Ok(module);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while fetching the module.", details = ex.Message });
-            }
-        }
 
-        /// <summary>
-        /// Gets all active modules in the system.
-        /// </summary>
-        /// <returns>List of active modules.</returns>
-        /// <response code="200">Returns the list of active modules</response>
-        /// <response code="500">If there was an internal server error</response>
-        [HttpGet("active")]
-        [ProducesResponseType(typeof(ModuleListDto), 200)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<ModuleListDto>> GetActiveModules()
-        {
-            try
-            {
-                var modules = await _moduleService.GetActiveModulesAsync();
-                return Ok(modules);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while fetching active modules.", details = ex.Message });
-            }
-        }
 
-        /// <summary>
-        /// Initializes or updates modules in the database based on code constants.
-        /// This is typically called during application startup.
-        /// </summary>
-        /// <returns>Success message.</returns>
-        /// <response code="200">If modules were successfully initialized</response>
-        /// <response code="500">If there was an internal server error</response>
-        [HttpPost("initialize")]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult> InitializeModules()
-        {
-            try
-            {
-                await _moduleService.InitializeModulesAsync();
-                return Ok(new { message = "Modules initialized successfully." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while initializing modules.", details = ex.Message });
-            }
-        }
     }
 }

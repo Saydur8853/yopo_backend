@@ -1041,6 +1041,35 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        /* Module chooser styles */
+        .module-chooser {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .module-chooser-empty { color: #666; font-size: 0.9rem; }
+        .module-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 8px 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .module-option:hover { border-color: #c7d2fe; background: #f8fafc; }
+        .module-option input { accent-color: #667eea; cursor: pointer; }
+        .module-option .module-name { font-weight: 500; color: #111827; }
+        .module-option .module-id { margin-left: auto; color: #6b7280; }
+        .module-option.disabled { opacity: 0.6; cursor: not-allowed; }
+        .module-option.disabled input { cursor: not-allowed; }
+
     </style>
 </head>
 <body>
@@ -1138,6 +1167,25 @@
                             <option value="false">Inactive</option>
                         </select>
                     </div>
+
+                    <div class="form-group">
+                        <label>Module Access</label>
+                        <div id="module-chooser-create" class="module-chooser">
+                            <span class="module-chooser-empty">Loading modules...</span>
+                        </div>
+                        <small style="color:#666; font-size:0.8rem; display:block; margin-top:0.25rem;">Select one or more modules for this user type.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data Access Control</label>
+                        <select id="user-type-dac" class="form-control" required>
+                            <option value="PM" selected>PM (Property Manager ecosystem)</option>
+                            <option value="ALL">ALL (Access all data)</option>
+                            <option value="OWN">OWN (Only own created data)</option>
+                        </select>
+                        <small style="color:#666; font-size:0.8rem; display:block; margin-top:0.25rem;">Depending on your role, some values may be overridden by backend rules.</small>
+                    </div>
+
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" id="user-type-btn">
                             ➕ Create User Type
@@ -1569,6 +1617,7 @@
                 if (userTypeCreateFormSection) userTypeCreateFormSection.style.display = 'none';
                 if (userTypeInfoBanner) userTypeInfoBanner.style.display = 'block';
 
+                loadModulesForUserTypeChooser();
                 loadUserTypesForInvitation();
                 loadInvitationsList();
                 loadUserTypesList();
@@ -1589,6 +1638,7 @@
                 if (userTypeCreateFormSection) userTypeCreateFormSection.style.display = 'block';
                 if (userTypeInfoBanner) userTypeInfoBanner.style.display = 'none';
                 
+                loadModulesForUserTypeChooser();
                 loadUserTypesForInvitation();
                 loadInvitationsList();
                 loadUserTypesList();
@@ -2006,6 +2056,70 @@
             }
         }
         
+        // Modules for User Type Management
+        let availableModules = [];
+
+        async function loadModulesForUserTypeChooser() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/modules?isActive=true`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!response.ok) throw new Error('Failed to load modules');
+                const data = await response.json();
+                // API already filters based on user role - no frontend filtering needed
+                availableModules = (data && data.modules) ? data.modules : [];
+                renderModuleChooser('module-chooser-create');
+                renderModuleChooser('module-chooser-edit');
+            } catch (e) {
+                console.error('Error loading modules:', e);
+                const createEl = document.getElementById('module-chooser-create');
+                if (createEl) createEl.innerHTML = '<span style="color:#c00;">Failed to load modules</span>';
+                const editEl = document.getElementById('module-chooser-edit');
+                if (editEl) editEl.innerHTML = '<span style="color:#c00;">Failed to load modules</span>';
+            }
+        }
+
+        function renderModuleChooser(containerId, preselectedIds = []) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (!availableModules || availableModules.length === 0) {
+                container.innerHTML = '<span class="module-chooser-empty">No modules available</span>';
+                return;
+            }
+
+            const isPM = userData && userData.userTypeName === 'Property Manager';
+            const prohibitedForPM = new Set([1,2,3]); // UserTypeCRUD, InvitationCRUD, UserCRUD
+
+            const html = availableModules.map(m => {
+                const disabled = isPM && prohibitedForPM.has(m.id);
+                const checked = preselectedIds.includes(m.id) ? 'checked' : '';
+                const disabledAttr = disabled ? 'disabled' : '';
+                const title = disabled ? 'Property Managers cannot assign this module' : '';
+                const disabledClass = disabled ? 'disabled' : '';
+                return `
+                    <label class="module-option ${disabledClass}" title="${title}">
+                        <input type="checkbox" class="module-checkbox" data-module-id="${m.id}" ${checked} ${disabledAttr}>
+                        <span class="module-name">${m.name}</span>
+                        <small class="module-id">#${m.id}</small>
+                    </label>
+                `;
+            }).join('');
+
+            container.classList.add('module-chooser');
+            container.innerHTML = html;
+        }
+
+        function getSelectedModuleIds(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return [];
+            return Array.from(container.querySelectorAll('input.module-checkbox:checked'))
+                .map(cb => parseInt(cb.getAttribute('data-module-id')))
+                .filter(id => !Number.isNaN(id));
+        }
+
         // Invitation Management Functions
         async function loadUserTypesForInvitation() {
             try {
@@ -2502,6 +2616,8 @@
                     body: JSON.stringify({
                         name: name,
                         description: description || null,
+                        moduleIds: getSelectedModuleIds('module-chooser-create'),
+                        dataAccessControl: (document.getElementById('user-type-dac').value || 'PM'),
                         isActive: isActive
                     })
                 });
@@ -2733,6 +2849,17 @@
                 document.getElementById('editUserTypeName').value = userType.name || '';
                 document.getElementById('editUserTypeDescription').value = userType.description || '';
                 document.getElementById('editUserTypeStatus').value = userType.isActive ? 'true' : 'false';
+
+                // Render module chooser and preselect current modules
+                const preselected = Array.isArray(userType.moduleIds) ? userType.moduleIds : [];
+                renderModuleChooser('module-chooser-edit', preselected);
+
+                // Set DAC selector
+                const editDAC = document.getElementById('editUserTypeDAC');
+                if (editDAC) {
+                    const dac = (userType.dataAccessControl || 'PM').toUpperCase();
+                    editDAC.value = ['PM','ALL','OWN'].includes(dac) ? dac : 'PM';
+                }
                 
                 // Clear any previous messages
                 clearUserTypeEditMessages();
@@ -2792,7 +2919,9 @@
                 const formData = {
                     name: document.getElementById('editUserTypeName').value.trim(),
                     description: document.getElementById('editUserTypeDescription').value.trim() || null,
-                    isActive: document.getElementById('editUserTypeStatus').value === 'true'
+                    isActive: document.getElementById('editUserTypeStatus').value === 'true',
+                    moduleIds: getSelectedModuleIds('module-chooser-edit'),
+                    dataAccessControl: (document.getElementById('editUserTypeDAC').value || 'PM')
                 };
                 
                 // Basic validation
@@ -3480,6 +3609,22 @@
                         <select id="editUserTypeStatus" name="isActive" required>
                             <option value="true">Active</option>
                             <option value="false">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Module Access</label>
+                        <div id="module-chooser-edit" class="module-chooser">
+                            <span class="module-chooser-empty">Loading modules...</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data Access Control</label>
+                        <select id="editUserTypeDAC" class="form-control" required>
+                            <option value="PM">PM (Property Manager ecosystem)</option>
+                            <option value="ALL">ALL (Access all data)</option>
+                            <option value="OWN">OWN (Only own created data)</option>
                         </select>
                     </div>
 

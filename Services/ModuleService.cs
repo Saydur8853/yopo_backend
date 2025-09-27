@@ -24,9 +24,24 @@ namespace YopoBackend.Services
         }
 
         /// <inheritdoc />
-        public async Task<ModuleListDto> GetAllModulesAsync()
+        public async Task<ModuleListDto> GetModulesAsync(int page = 1, int pageSize = 10, bool? isActive = null)
         {
-            var modules = await _context.Modules
+            var query = _context.Modules.AsQueryable();
+
+            // Apply active filter if specified
+            if (isActive.HasValue)
+            {
+                query = query.Where(m => m.IsActive == isActive.Value);
+            }
+
+            // Get total count before pagination
+            var totalCount = await query.CountAsync();
+
+            // Apply pagination
+            var modules = await query
+                .OrderBy(m => m.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(m => new ModuleDto
                 {
                     Id = m.Id,
@@ -39,54 +54,17 @@ namespace YopoBackend.Services
                 })
                 .ToListAsync();
 
-            return new ModuleListDto
-            {
-                Modules = modules,
-                TotalCount = modules.Count
-            };
-        }
-
-        /// <inheritdoc />
-        public async Task<ModuleDto?> GetModuleByIdAsync(int id)
-        {
-            var module = await _context.Modules
-                .Where(m => m.Id == id)
-                .Select(m => new ModuleDto
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    Description = m.Description,
-                    IsActive = m.IsActive,
-                    Version = m.Version,
-                    CreatedAt = m.CreatedAt,
-                    UpdatedAt = m.UpdatedAt
-                })
-                .FirstOrDefaultAsync();
-
-            return module;
-        }
-
-        /// <inheritdoc />
-        public async Task<ModuleListDto> GetActiveModulesAsync()
-        {
-            var modules = await _context.Modules
-                .Where(m => m.IsActive)
-                .Select(m => new ModuleDto
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    Description = m.Description,
-                    IsActive = m.IsActive,
-                    Version = m.Version,
-                    CreatedAt = m.CreatedAt,
-                    UpdatedAt = m.UpdatedAt
-                })
-                .ToListAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
             return new ModuleListDto
             {
                 Modules = modules,
-                TotalCount = modules.Count
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
             };
         }
 
@@ -153,6 +131,35 @@ namespace YopoBackend.Services
             
             // Automatically grant Super Admin access to all new/updated active modules
             await EnsureSuperAdminHasAllModuleAccessAsync();
+        }
+
+        /// <inheritdoc />
+        public async Task<ModuleListDto> GetAllModulesAsync()
+        {
+            var modules = await _context.Modules
+                .Where(m => m.IsActive)
+                .Select(m => new ModuleDto
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Description = m.Description,
+                    IsActive = m.IsActive,
+                    Version = m.Version,
+                    CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt
+                })
+                .ToListAsync();
+
+            return new ModuleListDto
+            {
+                Modules = modules,
+                TotalCount = modules.Count,
+                Page = 1, // Default to page 1 for all modules
+                PageSize = modules.Count, // Show all modules on one 'page'
+                TotalPages = 1,
+                HasPreviousPage = false,
+                HasNextPage = false
+            };
         }
 
         /// <summary>

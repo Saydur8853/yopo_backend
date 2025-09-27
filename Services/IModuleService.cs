@@ -9,28 +9,19 @@ namespace YopoBackend.Services
     public interface IModuleService
     {
         /// <summary>
-        /// Gets all modules.
+        /// Gets modules with pagination and filtering.
         /// </summary>
-        /// <returns>List of all modules.</returns>
-        Task<ModuleListDto> GetAllModulesAsync();
-
-        /// <summary>
-        /// Gets a module by its ID.
-        /// </summary>
-        /// <param name="id">The module ID.</param>
-        /// <returns>The module if found, null otherwise.</returns>
-        Task<ModuleDto?> GetModuleByIdAsync(int id);
-
-        /// <summary>
-        /// Gets all active modules.
-        /// </summary>
-        /// <returns>List of active modules.</returns>
-        Task<ModuleListDto> GetActiveModulesAsync();
+        /// <param name="page">Page number (starting from 1).</param>
+        /// <param name="pageSize">Number of items per page.</param>
+        /// <param name="isActive">Optional filter by active status.</param>
+        /// <returns>Paginated list of modules.</returns>
+        Task<ModuleListDto> GetModulesAsync(int page = 1, int pageSize = 10, bool? isActive = null);
 
         /// <summary>
         /// Initializes modules in the database based on constants.
         /// </summary>
         /// <returns>Task representing the async operation.</returns>
         Task InitializeModulesAsync();
+        Task<ModuleListDto> GetAllModulesAsync();
     }
 }
