@@ -216,15 +216,31 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             if (building == null)
                 return null;
 
-            // Update building properties
-            building.Name = updateBuildingDto.Name;
-            building.Address = updateBuildingDto.Address;
-            building.Floors = updateBuildingDto.Floors;
-            building.ParkingFloor = updateBuildingDto.ParkingFloor;
-            building.HasGym = updateBuildingDto.HasGym;
-            building.HasSwimmingPool = updateBuildingDto.HasSwimmingPool;
-            building.HasSauna = updateBuildingDto.HasSauna;
-            building.IsActive = updateBuildingDto.IsActive;
+            // Update building properties only if provided (partial update support)
+            if (updateBuildingDto.Name != null)
+                building.Name = updateBuildingDto.Name;
+            
+            if (updateBuildingDto.Address != null)
+                building.Address = updateBuildingDto.Address;
+            
+            if (updateBuildingDto.Floors.HasValue)
+                building.Floors = updateBuildingDto.Floors.Value;
+            
+            if (updateBuildingDto.ParkingFloor.HasValue)
+                building.ParkingFloor = updateBuildingDto.ParkingFloor.Value;
+            
+            if (updateBuildingDto.HasGym.HasValue)
+                building.HasGym = updateBuildingDto.HasGym.Value;
+            
+            if (updateBuildingDto.HasSwimmingPool.HasValue)
+                building.HasSwimmingPool = updateBuildingDto.HasSwimmingPool.Value;
+            
+            if (updateBuildingDto.HasSauna.HasValue)
+                building.HasSauna = updateBuildingDto.HasSauna.Value;
+            
+            if (updateBuildingDto.IsActive.HasValue)
+                building.IsActive = updateBuildingDto.IsActive.Value;
+            
             building.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
