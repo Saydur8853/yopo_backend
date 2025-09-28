@@ -33,6 +33,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
         /// <param name="pageSize">Number of items per page. Default: 10</param>
         /// <param name="searchTerm">Optional search term for building name or address.</param>
         /// <param name="customerId">Optional filter by customer ID.</param>
+        /// <param name="buildingId">Optional filter by specific building ID.</param>
         /// <param name="isActive">Optional filter by active status.</param>
         /// <param name="hasGym">Optional filter by gym amenity.</param>
         /// <param name="hasSwimmingPool">Optional filter by swimming pool amenity.</param>
@@ -50,6 +51,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
             [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
             [FromQuery] int? customerId = null,
+            [FromQuery] int? buildingId = null,
             [FromQuery] bool? isActive = null,
             [FromQuery] bool? hasGym = null,
             [FromQuery] bool? hasSwimmingPool = null,
@@ -64,7 +66,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
                 }
 
                 var result = await _buildingService.GetBuildingsAsync(
-                    currentUserId.Value, page, pageSize, searchTerm, customerId,
+                    currentUserId.Value, page, pageSize, searchTerm, customerId, buildingId,
                     isActive, hasGym, hasSwimmingPool, hasSauna);
 
                 return Ok(result);
@@ -75,44 +77,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
             }
         }
 
-        /// <summary>
-        /// Gets a specific building by its ID.
-        /// </summary>
-        /// <param name="id">The building ID to retrieve.</param>
-        /// <returns>The building information if found and accessible.</returns>
-        /// <response code="200">Returns the building information</response>
-        /// <response code="401">If the user is not authenticated</response>
-        /// <response code="404">If the building is not found or not accessible</response>
-        /// <response code="500">If there was an internal server error</response>
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BuildingResponseDTO), 200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<BuildingResponseDTO>> GetBuildingById(int id)
-        {
-            try
-            {
-                var currentUserId = GetCurrentUserId();
-                if (currentUserId == null)
-                {
-                    return Unauthorized(new { message = "User authentication required." });
-                }
-
-                var building = await _buildingService.GetBuildingByIdAsync(id, currentUserId.Value);
-
-                if (building == null)
-                {
-                    return NotFound(new { message = $"Building with ID {id} not found or not accessible." });
-                }
-
-                return Ok(building);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while fetching the building.", details = ex.Message });
-            }
-        }
 
         /// <summary>
         /// Creates a new building.
@@ -148,8 +112,8 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
                 var building = await _buildingService.CreateBuildingAsync(createBuildingDto, currentUserId.Value);
 
                 return CreatedAtAction(
-                    nameof(GetBuildingById),
-                    new { id = building.BuildingId },
+                    nameof(GetBuildings),
+                    new { buildingId = building.BuildingId },
                     building);
             }
             catch (UnauthorizedAccessException ex)
@@ -249,116 +213,8 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
             }
         }
 
-        /// <summary>
-        /// Gets building amenities summary for a specific building.
-        /// </summary>
-        /// <param name="id">The building ID.</param>
-        /// <returns>Building amenities information if accessible.</returns>
-        /// <response code="200">Returns the building amenities information</response>
-        /// <response code="401">If the user is not authenticated</response>
-        /// <response code="404">If the building is not found or not accessible</response>
-        /// <response code="500">If there was an internal server error</response>
-        [HttpGet("{id}/amenities")]
-        [ProducesResponseType(typeof(BuildingAmenitiesDTO), 200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<BuildingAmenitiesDTO>> GetBuildingAmenities(int id)
-        {
-            try
-            {
-                var currentUserId = GetCurrentUserId();
-                if (currentUserId == null)
-                {
-                    return Unauthorized(new { message = "User authentication required." });
-                }
 
-                var amenities = await _buildingService.GetBuildingAmenitiesAsync(id, currentUserId.Value);
 
-                if (amenities == null)
-                {
-                    return NotFound(new { message = $"Building with ID {id} not found or not accessible." });
-                }
-
-                return Ok(amenities);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while fetching building amenities.", details = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Gets buildings for a specific customer with access control validation.
-        /// </summary>
-        /// <param name="customerId">The customer ID.</param>
-        /// <param name="page">Page number (starting from 1). Default: 1</param>
-        /// <param name="pageSize">Number of items per page. Default: 10</param>
-        /// <param name="isActive">Optional filter by active status.</param>
-        /// <returns>Paginated list of buildings for the customer if accessible.</returns>
-        /// <response code="200">Returns the paginated list of customer buildings</response>
-        /// <response code="401">If the user is not authenticated</response>
-        /// <response code="500">If there was an internal server error</response>
-        [HttpGet("customer/{customerId}")]
-        [ProducesResponseType(typeof(BuildingListResponseDTO), 200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<BuildingListResponseDTO>> GetBuildingsByCustomer(
-            int customerId,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] bool? isActive = null)
-        {
-            try
-            {
-                var currentUserId = GetCurrentUserId();
-                if (currentUserId == null)
-                {
-                    return Unauthorized(new { message = "User authentication required." });
-                }
-
-                var result = await _buildingService.GetBuildingsByCustomerAsync(
-                    customerId, currentUserId.Value, page, pageSize, isActive);
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while fetching customer buildings.", details = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Validates if a customer ID is accessible by the current user.
-        /// </summary>
-        /// <param name="customerId">The customer ID to validate.</param>
-        /// <returns>Validation result indicating if the customer is accessible.</returns>
-        /// <response code="200">Returns the validation result</response>
-        /// <response code="401">If the user is not authenticated</response>
-        /// <response code="500">If there was an internal server error</response>
-        [HttpGet("validate-customer/{customerId}")]
-        [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult> ValidateCustomerAccess(int customerId)
-        {
-            try
-            {
-                var currentUserId = GetCurrentUserId();
-                if (currentUserId == null)
-                {
-                    return Unauthorized(new { message = "User authentication required." });
-                }
-
-                var hasAccess = await _buildingService.ValidateCustomerAccessAsync(customerId, currentUserId.Value);
-
-                return Ok(new { customerId = customerId, hasAccess = hasAccess });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while validating customer access.", details = ex.Message });
-            }
-        }
 
         /// <summary>
         /// Extracts the current user ID from the JWT token claims.

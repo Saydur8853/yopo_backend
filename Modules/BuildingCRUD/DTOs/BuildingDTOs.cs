@@ -225,29 +225,4 @@ namespace YopoBackend.Modules.BuildingCRUD.DTOs
         public bool HasNextPage { get; set; }
     }
 
-    /// <summary>
-    /// DTO for building amenities summary.
-    /// </summary>
-    public class BuildingAmenitiesDTO
-    {
-        /// <summary>
-        /// Gets or sets the building ID.
-        /// </summary>
-        public int BuildingId { get; set; }
-
-        /// <summary>
-        /// Gets or sets the building name.
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the list of amenities.
-        /// </summary>
-        public List<string> Amenities { get; set; } = new List<string>();
-
-        /// <summary>
-        /// Gets or sets the total amenity count.
-        /// </summary>
-        public int AmenityCount { get; set; }
-    }
 }

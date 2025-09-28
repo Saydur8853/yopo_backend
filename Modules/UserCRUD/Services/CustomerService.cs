@@ -224,11 +224,12 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// <param name="page">The page number (starting from 1).</param>
         /// <param name="pageSize">The number of items per page.</param>
         /// <param name="searchTerm">Optional search term to filter customers by name, company, or email.</param>
+        /// <param name="customerId">Optional filter by specific customer ID.</param>
         /// <param name="active">Optional active status filter.</param>
         /// <param name="isTrial">Optional trial status filter.</param>
         /// <param name="paid">Optional paid status filter.</param>
         /// <returns>A paginated list of customers.</returns>
-        public async Task<CustomerListResponseDTO> GetAllCustomersAsync(int page = 1, int pageSize = 10, string? searchTerm = null, bool? active = null, bool? isTrial = null, bool? paid = null)
+        public async Task<CustomerListResponseDTO> GetAllCustomersAsync(int page = 1, int pageSize = 10, string? searchTerm = null, int? customerId = null, bool? active = null, bool? isTrial = null, bool? paid = null)
         {
             try
             {
@@ -244,6 +245,11 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     query = query.Where(c => c.CustomerName.ToLower().Contains(search) ||
                                            (c.CompanyName != null && c.CompanyName.ToLower().Contains(search)) ||
                                            (c.User != null && c.User.Email.ToLower().Contains(search)));
+                }
+
+                if (customerId.HasValue)
+                {
+                    query = query.Where(c => c.CustomerId == customerId.Value);
                 }
 
                 if (active.HasValue)

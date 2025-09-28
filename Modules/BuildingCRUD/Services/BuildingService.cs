@@ -30,6 +30,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             int pageSize = 10,
             string? searchTerm = null,
             int? customerId = null,
+            int? buildingId = null,
             bool? isActive = null,
             bool? hasGym = null,
             bool? hasSwimmingPool = null,
@@ -53,6 +54,11 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             if (customerId.HasValue)
             {
                 query = query.Where(b => b.CustomerId == customerId.Value);
+            }
+
+            if (buildingId.HasValue)
+            {
+                query = query.Where(b => b.BuildingId == buildingId.Value);
             }
 
             if (isActive.HasValue)
@@ -118,43 +124,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             };
         }
 
-        /// <summary>
-        /// Gets a building by ID with access control validation.
-        /// </summary>
-        public async Task<BuildingResponseDTO?> GetBuildingByIdAsync(int buildingId, int currentUserId)
-        {
-            var query = _context.Buildings
-                .Include(b => b.Customer)
-                .Include(b => b.CreatedByUser)
-                .Where(b => b.BuildingId == buildingId);
-
-            // Apply access control
-            query = await ApplyAccessControlAsync(query, currentUserId);
-
-            var building = await query.FirstOrDefaultAsync();
-
-            if (building == null)
-                return null;
-
-            return new BuildingResponseDTO
-            {
-                BuildingId = building.BuildingId,
-                CustomerId = building.CustomerId,
-                CustomerName = building.Customer.CustomerName,
-                CompanyName = building.Customer.CompanyName ?? string.Empty,
-                Name = building.Name,
-                Address = building.Address,
-                Floors = building.Floors,
-                ParkingFloor = building.ParkingFloor,
-                HasGym = building.HasGym,
-                HasSwimmingPool = building.HasSwimmingPool,
-                HasSauna = building.HasSauna,
-                IsActive = building.IsActive,
-                CreatedByName = building.CreatedByUser.Name,
-                CreatedAt = building.CreatedAt,
-                UpdatedAt = building.UpdatedAt
-            };
-        }
 
         /// <summary>
         /// Creates a new building.
@@ -300,63 +269,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             return true;
         }
 
-        /// <summary>
-        /// Gets building amenities summary for a specific building.
-        /// </summary>
-        public async Task<BuildingAmenitiesDTO?> GetBuildingAmenitiesAsync(int buildingId, int currentUserId)
-        {
-            var query = _context.Buildings.Where(b => b.BuildingId == buildingId);
 
-            // Apply access control
-            query = await ApplyAccessControlAsync(query, currentUserId);
-
-            var building = await query.FirstOrDefaultAsync();
-            if (building == null)
-                return null;
-
-            var amenities = new List<string>();
-            if (building.HasGym) amenities.Add("Gym");
-            if (building.HasSwimmingPool) amenities.Add("Swimming Pool");
-            if (building.HasSauna) amenities.Add("Sauna");
-
-            return new BuildingAmenitiesDTO
-            {
-                BuildingId = building.BuildingId,
-                Name = building.Name,
-                Amenities = amenities,
-                AmenityCount = amenities.Count
-            };
-        }
-
-        /// <summary>
-        /// Gets buildings for a specific customer with access control validation.
-        /// </summary>
-        public async Task<BuildingListResponseDTO> GetBuildingsByCustomerAsync(
-            int customerId,
-            int currentUserId,
-            int page = 1,
-            int pageSize = 10,
-            bool? isActive = null)
-        {
-            // Validate customer access first
-            var hasCustomerAccess = await ValidateCustomerAccessAsync(customerId, currentUserId);
-            if (!hasCustomerAccess)
-            {
-                // Return empty result if no access to customer
-                return new BuildingListResponseDTO
-                {
-                    Buildings = new List<BuildingResponseDTO>(),
-                    TotalCount = 0,
-                    Page = page,
-                    PageSize = pageSize,
-                    TotalPages = 0,
-                    HasPreviousPage = false,
-                    HasNextPage = false
-                };
-            }
-
-            return await GetBuildingsAsync(currentUserId, page, pageSize, null, customerId, isActive);
-        }
 
         /// <summary>
         /// Validates if a customer ID is accessible by the current user based on PM access control.

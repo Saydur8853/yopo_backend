@@ -17,6 +17,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// <param name="pageSize">Number of items per page.</param>
         /// <param name="searchTerm">Optional search term for building name or address.</param>
         /// <param name="customerId">Optional filter by customer ID.</param>
+        /// <param name="buildingId">Optional filter by specific building ID.</param>
         /// <param name="isActive">Optional filter by active status.</param>
         /// <param name="hasGym">Optional filter by gym amenity.</param>
         /// <param name="hasSwimmingPool">Optional filter by swimming pool amenity.</param>
@@ -28,18 +29,12 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             int pageSize = 10,
             string? searchTerm = null,
             int? customerId = null,
+            int? buildingId = null,
             bool? isActive = null,
             bool? hasGym = null,
             bool? hasSwimmingPool = null,
             bool? hasSauna = null);
 
-        /// <summary>
-        /// Gets a building by ID with access control validation.
-        /// </summary>
-        /// <param name="buildingId">The building ID.</param>
-        /// <param name="currentUserId">The current user's ID for access control.</param>
-        /// <returns>The building if found and accessible, null otherwise.</returns>
-        Task<BuildingResponseDTO?> GetBuildingByIdAsync(int buildingId, int currentUserId);
 
         /// <summary>
         /// Creates a new building.
@@ -66,29 +61,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// <returns>True if deleted successfully, false if not found or no access.</returns>
         Task<bool> DeleteBuildingAsync(int buildingId, int currentUserId);
 
-        /// <summary>
-        /// Gets building amenities summary for a specific building.
-        /// </summary>
-        /// <param name="buildingId">The building ID.</param>
-        /// <param name="currentUserId">The current user's ID for access control.</param>
-        /// <returns>Building amenities information if accessible, null otherwise.</returns>
-        Task<BuildingAmenitiesDTO?> GetBuildingAmenitiesAsync(int buildingId, int currentUserId);
 
-        /// <summary>
-        /// Gets buildings for a specific customer with access control validation.
-        /// </summary>
-        /// <param name="customerId">The customer ID.</param>
-        /// <param name="currentUserId">The current user's ID for access control.</param>
-        /// <param name="page">Page number (starting from 1).</param>
-        /// <param name="pageSize">Number of items per page.</param>
-        /// <param name="isActive">Optional filter by active status.</param>
-        /// <returns>Paginated list of buildings for the customer if accessible.</returns>
-        Task<BuildingListResponseDTO> GetBuildingsByCustomerAsync(
-            int customerId,
-            int currentUserId,
-            int page = 1,
-            int pageSize = 10,
-            bool? isActive = null);
 
         /// <summary>
         /// Validates if a customer ID is accessible by the current user based on PM access control.
