@@ -130,23 +130,20 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// </summary>
         public async Task<BuildingResponseDTO> CreateBuildingAsync(CreateBuildingDTO createBuildingDto, int currentUserId)
         {
-            // Determine target customerId based on current user's access level
+            // Enforce: Only Property Managers can create buildings
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            if (currentUser == null || currentUser.UserTypeId != YopoBackend.Constants.UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                throw new UnauthorizedAccessException("Only Property Managers can create buildings.");
+            }
+
+            // Determine target customerId based on current user's access level (PM)
             var userDataAccessControl = await GetUserDataAccessControlAsync(currentUserId);
             int targetCustomerId;
 
-            if (userDataAccessControl == YopoBackend.Constants.UserTypeConstants.DATA_ACCESS_ALL)
-            {
-                // Super Admin: For now, derive from property manager relationship
-                // TODO: Consider adding a separate DTO for Super Admin if CustomerId specification is needed
-                var propertyManagerId = await FindPropertyManagerForUserAsync(currentUserId) ?? currentUserId;
-                targetCustomerId = propertyManagerId;
-            }
-            else
-            {
-                // For PM ecosystem or OWN access, derive PM's customerId from token/user
-                var propertyManagerId = await FindPropertyManagerForUserAsync(currentUserId) ?? currentUserId;
-                targetCustomerId = propertyManagerId;
-            }
+            // For PM (and any legacy ALL/OWN), derive PM's customerId from token/user
+            var propertyManagerId = await FindPropertyManagerForUserAsync(currentUserId) ?? currentUserId;
+            targetCustomerId = propertyManagerId;
 
             // Validate that the customer exists and is accessible
             var hasCustomerAccess = await ValidateCustomerAccessAsync(targetCustomerId, currentUserId);

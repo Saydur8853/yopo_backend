@@ -73,24 +73,44 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     return null; // Invalid password
                 }
 
-                // Pre-load buildings for Property Managers so login response includes buildings
+                // Pre-load buildings for users who have Building module access.
+                // For Property Managers: load own buildings.
+                // For PM-invited users (DataAccessControl = PM): load inviter PM's buildings.
                 List<UserBuildingDto>? userBuildings = null;
-                if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                
+                // Determine if user has Building module access via module permissions
+                bool hasBuildingModule = user.UserType?.ModulePermissions
+                    ?.Any(utmp => utmp.IsActive && utmp.Module.IsActive && utmp.Module.Id == ModuleConstants.BUILDING_MODULE_ID) == true;
+
+                if (hasBuildingModule)
                 {
-                    userBuildings = await _context.Buildings
-                        .Include(b => b.Customer)
-                        .Where(b => b.CustomerId == user.Id && b.IsActive)
-                        .Select(b => new UserBuildingDto
-                        {
-                            BuildingId = b.BuildingId,
-                            BuildingName = b.Name,
-                            BuildingAddress = b.Address,
-                            CustomerName = b.Customer.CustomerName,
-                            CompanyName = b.Customer.CompanyName,
-                            CompanyAddress = b.Customer.CompanyAddress,
-                            UserId = b.CustomerId
-                        })
-                        .ToListAsync();
+                    int? pmId = null;
+                    if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                    {
+                        pmId = user.Id;
+                    }
+                    else
+                    {
+                        pmId = await FindPropertyManagerForUserAsync(user.Id);
+                    }
+
+                    if (pmId.HasValue)
+                    {
+                        userBuildings = await _context.Buildings
+                            .Include(b => b.Customer)
+                            .Where(b => b.CustomerId == pmId.Value && b.IsActive)
+                            .Select(b => new UserBuildingDto
+                            {
+                                BuildingId = b.BuildingId,
+                                BuildingName = b.Name,
+                                BuildingAddress = b.Address,
+                                CustomerName = b.Customer.CustomerName,
+                                CompanyName = b.Customer.CompanyName,
+                                CompanyAddress = b.Customer.CompanyAddress,
+                                UserId = b.CustomerId
+                            })
+                            .ToListAsync();
+                    }
                 }
 
                 // Generate JWT token with IP and device info if available

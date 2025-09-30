@@ -154,9 +154,12 @@ namespace YopoBackend.Services
                 return singleUserResult;
             }
 
-            // Get all users in this PM's ecosystem (PM + all users created by the PM)
+            // Get all users in this PM's ecosystem:
+            // - the PM themselves
+            // - any users invited by the PM (InviteById)
+            // - any users directly created by the PM (legacy records using CreatedBy)
             var ecosystemUserIds = await _context.Users
-                .Where(u => u.Id == propertyManagerId || u.CreatedBy == propertyManagerId)
+                .Where(u => u.Id == propertyManagerId || u.InviteById == propertyManagerId || u.CreatedBy == propertyManagerId)
                 .Select(u => u.Id)
                 .ToListAsync();
 
@@ -200,7 +203,26 @@ namespace YopoBackend.Services
                 return user.Id;
             }
 
-            // If user was created by a Property Manager, find that PM
+            // Prefer invitation chain: if user was invited by someone, follow inviter to find the PM
+            if (user.InviteById.HasValue)
+            {
+                var (inviter, _) = await GetUserCacheDataAsync(user.InviteById.Value);
+                if (inviter != null)
+                {
+                    if (inviter.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                    {
+                        return inviter.Id;
+                    }
+                    if (!visited.Contains(inviter.Id))
+                    {
+                        var pmIdViaInviter = await FindPropertyManagerForUserAsync(inviter.Id, visited);
+                        if (pmIdViaInviter != null)
+                            return pmIdViaInviter;
+                    }
+                }
+            }
+
+            // Fallback to creation chain (legacy)
             var (creator, _) = await GetUserCacheDataAsync(user.CreatedBy);
             if (creator?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
             {

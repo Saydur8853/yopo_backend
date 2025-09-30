@@ -246,7 +246,10 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
 
             userType.Name = updateUserTypeDto.Name;
             userType.Description = updateUserTypeDto.Description;
-            userType.DataAccessControl = updateUserTypeDto.DataAccessControl;
+            if (!string.IsNullOrEmpty(updateUserTypeDto.DataAccessControl))
+            {
+                userType.DataAccessControl = updateUserTypeDto.DataAccessControl;
+            }
             userType.IsActive = updateUserTypeDto.IsActive;
             userType.UpdatedAt = DateTime.UtcNow;
 

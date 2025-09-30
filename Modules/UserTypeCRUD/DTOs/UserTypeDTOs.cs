@@ -64,10 +64,9 @@ namespace YopoBackend.Modules.UserTypeCRUD.DTOs
 
         /// <summary>
         /// Gets or sets the data access control type for this user type.
-        /// "OWN" = Users can only access their own created data
-        /// "ALL" = Users can access all data for their user type
+        /// If null or empty, the existing value will be preserved.
         /// </summary>
-        public string DataAccessControl { get; set; } = "ALL";
+        public string? DataAccessControl { get; set; }
     }
 
     /// <summary>

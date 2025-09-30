@@ -1176,15 +1176,7 @@
                         <small style="color:#666; font-size:0.8rem; display:block; margin-top:0.25rem;">Select one or more modules for this user type.</small>
                     </div>
 
-                    <div class="form-group">
-                        <label>Data Access Control</label>
-                        <select id="user-type-dac" class="form-control" required>
-                            <option value="PM" selected>PM (Property Manager ecosystem)</option>
-                            <option value="ALL">ALL (Access all data)</option>
-                            <option value="OWN">OWN (Only own created data)</option>
-                        </select>
-                        <small style="color:#666; font-size:0.8rem; display:block; margin-top:0.25rem;">Depending on your role, some values may be overridden by backend rules.</small>
-                    </div>
+                    <!-- Data Access Control is auto-handled by backend; chooser removed -->
 
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" id="user-type-btn">
@@ -2617,7 +2609,7 @@
                         name: name,
                         description: description || null,
                         moduleIds: getSelectedModuleIds('module-chooser-create'),
-                        dataAccessControl: (document.getElementById('user-type-dac').value || 'PM'),
+                        // DataAccessControl is not sent; backend applies automatic policy for creator role
                         isActive: isActive
                     })
                 });
@@ -2854,12 +2846,7 @@
                 const preselected = Array.isArray(userType.moduleIds) ? userType.moduleIds : [];
                 renderModuleChooser('module-chooser-edit', preselected);
 
-                // Set DAC selector
-                const editDAC = document.getElementById('editUserTypeDAC');
-                if (editDAC) {
-                    const dac = (userType.dataAccessControl || 'PM').toUpperCase();
-                    editDAC.value = ['PM','ALL','OWN'].includes(dac) ? dac : 'PM';
-                }
+                // Data Access Control is auto-handled by backend; no selector to set
                 
                 // Clear any previous messages
                 clearUserTypeEditMessages();
@@ -2920,8 +2907,7 @@
                     name: document.getElementById('editUserTypeName').value.trim(),
                     description: document.getElementById('editUserTypeDescription').value.trim() || null,
                     isActive: document.getElementById('editUserTypeStatus').value === 'true',
-                    moduleIds: getSelectedModuleIds('module-chooser-edit'),
-                    dataAccessControl: (document.getElementById('editUserTypeDAC').value || 'PM')
+                    moduleIds: getSelectedModuleIds('module-chooser-edit')
                 };
                 
                 // Basic validation
@@ -3766,14 +3752,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Data Access Control</label>
-                        <select id="editUserTypeDAC" class="form-control" required>
-                            <option value="PM">PM (Property Manager ecosystem)</option>
-                            <option value="ALL">ALL (Access all data)</option>
-                            <option value="OWN">OWN (Only own created data)</option>
-                        </select>
-                    </div>
+                    <!-- Data Access Control chooser removed; backend controls DAC automatically -->
 
                     <div class="modal-actions">
                         <button type="button" class="btn btn-secondary" onclick="closeUserTypeEditModal()">Cancel</button>
