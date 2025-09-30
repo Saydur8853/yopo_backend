@@ -71,7 +71,18 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             var currentUser = await GetUserWithAccessControlAsync(currentUserId);
             bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
             
-            var invitationDtos = invitations.Select(inv => FilterCompanyNameForUser(MapToResponseDTO(inv), isSuperAdmin)).ToList();
+            // Prefetch building IDs for all invitations
+            var invitationIds = invitations.Select(i => i.Id).ToList();
+            var buildingLookup = await _context.InvitationBuildings
+                .Where(ib => invitationIds.Contains(ib.InvitationId))
+                .GroupBy(ib => ib.InvitationId)
+                .ToDictionaryAsync(g => g.Key, g => g.Select(x => x.BuildingId).ToList());
+
+            var invitationDtos = invitations
+                .Select(inv => FilterCompanyNameForUser(
+                    MapToResponseDTO(inv, buildingLookup.GetValueOrDefault(inv.Id)),
+                    isSuperAdmin))
+                .ToList();
             
             // Calculate pagination info
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
@@ -102,7 +113,16 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             var currentUser = await GetUserWithAccessControlAsync(currentUserId);
             bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
             
-            return invitations.Select(inv => FilterCompanyNameForUser(MapToResponseDTO(inv), isSuperAdmin));
+            // Prefetch building IDs for all invitations
+            var invitationIds = invitations.Select(i => i.Id).ToList();
+            var buildingLookup = await _context.InvitationBuildings
+                .Where(ib => invitationIds.Contains(ib.InvitationId))
+                .GroupBy(ib => ib.InvitationId)
+                .ToDictionaryAsync(g => g.Key, g => g.Select(x => x.BuildingId).ToList());
+
+            return invitations.Select(inv => FilterCompanyNameForUser(
+                MapToResponseDTO(inv, buildingLookup.GetValueOrDefault(inv.Id)),
+                isSuperAdmin));
         }
 
         /// <inheritdoc/>
@@ -127,7 +147,13 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             var currentUser = await GetUserWithAccessControlAsync(currentUserId);
             bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
             
-            return FilterCompanyNameForUser(MapToResponseDTO(invitation), isSuperAdmin);
+            // Load building IDs for this invitation
+            var buildingIds = await _context.InvitationBuildings
+                .Where(ib => ib.InvitationId == invitation.Id)
+                .Select(ib => ib.BuildingId)
+                .ToListAsync();
+
+            return FilterCompanyNameForUser(MapToResponseDTO(invitation, buildingIds), isSuperAdmin);
         }
 
         /// <inheritdoc/>
@@ -151,6 +177,26 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             _context.Invitations.Add(invitation);
             await _context.SaveChangesAsync();
 
+            // If inviter is a PM and buildings were specified (for non-PM invite), persist mapping
+            if (!isSuperAdmin && createDto.UserTypeId != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && createDto.BuildingIds != null && createDto.BuildingIds.Any())
+            {
+                // Validate buildings belong to this PM's customer
+                var pmId = currentUser!.Id;
+                var validBuildingIds = await _context.Buildings
+                    .Where(b => b.CustomerId == pmId && createDto.BuildingIds.Contains(b.BuildingId))
+                    .Select(b => b.BuildingId)
+                    .ToListAsync();
+
+                var toInsert = validBuildingIds.Select(bid => new YopoBackend.Modules.InvitationCRUD.Models.InvitationBuilding
+                {
+                    InvitationId = invitation.Id,
+                    BuildingId = bid,
+                    CreatedAt = DateTime.UtcNow
+                });
+                _context.InvitationBuildings.AddRange(toInsert);
+                await _context.SaveChangesAsync();
+            }
+
             // Load the user type for the response
             await _context.Entry(invitation)
                 .Reference(i => i.UserType)
@@ -162,8 +208,14 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             // Return with proper CompanyName filtering (Super Admin check already done above)
             var responseUser = await GetUserWithAccessControlAsync(createdByUserId);
             bool isResponseSuperAdmin = responseUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+
+            // Load building IDs for this invitation
+            var buildingIdsForNew = await _context.InvitationBuildings
+                .Where(ib => ib.InvitationId == invitation.Id)
+                .Select(ib => ib.BuildingId)
+                .ToListAsync();
             
-            return FilterCompanyNameForUser(MapToResponseDTO(invitation), isResponseSuperAdmin);
+            return FilterCompanyNameForUser(MapToResponseDTO(invitation, buildingIdsForNew), isResponseSuperAdmin);
         }
 
         /// <inheritdoc/>
@@ -214,6 +266,50 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             invitation.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
+            // Update building mappings if requested
+            if (updateDto.BuildingIds != null)
+            {
+                // Determine PM context for validation
+                int? pmId = await _context.Users
+                    .Where(u => u.Id == invitation.CreatedBy && u.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                    .Select(u => (int?)u.Id)
+                    .FirstOrDefaultAsync();
+
+                if (pmId == null)
+                {
+                    var acting = await GetUserWithAccessControlAsync(currentUserId);
+                    if (acting?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                    {
+                        pmId = acting.Id;
+                    }
+                }
+
+                // Clear existing mappings
+                var existing = await _context.InvitationBuildings
+                    .Where(ib => ib.InvitationId == id)
+                    .ToListAsync();
+                _context.InvitationBuildings.RemoveRange(existing);
+
+                // Only apply if target user type is not Property Manager and pmId is available
+                if (invitation.UserTypeId != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && pmId.HasValue && updateDto.BuildingIds.Any())
+                {
+                    var validBuildingIds = await _context.Buildings
+                        .Where(b => b.CustomerId == pmId.Value && updateDto.BuildingIds.Contains(b.BuildingId))
+                        .Select(b => b.BuildingId)
+                        .ToListAsync();
+
+                    var toInsert = validBuildingIds.Select(bid => new YopoBackend.Modules.InvitationCRUD.Models.InvitationBuilding
+                    {
+                        InvitationId = invitation.Id,
+                        BuildingId = bid,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    _context.InvitationBuildings.AddRange(toInsert);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+
             // Reload the user type if it was changed
             if (updateDto.UserTypeId.HasValue)
             {
@@ -228,7 +324,13 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             var currentUser = await GetUserWithAccessControlAsync(currentUserId);
             bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
             
-            return FilterCompanyNameForUser(MapToResponseDTO(invitation), isSuperAdmin);
+            // Load building IDs for this invitation
+            var buildingIds = await _context.InvitationBuildings
+                .Where(ib => ib.InvitationId == invitation.Id)
+                .Select(ib => ib.BuildingId)
+                .ToListAsync();
+
+            return FilterCompanyNameForUser(MapToResponseDTO(invitation, buildingIds), isSuperAdmin);
         }
 
         /// <inheritdoc/>
@@ -269,8 +371,16 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             // Check if user is Super Admin for CompanyName access
             var currentUser = await GetUserWithAccessControlAsync(currentUserId);
             bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+
+            // Prefetch building IDs
+            var expIds = expiredInvitations.Select(i => i.Id).ToList();
+            var expBldLookup = await _context.InvitationBuildings
+                .Where(ib => expIds.Contains(ib.InvitationId))
+                .GroupBy(ib => ib.InvitationId)
+                .ToDictionaryAsync(g => g.Key, g => g.Select(x => x.BuildingId).ToList());
             
-            return expiredInvitations.Select(inv => FilterCompanyNameForUser(MapToResponseDTO(inv), isSuperAdmin));
+            return expiredInvitations.Select(inv => FilterCompanyNameForUser(
+                MapToResponseDTO(inv, expBldLookup.GetValueOrDefault(inv.Id)), isSuperAdmin));
         }
 
         /// <inheritdoc/>
@@ -289,8 +399,16 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             // Check if user is Super Admin for CompanyName access
             var currentUser = await GetUserWithAccessControlAsync(currentUserId);
             bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+
+            // Prefetch building IDs
+            var actIds = activeInvitations.Select(i => i.Id).ToList();
+            var actBldLookup = await _context.InvitationBuildings
+                .Where(ib => actIds.Contains(ib.InvitationId))
+                .GroupBy(ib => ib.InvitationId)
+                .ToDictionaryAsync(g => g.Key, g => g.Select(x => x.BuildingId).ToList());
             
-            return activeInvitations.Select(inv => FilterCompanyNameForUser(MapToResponseDTO(inv), isSuperAdmin));
+            return activeInvitations.Select(inv => FilterCompanyNameForUser(
+                MapToResponseDTO(inv, actBldLookup.GetValueOrDefault(inv.Id)), isSuperAdmin));
         }
 
         /// <inheritdoc/>
@@ -475,7 +593,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             return false;
         }
 
-        private InvitationResponseDTO MapToResponseDTO(Invitation invitation, int? requestingUserId = null)
+        private InvitationResponseDTO MapToResponseDTO(Invitation invitation, List<int>? buildingIds, int? requestingUserId = null)
         {
             return new InvitationResponseDTO
             {
@@ -488,7 +606,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 CreatedAt = invitation.CreatedAt,
                 UpdatedAt = invitation.UpdatedAt,
                 IsExpired = invitation.IsExpired,
-                DaysUntilExpiry = invitation.DaysUntilExpiry
+                DaysUntilExpiry = invitation.DaysUntilExpiry,
+                BuildingIds = buildingIds ?? new List<int>()
             };
         }
         

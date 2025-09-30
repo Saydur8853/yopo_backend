@@ -54,6 +54,11 @@ namespace YopoBackend.Data
         public DbSet<UserToken> UserTokens { get; set; }
 
         /// <summary>
+        /// Gets or sets the UserBuildingPermissions DbSet for per-user building access control.
+        /// </summary>
+        public DbSet<YopoBackend.Modules.UserCRUD.Models.UserBuildingPermission> UserBuildingPermissions { get; set; }
+
+        /// <summary>
         /// Gets or sets the Customers DbSet for managing customer entities (property managers).
         /// </summary>
         public DbSet<Customer> Customers { get; set; }
@@ -63,6 +68,11 @@ namespace YopoBackend.Data
         /// Gets or sets the Buildings DbSet for managing building entities.
         /// </summary>
         public DbSet<Building> Buildings { get; set; }
+
+        /// <summary>
+        /// Gets or sets the InvitationBuildings DbSet for mapping invitations to buildings.
+        /// </summary>
+        public DbSet<YopoBackend.Modules.InvitationCRUD.Models.InvitationBuilding> InvitationBuildings { get; set; }
 
 
 
@@ -253,6 +263,34 @@ namespace YopoBackend.Data
                     .OnDelete(DeleteBehavior.Restrict); // Don't delete user if they created buildings
             });
             
+            // Configure UserBuildingPermission entity (Module ID: 3)
+            modelBuilder.Entity<YopoBackend.Modules.UserCRUD.Models.UserBuildingPermission>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.UserId, e.BuildingId }).IsUnique();
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // No direct Building navigation; enforce via queries (BuildingCRUD module)
+            });
+
+            // Configure InvitationBuilding entity (Module ID: 2)
+            modelBuilder.Entity<YopoBackend.Modules.InvitationCRUD.Models.InvitationBuilding>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.InvitationId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
+
         }
     }
 }

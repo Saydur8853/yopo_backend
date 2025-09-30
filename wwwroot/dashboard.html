@@ -1116,6 +1116,22 @@
                         <option value="7" selected>7 Days</option>
                     </select>
                 </div>
+                
+                <!-- Building chooser for PM inviting non-PM users -->
+                <div class="form-group" id="invite-buildings-group" style="display: none;">
+                    <label>Select Buildings</label>
+                    <div style="margin: 6px 0;">
+                        <label class="module-option" style="display:inline-flex;">
+                            <input type="checkbox" id="invite-buildings-select-all" onclick="toggleInviteSelectAll(this)">
+                            <span class="module-name">Select All</span>
+                        </label>
+                    </div>
+                    <div id="invite-building-chooser" class="module-chooser">
+                        <span class="module-chooser-empty">Loading buildings...</span>
+                    </div>
+                    <small style="color:#666; font-size:0.8rem; display:block; margin-top:0.25rem;">Choose which buildings the invited user can access. If none selected, the invited user will not see any buildings.</small>
+                </div>
+                
                 <div class="form-group">
                     <button type="submit" class="btn btn-primary" id="invite-btn">
                         📧 Send Invite
@@ -2113,6 +2129,71 @@
         }
 
         // Invitation Management Functions
+        // Load buildings for PM's building chooser
+        async function loadBuildingsForInvitationChooser() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/buildings?page=1&pageSize=1000`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const container = document.getElementById('invite-building-chooser');
+                if (!response.ok) {
+                    if (container) container.innerHTML = '<span class="module-chooser-empty">Failed to load buildings</span>';
+                    return;
+                }
+                const data = await response.json();
+                const buildings = (data && data.buildings) ? data.buildings : [];
+                if (buildings.length === 0) {
+                    container.innerHTML = '<span class="module-chooser-empty">No buildings available</span>';
+                    return;
+                }
+                const html = buildings.map(b => `
+                    <label class="module-option">
+                        <input type="checkbox" class="invite-building-checkbox" data-building-id="${b.buildingId}">
+                        <span class="module-name">${b.name}</span>
+                        <small class="module-id">#${b.buildingId}</small>
+                    </label>
+                `).join('');
+                container.classList.add('module-chooser');
+                container.innerHTML = html;
+                // Reset Select All checkbox and bind child change handlers
+                const master = document.getElementById('invite-buildings-select-all');
+                if (master) master.checked = false;
+                Array.from(container.querySelectorAll('input.invite-building-checkbox')).forEach(cb => {
+                    cb.addEventListener('change', syncInviteSelectAllState);
+                });
+            } catch (e) {
+                console.error('Error loading buildings for invitation chooser', e);
+                const container = document.getElementById('invite-building-chooser');
+                if (container) container.innerHTML = '<span class="module-chooser-empty">Failed to load buildings</span>';
+            }
+        }
+
+        function getSelectedInvitationBuildingIds() {
+            const container = document.getElementById('invite-building-chooser');
+            if (!container) return [];
+            return Array.from(container.querySelectorAll('input.invite-building-checkbox:checked'))
+                .map(cb => parseInt(cb.getAttribute('data-building-id')))
+                .filter(id => !Number.isNaN(id));
+        }
+
+        function toggleInviteSelectAll(master) {
+            const container = document.getElementById('invite-building-chooser');
+            if (!container) return;
+            const boxes = container.querySelectorAll('input.invite-building-checkbox');
+            boxes.forEach(cb => { cb.checked = master.checked; });
+        }
+
+        function syncInviteSelectAllState() {
+            const container = document.getElementById('invite-building-chooser');
+            const master = document.getElementById('invite-buildings-select-all');
+            if (!container || !master) return;
+            const boxes = Array.from(container.querySelectorAll('input.invite-building-checkbox'));
+            master.checked = boxes.length > 0 && boxes.every(cb => cb.checked);
+        }
+
         async function loadUserTypesForInvitation() {
             try {
                 const token = localStorage.getItem('authToken');
@@ -2157,16 +2238,19 @@
             
             // Add event listener to show/hide company name field
             dropdown.addEventListener('change', handleRoleChange);
+            // Initialize UI based on default selection
+            handleRoleChange();
         }
         
         function handleRoleChange() {
             const roleSelect = document.getElementById('invite-role');
             const companyGroup = document.getElementById('company-name-group');
+            const buildingsGroup = document.getElementById('invite-buildings-group');
             const selectedRoleId = roleSelect.value;
+            const selectedUserType = (Array.isArray(availableUserTypes) ? availableUserTypes : []).find(t => t.id == selectedRoleId);
             
             // Only Super Admins can see and set CompanyName for Property Manager invitations
             if (selectedRoleId && userData && userData.userTypeName === 'Super Admin') {
-                const selectedUserType = availableUserTypes.find(t => t.id == selectedRoleId);
                 // Show company name field for Property Manager invitations only for Super Admins
                 if (selectedUserType && selectedUserType.name === 'Property Manager') {
                     companyGroup.style.display = 'block';
@@ -2183,6 +2267,14 @@
                 const companyInput = document.getElementById('invite-company');
                 companyInput.required = false;
                 companyInput.value = ''; // Clear the field
+            }
+
+            // PM building chooser: visible for PM inviting non-PM roles
+            if (userData && userData.userTypeName === 'Property Manager' && selectedUserType && selectedUserType.name !== 'Property Manager') {
+                buildingsGroup.style.display = 'block';
+                loadBuildingsForInvitationChooser();
+            } else {
+                buildingsGroup.style.display = 'none';
             }
         }
         
@@ -2222,6 +2314,14 @@
                 if (companyName) {
                     requestBody.companyName = companyName;
                 }
+
+                // If current user is PM and inviting a non-PM role, include selected building IDs
+                if (userData && userData.userTypeName === 'Property Manager' && selectedUserType && selectedUserType.name !== 'Property Manager') {
+                    const buildingIds = getSelectedInvitationBuildingIds();
+                    if (buildingIds.length > 0) {
+                        requestBody.buildingIds = buildingIds;
+                    }
+                }
                 
                 const response = await fetch(`${API_BASE}/invitations`, {
                     method: 'POST',
@@ -2244,7 +2344,6 @@
                     throw new Error(errorMessage);
                 }
                 
-                const selectedUserType = availableUserTypes.find(t => t.id == roleId);
                 const roleName = selectedUserType ? selectedUserType.name : 'user';
                 
                 const companyMsg = companyName ? ` for ${companyName}` : '';

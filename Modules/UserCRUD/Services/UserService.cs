@@ -84,21 +84,17 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                 if (hasBuildingModule)
                 {
-                    int? pmId = null;
-                    if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
-                    {
-                        pmId = user.Id;
-                    }
-                    else
-                    {
-                        pmId = await FindPropertyManagerForUserAsync(user.Id);
-                    }
+                    // Check explicit building permissions first
+                    var explicitBuildingIds = await _context.UserBuildingPermissions
+                        .Where(p => p.UserId == user.Id && p.IsActive)
+                        .Select(p => p.BuildingId)
+                        .ToListAsync();
 
-                    if (pmId.HasValue)
+                    if (explicitBuildingIds.Any())
                     {
                         userBuildings = await _context.Buildings
                             .Include(b => b.Customer)
-                            .Where(b => b.CustomerId == pmId.Value && b.IsActive)
+                            .Where(b => explicitBuildingIds.Contains(b.BuildingId) && b.IsActive)
                             .Select(b => new UserBuildingDto
                             {
                                 BuildingId = b.BuildingId,
@@ -110,6 +106,44 @@ namespace YopoBackend.Modules.UserCRUD.Services
                                 UserId = b.CustomerId
                             })
                             .ToListAsync();
+                    }
+                    else
+                    {
+                        // If invited non-PM with no explicit permissions, return empty
+                        if (user.UserTypeId != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && user.InviteById.HasValue)
+                        {
+                            userBuildings = new List<UserBuildingDto>();
+                        }
+                        else
+                        {
+                            int? pmId = null;
+                            if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                            {
+                                pmId = user.Id;
+                            }
+                            else
+                            {
+                                pmId = await FindPropertyManagerForUserAsync(user.Id);
+                            }
+
+                            if (pmId.HasValue)
+                            {
+                                userBuildings = await _context.Buildings
+                                    .Include(b => b.Customer)
+                                    .Where(b => b.CustomerId == pmId.Value && b.IsActive)
+                                    .Select(b => new UserBuildingDto
+                                    {
+                                        BuildingId = b.BuildingId,
+                                        BuildingName = b.Name,
+                                        BuildingAddress = b.Address,
+                                        CustomerName = b.Customer.CustomerName,
+                                        CompanyName = b.Customer.CompanyName,
+                                        CompanyAddress = b.Customer.CompanyAddress,
+                                        UserId = b.CustomerId
+                                    })
+                                    .ToListAsync();
+                            }
+                        }
                     }
                 }
 
@@ -155,6 +189,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 string? invitationCompanyName = null;
                 int? inviterUserId = null;
                 string? inviterUserName = null;
+                List<int> invitationBuildingIds = new List<int>();
                 
                 if (isFirstUser)
                 {
@@ -189,7 +224,13 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                     Console.WriteLine($"User registration with invitation - assigning user type {invitation.UserType?.Name} to: {registerRequest.Email}; invited by ID {inviterUserId} name '{inviterUserName}'");
                     
-                    // Remove the used invitation
+                    // Collect invitation building IDs to apply after user creation
+                    invitationBuildingIds = await _context.InvitationBuildings
+                        .Where(ib => ib.InvitationId == invitation.Id)
+                        .Select(ib => ib.BuildingId)
+                        .ToListAsync();
+
+                    // Remove the used invitation and its building mappings
                     _context.Invitations.Remove(invitation);
                 }
 
@@ -250,6 +291,25 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 {
                     user.InviteById = user.Id;
                     user.InviteByName = "self";
+                }
+
+                // Apply building permissions if invitation specified buildings
+                if (invitationBuildingIds.Any())
+                {
+                    var distinctValid = await _context.Buildings
+                        .Where(b => invitationBuildingIds.Contains(b.BuildingId))
+                        .Select(b => b.BuildingId)
+                        .Distinct()
+                        .ToListAsync();
+
+                    var perms = distinctValid.Select(bid => new UserBuildingPermission
+                    {
+                        UserId = user.Id,
+                        BuildingId = bid,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    _context.UserBuildingPermissions.AddRange(perms);
                 }
 
                 await _context.SaveChangesAsync();

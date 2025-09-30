@@ -39,6 +39,12 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// </summary>
         [Range(1, 7)]
         public int ExpiryDays { get; set; } = 7; // Default 7 days
+
+        /// <summary>
+        /// Optional: For Property Manager inviting non-PM users, select buildings to grant access.
+        /// Ignored when inviting a Property Manager.
+        /// </summary>
+        public List<int>? BuildingIds { get; set; }
     }
 
     /// <summary>
@@ -68,6 +74,12 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// </summary>
         [Range(1, 7)]
         public int? ExpiryDays { get; set; }
+
+        /// <summary>
+        /// Optional: For PM invitations to non-PM users, updates the selected building IDs.
+        /// If provided, replaces previous selection. If empty list provided, clears selection.
+        /// </summary>
+        public List<int>? BuildingIds { get; set; }
     }
 
     /// <summary>
@@ -124,6 +136,12 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// Gets or sets the number of days until the invitation expires.
         /// </summary>
         public int DaysUntilExpiry { get; set; }
+
+        /// <summary>
+        /// Gets or sets the selected building IDs (if any) associated with this invitation.
+        /// Empty when none were selected.
+        /// </summary>
+        public List<int> BuildingIds { get; set; } = new();
     }
 
     /// <summary>
