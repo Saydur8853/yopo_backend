@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace YopoBackend.Modules.InvitationCRUD.DTOs
 {
@@ -42,9 +43,9 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
 
         /// <summary>
         /// Optional: For Property Manager inviting non-PM users, select buildings to grant access.
-        /// Ignored when inviting a Property Manager.
+        /// Accepts ["all"] to grant access to all PM buildings. Ignored when inviting a Property Manager.
         /// </summary>
-        public List<int>? BuildingIds { get; set; }
+        public List<JsonElement>? BuildingIds { get; set; }
     }
 
     /// <summary>
@@ -77,9 +78,10 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
 
         /// <summary>
         /// Optional: For PM invitations to non-PM users, updates the selected building IDs.
-        /// If provided, replaces previous selection. If empty list provided, clears selection.
+        /// Accepts ["all"] to grant access to all PM buildings. If provided, replaces previous selection.
+        /// If empty list provided, clears selection.
         /// </summary>
-        public List<int>? BuildingIds { get; set; }
+        public List<JsonElement>? BuildingIds { get; set; }
     }
 
     /// <summary>

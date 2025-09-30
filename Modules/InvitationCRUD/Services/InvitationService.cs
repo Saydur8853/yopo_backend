@@ -180,21 +180,21 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             // If inviter is a PM and buildings were specified (for non-PM invite), persist mapping
             if (!isSuperAdmin && createDto.UserTypeId != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && createDto.BuildingIds != null && createDto.BuildingIds.Any())
             {
-                // Validate buildings belong to this PM's customer
+                // Determine buildings to assign: handle ["all"] or explicit list
                 var pmId = currentUser!.Id;
-                var validBuildingIds = await _context.Buildings
-                    .Where(b => b.CustomerId == pmId && createDto.BuildingIds.Contains(b.BuildingId))
-                    .Select(b => b.BuildingId)
-                    .ToListAsync();
+                var resolvedIds = await ResolveBuildingIdsAsync(createDto.BuildingIds, pmId);
 
-                var toInsert = validBuildingIds.Select(bid => new YopoBackend.Modules.InvitationCRUD.Models.InvitationBuilding
+                if (resolvedIds.Any())
                 {
-                    InvitationId = invitation.Id,
-                    BuildingId = bid,
-                    CreatedAt = DateTime.UtcNow
-                });
-                _context.InvitationBuildings.AddRange(toInsert);
-                await _context.SaveChangesAsync();
+                    var toInsert = resolvedIds.Select(bid => new YopoBackend.Modules.InvitationCRUD.Models.InvitationBuilding
+                    {
+                        InvitationId = invitation.Id,
+                        BuildingId = bid,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    _context.InvitationBuildings.AddRange(toInsert);
+                    await _context.SaveChangesAsync();
+                }
             }
 
             // Load the user type for the response
@@ -293,12 +293,9 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 // Only apply if target user type is not Property Manager and pmId is available
                 if (invitation.UserTypeId != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && pmId.HasValue && updateDto.BuildingIds.Any())
                 {
-                    var validBuildingIds = await _context.Buildings
-                        .Where(b => b.CustomerId == pmId.Value && updateDto.BuildingIds.Contains(b.BuildingId))
-                        .Select(b => b.BuildingId)
-                        .ToListAsync();
+                    var resolvedIds = await ResolveBuildingIdsAsync(updateDto.BuildingIds, pmId.Value);
 
-                    var toInsert = validBuildingIds.Select(bid => new YopoBackend.Modules.InvitationCRUD.Models.InvitationBuilding
+                    var toInsert = resolvedIds.Select(bid => new YopoBackend.Modules.InvitationCRUD.Models.InvitationBuilding
                     {
                         InvitationId = invitation.Id,
                         BuildingId = bid,
@@ -624,6 +621,42 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 invitation.CompanyName = null; // Hide company name from non-Super Admin users
             }
             return invitation;
+        }
+        private async Task<List<int>> ResolveBuildingIdsAsync(IEnumerable<System.Text.Json.JsonElement> rawBuildingIds, int pmId)
+        {
+            var list = rawBuildingIds.ToList();
+            if (list.Count == 1 && list[0].ValueKind == System.Text.Json.JsonValueKind.String &&
+                string.Equals(list[0].GetString(), "all", StringComparison.OrdinalIgnoreCase))
+            {
+                return await _context.Buildings
+                    .Where(b => b.CustomerId == pmId)
+                    .Select(b => b.BuildingId)
+                    .ToListAsync();
+            }
+
+            // Parse numeric ids safely from numbers or numeric strings
+            var numeric = new List<int>();
+            foreach (var el in list)
+            {
+                if (el.ValueKind == System.Text.Json.JsonValueKind.Number && el.TryGetInt32(out var n))
+                {
+                    numeric.Add(n);
+                }
+                else if (el.ValueKind == System.Text.Json.JsonValueKind.String)
+                {
+                    var s = el.GetString();
+                    if (int.TryParse(s, out var m)) numeric.Add(m);
+                }
+            }
+
+            if (!numeric.Any()) return new List<int>();
+
+            // Validate against PM's buildings
+            var valid = await _context.Buildings
+                .Where(b => b.CustomerId == pmId && numeric.Contains(b.BuildingId))
+                .Select(b => b.BuildingId)
+                .ToListAsync();
+            return valid;
         }
     }
 }

@@ -2317,9 +2317,14 @@
 
                 // If current user is PM and inviting a non-PM role, include selected building IDs
                 if (userData && userData.userTypeName === 'Property Manager' && selectedUserType && selectedUserType.name !== 'Property Manager') {
-                    const buildingIds = getSelectedInvitationBuildingIds();
-                    if (buildingIds.length > 0) {
-                        requestBody.buildingIds = buildingIds;
+                    const master = document.getElementById('invite-buildings-select-all');
+                    if (master && master.checked) {
+                        requestBody.buildingIds = ["all"]; // shorthand for all PM buildings
+                    } else {
+                        const buildingIds = getSelectedInvitationBuildingIds();
+                        if (buildingIds.length > 0) {
+                            requestBody.buildingIds = buildingIds.map(id => String(id));
+                        }
                     }
                 }
                 
