@@ -269,6 +269,15 @@ namespace YopoBackend.Migrations
                         .HasColumnType("varchar(255)")
                         .HasColumnName("Email");
 
+                    b.Property<int?>("InviteById")
+                        .HasColumnType("int")
+                        .HasColumnName("inviteById");
+
+                    b.Property<string>("InviteByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("inviteByName");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IsActive");

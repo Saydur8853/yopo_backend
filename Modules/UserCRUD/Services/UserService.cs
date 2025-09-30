@@ -133,12 +133,16 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 
                 int userTypeId;
                 string? invitationCompanyName = null;
+                int? inviterUserId = null;
+                string? inviterUserName = null;
                 
                 if (isFirstUser)
                 {
                     // First user becomes Super Admin
                     userTypeId = UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
                     Console.WriteLine($"First user registration - assigning Super Admin role to: {registerRequest.Email}");
+                    // For self-registration (no invitation), mark inviter as self
+                    inviterUserName = "self";
                 }
                 else
                 {
@@ -157,7 +161,13 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     
                     userTypeId = invitation.UserTypeId;
                     invitationCompanyName = invitation.CompanyName;
-                    Console.WriteLine($"User registration with invitation - assigning user type {invitation.UserType?.Name} to: {registerRequest.Email}");
+
+                    // Capture inviter details to store in the new user record
+                    inviterUserId = invitation.CreatedBy;
+                    var inviter = await _context.Users.FirstOrDefaultAsync(u => u.Id == inviterUserId);
+                    inviterUserName = inviter?.Name;
+
+                    Console.WriteLine($"User registration with invitation - assigning user type {invitation.UserType?.Name} to: {registerRequest.Email}; invited by ID {inviterUserId} name '{inviterUserName}'");
                     
                     // Remove the used invitation
                     _context.Invitations.Remove(invitation);
@@ -200,6 +210,9 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     ProfilePhoto = profilePhotoBytes,
                     ProfilePhotoMimeType = profilePhotoMimeType,
                     UserTypeId = userTypeId,
+                    // Set inviter info only if registered via an invitation
+                    InviteById = inviterUserId,
+                    InviteByName = inviterUserName,
                     IsActive = true,
                     IsEmailVerified = false,
                     CreatedBy = 0, // Will be set to the user's own ID after creation
@@ -211,6 +224,14 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                 // Update CreatedBy to the user's own ID for self-registration
                 user.CreatedBy = user.Id;
+
+                // If this was a self-registration (no invitation), set inviter to self
+                if (isFirstUser)
+                {
+                    user.InviteById = user.Id;
+                    user.InviteByName = "self";
+                }
+
                 await _context.SaveChangesAsync();
 
                 // Create Customer record if user is a Property Manager
@@ -964,6 +985,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 UpdatedAt = user.UpdatedAt,
                 PermittedModules = permittedModules,
                 Buildings = buildings,
+                InviteById = user.InviteById,
+                InviteByName = user.InviteByName,
                 ProfilePhotoBase64 = ImageUtils.ConvertToBase64DataUrl(user.ProfilePhoto, user.ProfilePhotoMimeType)
             };
         }

@@ -90,6 +90,19 @@ namespace YopoBackend.Modules.UserCRUD.Models
         [Column("IsEmailVerified")]
         public bool IsEmailVerified { get; set; } = false;
 
+        /// <summary>
+        /// The ID of the inviter user when this user registered via an invitation.
+        /// </summary>
+        [Column("inviteById")]
+        public int? InviteById { get; set; }
+
+        /// <summary>
+        /// The name of the inviter user when this user registered via an invitation.
+        /// Stored redundantly for convenience/reporting.
+        /// </summary>
+        [MaxLength(200)]
+        [Column("inviteByName")]
+        public string? InviteByName { get; set; }
 
         /// <summary>
         /// Gets or sets the ID of the user who created this user record.

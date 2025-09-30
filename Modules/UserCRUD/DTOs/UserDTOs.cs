@@ -311,6 +311,16 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         public bool IsEmailVerified { get; set; }
 
         /// <summary>
+        /// Gets or sets the inviter user ID. If self-registered, this is the user's own ID.
+        /// </summary>
+        public int? InviteById { get; set; }
+
+        /// <summary>
+        /// Gets or sets the inviter user name. If self-registered, this will be "self".
+        /// </summary>
+        public string? InviteByName { get; set; }
+
+        /// <summary>
         /// Gets or sets the date and time when the user was created.
         /// </summary>
         public DateTime CreatedAt { get; set; }
