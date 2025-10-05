@@ -64,8 +64,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         /// </summary>
         /// <param name="id">The ID of the user type to delete.</param>
         /// <param name="currentUserId">The ID of the current user making the request.</param>
-        /// <returns>A task that represents the asynchronous operation. The task result contains true if successful, otherwise false.</returns>
-        Task<bool> DeleteUserTypeAsync(int id, int currentUserId);
+        /// <returns>A task that represents the asynchronous operation. The task result contains the deleted user type DTO if successful, otherwise null.</returns>
+        Task<UserTypeDto?> DeleteUserTypeAsync(int id, int currentUserId);
 
         /// <summary>
         /// Gets a list of existing user type names for dropdown/autocomplete functionality.

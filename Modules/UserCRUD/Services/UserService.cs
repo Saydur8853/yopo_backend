@@ -489,7 +489,79 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     return null; // User doesn't have access to this user record
                 }
 
-                return MapToUserResponse(user);
+                // Pre-load buildings similar to LoginAsync so that /api/Users/me returns Buildings
+                List<UserBuildingDto>? userBuildings = null;
+
+                // Determine if user has Building module access via module permissions
+                bool hasBuildingModule = user.UserType?.ModulePermissions
+                    ?.Any(utmp => utmp.IsActive && utmp.Module.IsActive && utmp.Module.Id == ModuleConstants.BUILDING_MODULE_ID) == true;
+
+                if (hasBuildingModule)
+                {
+                    // Check explicit building permissions first
+                    var explicitBuildingIds = await _context.UserBuildingPermissions
+                        .Where(p => p.UserId == user.Id && p.IsActive)
+                        .Select(p => p.BuildingId)
+                        .ToListAsync();
+
+                    if (explicitBuildingIds.Any())
+                    {
+                        userBuildings = await _context.Buildings
+                            .Include(b => b.Customer)
+                            .Where(b => explicitBuildingIds.Contains(b.BuildingId) && b.IsActive)
+                            .Select(b => new UserBuildingDto
+                            {
+                                BuildingId = b.BuildingId,
+                                BuildingName = b.Name,
+                                BuildingAddress = b.Address,
+                                CustomerName = b.Customer.CustomerName,
+                                CompanyName = b.Customer.CompanyName,
+                                CompanyAddress = b.Customer.CompanyAddress,
+                                UserId = b.CustomerId
+                            })
+                            .ToListAsync();
+                    }
+                    else
+                    {
+                        // If invited non-PM with no explicit permissions, return empty
+                        if (user.UserTypeId != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && user.InviteById.HasValue)
+                        {
+                            userBuildings = new List<UserBuildingDto>();
+                        }
+                        else
+                        {
+                            int? pmId = null;
+                            if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                            {
+                                pmId = user.Id;
+                            }
+                            else
+                            {
+                                pmId = await FindPropertyManagerForUserAsync(user.Id);
+                            }
+
+                            if (pmId.HasValue)
+                            {
+                                userBuildings = await _context.Buildings
+                                    .Include(b => b.Customer)
+                                    .Where(b => b.CustomerId == pmId.Value && b.IsActive)
+                                    .Select(b => new UserBuildingDto
+                                    {
+                                        BuildingId = b.BuildingId,
+                                        BuildingName = b.Name,
+                                        BuildingAddress = b.Address,
+                                        CustomerName = b.Customer.CustomerName,
+                                        CompanyName = b.Customer.CompanyName,
+                                        CompanyAddress = b.Customer.CompanyAddress,
+                                        UserId = b.CustomerId
+                                    })
+                                    .ToListAsync();
+                            }
+                        }
+                    }
+                }
+
+                return MapToUserResponse(user, userBuildings);
             }
             catch (Exception ex)
             {

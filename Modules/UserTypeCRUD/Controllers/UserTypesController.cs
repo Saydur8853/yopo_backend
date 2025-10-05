@@ -184,7 +184,11 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                 }
 
                 var createdUserType = await _userTypeService.CreateUserTypeAsync(createUserTypeDto, userId);
-                return CreatedAtAction(nameof(GetUserType), new { id = createdUserType.Id }, createdUserType);
+                return CreatedAtAction(nameof(GetUserType), new { id = createdUserType.Id }, new
+                {
+                    message = $"User type '{createdUserType.Name}' with ID {createdUserType.Id} has been created successfully.",
+                    userType = createdUserType
+                });
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -222,10 +226,14 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                 var updatedUserType = await _userTypeService.UpdateUserTypeAsync(id, updateUserTypeDto, currentUserId);
                 if (updatedUserType == null)
                 {
-                    return NotFound($"User type with ID {id} not found.");
+                    return NotFound(new { message = $"User type with ID {id} not found or you don't have access to update it." });
                 }
 
-                return Ok(updatedUserType);
+                return Ok(new
+                {
+                    message = $"User type '{updatedUserType.Name}' with ID {updatedUserType.Id} has been updated successfully.",
+                    userType = updatedUserType
+                });
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -241,24 +249,39 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         /// Deletes a user type.
         /// </summary>
         /// <param name="id">The ID of the user type to delete.</param>
-        /// <returns>A confirmation of deletion.</returns>
+        /// <returns>A confirmation of deletion with details of the deleted user type.</returns>
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteUserType(int id)
         {
             try
             {
                 var currentUserId = GetCurrentUserId();
-                var result = await _userTypeService.DeleteUserTypeAsync(id, currentUserId);
-                if (!result)
+                var deletedUserType = await _userTypeService.DeleteUserTypeAsync(id, currentUserId);
+                if (deletedUserType == null)
                 {
-                    return NotFound($"User type with ID {id} not found.");
+                    return NotFound(new { message = $"User type with ID {id} not found or you don't have access to delete it." });
                 }
 
-                return NoContent();
+                return Ok(new 
+                { 
+                    message = $"User type '{deletedUserType.Name}' with ID {deletedUserType.Id} has been deleted successfully.",
+                    deletedUserType = new
+                    {
+                        id = deletedUserType.Id,
+                        name = deletedUserType.Name,
+                        description = deletedUserType.Description,
+                        dataAccessControl = deletedUserType.DataAccessControl,
+                        moduleCount = deletedUserType.ModuleIds.Count
+                    }
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
             }
         }
 

@@ -34,13 +34,6 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             // Apply access control
             query = await ApplyAccessControlAsync(query, currentUserId);
 
-            // Restrict Super Admin to only default user types (Super Admin + Property Manager)
-            if (await IsUserSuperAdminAsync(currentUserId))
-            {
-                var allowedIds = new[] { UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID, UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID };
-                query = query.Where(ut => allowedIds.Contains(ut.Id));
-            }
-            
             var userTypes = await query.ToListAsync();
             return userTypes.Select(MapToDto);
         }
@@ -55,13 +48,6 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
 
             // Apply access control
             query = await ApplyAccessControlAsync(query, currentUserId);
-
-            // Restrict Super Admin to only default user types (Super Admin + Property Manager)
-            if (await IsUserSuperAdminAsync(currentUserId))
-            {
-                var allowedIds = new[] { UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID, UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID };
-                query = query.Where(ut => allowedIds.Contains(ut.Id));
-            }
 
             // Filters
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -108,13 +94,6 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             // Apply access control
             query = await ApplyAccessControlAsync(query, currentUserId);
 
-            // Restrict Super Admin to only default user types (Super Admin + Property Manager)
-            if (await IsUserSuperAdminAsync(currentUserId))
-            {
-                var allowedIds = new[] { UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID, UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID };
-                query = query.Where(ut => allowedIds.Contains(ut.Id));
-            }
-            
             var userTypes = await query.ToListAsync();
             return userTypes.Select(MapToDto);
         }
@@ -132,14 +111,6 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 return null;
             }
 
-            // Super Admin can only view default user types (Super Admin + Property Manager)
-            if (await IsUserSuperAdminAsync(currentUserId) && 
-                id != UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID &&
-                id != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
-            {
-                return null;
-            }
-            
             // Check access control
             if (!await HasAccessToEntityAsync(userType, currentUserId))
             {
@@ -155,7 +126,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             // Check Super Admin restrictions first
             if (!await IsSuperAdminOperationAllowedAsync(createdByUserId, "create"))
             {
-                throw new UnauthorizedAccessException("Super Admin users are not allowed to create new user types. Only the existing 'Super Admin' and 'Property Manager' user types are permitted in the system.");
+                throw new UnauthorizedAccessException("Only Super Admin users are allowed to create user types.");
             }
 
             // Check if the creator is a Property Manager
@@ -211,12 +182,6 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         /// <inheritdoc/>
         public async Task<UserTypeDto?> UpdateUserTypeAsync(int id, UpdateUserTypeDto updateUserTypeDto, int currentUserId)
         {
-            // Check Super Admin restrictions for update operations
-            if (!await IsSuperAdminOperationAllowedAsync(currentUserId, "update", id))
-            {
-                throw new UnauthorizedAccessException("Super Admin users can only modify the existing 'Super Admin' and 'Property Manager' user types.");
-            }
-
             var userType = await _context.UserTypes.FindAsync(id);
             if (userType == null)
             {
@@ -227,6 +192,34 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             if (!await HasAccessToEntityAsync(userType, currentUserId))
             {
                 return null; // User doesn't have access to update this user type
+            }
+
+            // Protect essential system user types from critical changes
+            if (id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID || id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                // Prevent changing the name of essential system user types
+                if (updateUserTypeDto.Name != userType.Name)
+                {
+                    throw new UnauthorizedAccessException($"The name of the '{userType.Name}' user type cannot be changed as it is essential to the system.");
+                }
+                
+                // Prevent deactivating essential system user types
+                if (!updateUserTypeDto.IsActive)
+                {
+                    throw new UnauthorizedAccessException($"The '{userType.Name}' user type cannot be deactivated as it is essential to the system.");
+                }
+                
+                // Prevent changing DataAccessControl of Super Admin from "ALL"
+                if (id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID && !string.IsNullOrEmpty(updateUserTypeDto.DataAccessControl) && updateUserTypeDto.DataAccessControl != "ALL")
+                {
+                    throw new UnauthorizedAccessException("The Super Admin user type must maintain 'ALL' data access control.");
+                }
+                
+                // Prevent changing DataAccessControl of Property Manager from "OWN"
+                if (id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && !string.IsNullOrEmpty(updateUserTypeDto.DataAccessControl) && updateUserTypeDto.DataAccessControl != "OWN")
+                {
+                    throw new UnauthorizedAccessException("The Property Manager user type must maintain 'OWN' data access control.");
+                }
             }
 
             // Security rule on update as well: PM cannot rename to a prohibited name
@@ -263,25 +256,32 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> DeleteUserTypeAsync(int id, int currentUserId)
+        public async Task<UserTypeDto?> DeleteUserTypeAsync(int id, int currentUserId)
         {
-            // Check Super Admin restrictions for delete operations
-            if (!await IsSuperAdminOperationAllowedAsync(currentUserId, "delete", id))
+            // Prevent deletion of essential system user types
+            if (id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID || id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
             {
-                throw new UnauthorizedAccessException("Super Admin users can only delete non-essential user types. The 'Super Admin' and 'Property Manager' user types cannot be deleted.");
+                throw new UnauthorizedAccessException("The 'Super Admin' and 'Property Manager' user types cannot be deleted as they are essential to the system.");
             }
 
-            var userType = await _context.UserTypes.FindAsync(id);
+            var userType = await _context.UserTypes
+                .Include(ut => ut.ModulePermissions.Where(mp => mp.IsActive))
+                .ThenInclude(mp => mp.Module)
+                .FirstOrDefaultAsync(ut => ut.Id == id);
+            
             if (userType == null)
             {
-                return false;
+                return null;
             }
             
             // Check access control
             if (!await HasAccessToEntityAsync(userType, currentUserId))
             {
-                return false; // User doesn't have access to delete this user type
+                return null; // User doesn't have access to delete this user type
             }
+
+            // Create DTO before deletion
+            var deletedUserTypeDto = MapToDto(userType);
 
             // First, remove all module permissions
             var permissions = await _context.UserTypeModulePermissions
@@ -294,7 +294,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             _context.UserTypes.Remove(userType);
             await _context.SaveChangesAsync();
 
-            return true;
+            return deletedUserTypeDto;
         }
 
         /// <inheritdoc/>
@@ -668,9 +668,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         }
 
         /// <summary>
-        /// Validates if a Super Admin user is allowed to perform user type operations.
-        /// Super Admin can only manage existing "Super Admin" and "Property Manager" user types,
-        /// but cannot create new user types.
+        /// Validates if a user is allowed to perform user type operations.
+        /// Only Super Admin may create user types.
         /// </summary>
         /// <param name="userId">The ID of the user performing the operation</param>
         /// <param name="operation">The operation being performed ("create", "update", "delete")</param>
@@ -683,28 +682,18 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 .Include(u => u.UserType)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
-            // If not a Super Admin, allow the operation (other restrictions will apply)
-            if (user?.UserTypeId != UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
-            {
-                return true;
-            }
+            bool isSuperAdmin = user?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
 
-            // Super Admin restrictions
             switch (operation.ToLowerInvariant())
             {
                 case "create":
-                    // Super Admin is NOT allowed to create new user types
-                    return false;
+                    // Only Super Admin can create user types
+                    return isSuperAdmin;
 
                 case "update":
                 case "delete":
-                    // Super Admin can only modify the default user types (Super Admin and Property Manager)
-                    if (targetUserTypeId.HasValue)
-                    {
-                        return targetUserTypeId.Value == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID ||
-                               targetUserTypeId.Value == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID;
-                    }
-                    return false;
+                    // All users are allowed to attempt update/delete (subject to other access checks)
+                    return true;
 
                 default:
                     return true;
