@@ -162,6 +162,18 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             // Check if user is Super Admin for CompanyName access
             var currentUser = await GetUserWithAccessControlAsync(createdByUserId);
             bool isSuperAdmin = currentUser?.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID;
+
+            // Enforce: Property Managers can only invite user types with DataAccessControl = 'PM'
+            if (currentUser?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                var targetUserType = await _context.UserTypes
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(ut => ut.Id == createDto.UserTypeId && ut.IsActive);
+                if (targetUserType == null || targetUserType.DataAccessControl != UserTypeConstants.DATA_ACCESS_PM)
+                {
+                    throw new UnauthorizedAccessException("Property Managers may only invite user types with DataAccessControl = 'PM'.");
+                }
+            }
             
             var invitation = new Invitation
             {
@@ -242,6 +254,18 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
 
             if (updateDto.UserTypeId.HasValue)
             {
+                // Enforce: Property Managers can only update invitations to user types with DataAccessControl = 'PM'
+                var actingUser = await GetUserWithAccessControlAsync(currentUserId);
+                if (actingUser?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                {
+                    var targetUserType = await _context.UserTypes
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(ut => ut.Id == updateDto.UserTypeId.Value && ut.IsActive);
+                    if (targetUserType == null || targetUserType.DataAccessControl != UserTypeConstants.DATA_ACCESS_PM)
+                    {
+                        throw new UnauthorizedAccessException("Property Managers may only set invitation UserTypeId to types with DataAccessControl = 'PM'.");
+                    }
+                }
                 invitation.UserTypeId = updateDto.UserTypeId.Value;
             }
 

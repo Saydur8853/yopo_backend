@@ -44,6 +44,16 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         }
 
         /// <summary>
+        /// Checks if the current user is a Property Manager.
+        /// </summary>
+        /// <returns>True if current user's UserTypeId equals PROPERTY_MANAGER_USER_TYPE_ID.</returns>
+        private bool IsCurrentUserPropertyManager()
+        {
+            var userTypeIdClaim = User.FindFirst("UserTypeId")?.Value;
+            return int.TryParse(userTypeIdClaim, out int userTypeId) && userTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID;
+        }
+
+        /// <summary>
         /// Gets paginated user types with optional filters.
         /// </summary>
         /// <param name="page">Page number (starting from 1)</param>
@@ -166,6 +176,10 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         {
             try
             {
+                if (IsCurrentUserPropertyManager())
+                {
+                    return StatusCode(403, new { message = "Property Managers are not allowed to create user types." });
+                }
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (!int.TryParse(userIdClaim, out int userId))
                 {
@@ -211,6 +225,10 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         {
             try
             {
+                if (IsCurrentUserPropertyManager())
+                {
+                    return StatusCode(403, new { message = "Property Managers are not allowed to update user types." });
+                }
                 // Note: Multiple user types with the same name are allowed
 
                 // Validate module IDs if provided
@@ -255,6 +273,10 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         {
             try
             {
+                if (IsCurrentUserPropertyManager())
+                {
+                    return StatusCode(403, new { message = "Property Managers are not allowed to delete user types." });
+                }
                 var currentUserId = GetCurrentUserId();
                 var deletedUserType = await _userTypeService.DeleteUserTypeAsync(id, currentUserId);
                 if (deletedUserType == null)
