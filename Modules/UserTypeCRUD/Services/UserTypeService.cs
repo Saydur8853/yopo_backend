@@ -280,21 +280,96 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 return null; // User doesn't have access to delete this user type
             }
 
+            // Check if there are users still using this user type
+            var usersUsingThisType = await _context.Users
+                .Where(u => u.UserTypeId == id)
+                .Select(u => new { u.Id, u.Name, u.Email, u.IsActive })
+                .ToListAsync();
+
+            if (usersUsingThisType.Any())
+            {
+                var activeUsers = usersUsingThisType.Where(u => u.IsActive).ToList();
+                var inactiveUsers = usersUsingThisType.Where(u => !u.IsActive).ToList();
+                
+                var errorMessage = $"Cannot delete user type '{userType.Name}' because {usersUsingThisType.Count} user(s) are still assigned to it.";
+                
+                if (activeUsers.Any())
+                {
+                    errorMessage += $" Active users ({activeUsers.Count}): {string.Join(", ", activeUsers.Take(3).Select(u => $"{u.Name} ({u.Email})"))}";
+                    if (activeUsers.Count > 3)
+                    {
+                        errorMessage += $" and {activeUsers.Count - 3} more";
+                    }
+                    errorMessage += ".";
+                }
+                
+                if (inactiveUsers.Any())
+                {
+                    errorMessage += $" Inactive users ({inactiveUsers.Count}): {string.Join(", ", inactiveUsers.Take(3).Select(u => $"{u.Name} ({u.Email})"))}";
+                    if (inactiveUsers.Count > 3)
+                    {
+                        errorMessage += $" and {inactiveUsers.Count - 3} more";
+                    }
+                    errorMessage += ".";
+                }
+                
+                errorMessage += " Please reassign these users to a different user type before deleting this one.";
+                
+                throw new InvalidOperationException(errorMessage);
+            }
+
             // Create DTO before deletion
             var deletedUserTypeDto = MapToDto(userType);
 
-            // First, remove all module permissions
-            var permissions = await _context.UserTypeModulePermissions
-                .Where(p => p.UserTypeId == id)
-                .ToListAsync();
+            try
+            {
+                // First, remove all module permissions
+                var permissions = await _context.UserTypeModulePermissions
+                    .Where(p => p.UserTypeId == id)
+                    .ToListAsync();
 
-            _context.UserTypeModulePermissions.RemoveRange(permissions);
+                _context.UserTypeModulePermissions.RemoveRange(permissions);
 
-            // Then remove the user type
-            _context.UserTypes.Remove(userType);
-            await _context.SaveChangesAsync();
+                // Then remove the user type
+                _context.UserTypes.Remove(userType);
+                await _context.SaveChangesAsync();
 
-            return deletedUserTypeDto;
+                return deletedUserTypeDto;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("FOREIGN KEY constraint") == true ||
+                                             ex.InnerException?.Message.Contains("foreign key constraint") == true ||
+                                             ex.InnerException?.Message.Contains("REFERENCE constraint") == true)
+            {
+                // Re-check for users in case they were created between our check and the delete attempt
+                var newUsersCheck = await _context.Users
+                    .Where(u => u.UserTypeId == id)
+                    .Select(u => new { u.Name, u.Email })
+                    .Take(5)
+                    .ToListAsync();
+                
+                if (newUsersCheck.Any())
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot delete user type '{userType.Name}' because users are still assigned to it. " +
+                        $"Users: {string.Join(", ", newUsersCheck.Select(u => $"{u.Name} ({u.Email})"))}. " +
+                        "Please reassign these users to a different user type before deleting this one.");
+                }
+                
+                // Generic foreign key constraint message if we can't identify the specific constraint
+                throw new InvalidOperationException(
+                    $"Cannot delete user type '{userType.Name}' because it is referenced by other records in the database. " +
+                    "Please ensure all related records are removed or updated before deleting this user type.");
+            }
+            catch (Exception ex)
+            {
+                // Log the original exception for debugging purposes
+                Console.WriteLine($"Error deleting user type {id}: {ex}");
+                
+                // Re-throw with more context
+                throw new InvalidOperationException(
+                    $"An error occurred while deleting user type '{userType.Name}'. " +
+                    $"Error details: {ex.Message}", ex);
+            }
         }
 
         /// <inheritdoc/>

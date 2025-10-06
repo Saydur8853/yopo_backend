@@ -301,9 +301,16 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
             {
                 return StatusCode(403, new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                // These are business logic errors (like constraint violations) that should return 400 Bad Request
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+                // Log the full exception details for debugging
+                Console.WriteLine($"Unexpected error in DeleteUserType: {ex}");
+                return StatusCode(500, new { message = $"An unexpected error occurred while deleting the user type. Please contact support if this persists." });
             }
         }
 
