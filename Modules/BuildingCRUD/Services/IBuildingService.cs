@@ -19,9 +19,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
         /// <param name="customerId">Optional filter by customer ID.</param>
         /// <param name="buildingId">Optional filter by specific building ID.</param>
         /// <param name="isActive">Optional filter by active status.</param>
-        /// <param name="hasGym">Optional filter by gym amenity.</param>
-        /// <param name="hasSwimmingPool">Optional filter by swimming pool amenity.</param>
-        /// <param name="hasSauna">Optional filter by sauna amenity.</param>
         /// <returns>Paginated list of buildings.</returns>
         Task<BuildingListResponseDTO> GetBuildingsAsync(
             int currentUserId,
@@ -30,10 +27,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             string? searchTerm = null,
             int? customerId = null,
             int? buildingId = null,
-            bool? isActive = null,
-            bool? hasGym = null,
-            bool? hasSwimmingPool = null,
-            bool? hasSauna = null);
+            bool? isActive = null);
 
 
         /// <summary>

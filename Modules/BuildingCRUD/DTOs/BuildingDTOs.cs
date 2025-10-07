@@ -23,32 +23,6 @@ namespace YopoBackend.Modules.BuildingCRUD.DTOs
         [MaxLength(500)]
         public string Address { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the number of floors in the building.
-        /// </summary>
-        [Range(1, int.MaxValue, ErrorMessage = "Floors must be at least 1")]
-        public int Floors { get; set; } = 1;
-
-        /// <summary>
-        /// Gets or sets the number of parking floors in the building.
-        /// </summary>
-        [Range(0, int.MaxValue, ErrorMessage = "Parking floors cannot be negative")]
-        public int ParkingFloor { get; set; } = 0;
-
-        /// <summary>
-        /// Gets or sets whether the building has a gym.
-        /// </summary>
-        public bool HasGym { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets whether the building has a swimming pool.
-        /// </summary>
-        public bool HasSwimmingPool { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets whether the building has a sauna.
-        /// </summary>
-        public bool HasSauna { get; set; } = false;
     }
 
     /// <summary>
@@ -69,32 +43,6 @@ namespace YopoBackend.Modules.BuildingCRUD.DTOs
         [MaxLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
         public string? Address { get; set; }
 
-        /// <summary>
-        /// Gets or sets the number of floors in the building. Optional - only updated if provided.
-        /// </summary>
-        [Range(1, int.MaxValue, ErrorMessage = "Floors must be at least 1")]
-        public int? Floors { get; set; }
-
-        /// <summary>
-        /// Gets or sets the number of parking floors in the building. Optional - only updated if provided.
-        /// </summary>
-        [Range(0, int.MaxValue, ErrorMessage = "Parking floors cannot be negative")]
-        public int? ParkingFloor { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the building has a gym. Optional - only updated if provided.
-        /// </summary>
-        public bool? HasGym { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the building has a swimming pool. Optional - only updated if provided.
-        /// </summary>
-        public bool? HasSwimmingPool { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the building has a sauna. Optional - only updated if provided.
-        /// </summary>
-        public bool? HasSauna { get; set; }
 
         /// <summary>
         /// Gets or sets whether this building is active. Optional - only updated if provided.
@@ -137,30 +85,6 @@ namespace YopoBackend.Modules.BuildingCRUD.DTOs
         /// </summary>
         public string Address { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the number of floors in the building.
-        /// </summary>
-        public int Floors { get; set; }
-
-        /// <summary>
-        /// Gets or sets the number of parking floors in the building.
-        /// </summary>
-        public int ParkingFloor { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the building has a gym.
-        /// </summary>
-        public bool HasGym { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the building has a swimming pool.
-        /// </summary>
-        public bool HasSwimmingPool { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the building has a sauna.
-        /// </summary>
-        public bool HasSauna { get; set; }
 
         /// <summary>
         /// Gets or sets whether this building is active.

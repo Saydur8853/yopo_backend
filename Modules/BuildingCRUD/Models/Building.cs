@@ -41,35 +41,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Models
         [Column("Address")]
         public string Address { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the number of floors in the building.
-        /// </summary>
-        [Column("Floors")]
-        public int Floors { get; set; }
-
-        /// <summary>
-        /// Gets or sets the number of parking floors in the building.
-        /// </summary>
-        [Column("ParkingFloor")]
-        public int ParkingFloor { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the building has a gym.
-        /// </summary>
-        [Column("HasGym")]
-        public bool HasGym { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the building has a swimming pool.
-        /// </summary>
-        [Column("HasSwimmingPool")]
-        public bool HasSwimmingPool { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether the building has a sauna.
-        /// </summary>
-        [Column("HasSauna")]
-        public bool HasSauna { get; set; }
 
         /// <summary>
         /// Gets or sets whether this building is active.

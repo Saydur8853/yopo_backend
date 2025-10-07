@@ -87,22 +87,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("CustomerId");
 
-                    b.Property<int>("Floors")
-                        .HasColumnType("int")
-                        .HasColumnName("Floors");
-
-                    b.Property<bool>("HasGym")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("HasGym");
-
-                    b.Property<bool>("HasSauna")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("HasSauna");
-
-                    b.Property<bool>("HasSwimmingPool")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("HasSwimmingPool");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IsActive");
@@ -112,10 +96,6 @@ namespace YopoBackend.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)")
                         .HasColumnName("Name");
-
-                    b.Property<int>("ParkingFloor")
-                        .HasColumnType("int")
-                        .HasColumnName("ParkingFloor");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime")

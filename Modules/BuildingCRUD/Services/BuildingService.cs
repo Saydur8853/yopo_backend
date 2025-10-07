@@ -31,10 +31,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             string? searchTerm = null,
             int? customerId = null,
             int? buildingId = null,
-            bool? isActive = null,
-            bool? hasGym = null,
-            bool? hasSwimmingPool = null,
-            bool? hasSauna = null)
+            bool? isActive = null)
         {
             // Start with base query
             var query = _context.Buildings
@@ -85,20 +82,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 query = query.Where(b => b.IsActive == isActive.Value);
             }
 
-            if (hasGym.HasValue)
-            {
-                query = query.Where(b => b.HasGym == hasGym.Value);
-            }
-
-            if (hasSwimmingPool.HasValue)
-            {
-                query = query.Where(b => b.HasSwimmingPool == hasSwimmingPool.Value);
-            }
-
-            if (hasSauna.HasValue)
-            {
-                query = query.Where(b => b.HasSauna == hasSauna.Value);
-            }
 
             // Get total count before pagination
             var totalCount = await query.CountAsync();
@@ -116,11 +99,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                     CompanyName = b.Customer.CompanyName ?? string.Empty,
                     Name = b.Name,
                     Address = b.Address,
-                    Floors = b.Floors,
-                    ParkingFloor = b.ParkingFloor,
-                    HasGym = b.HasGym,
-                    HasSwimmingPool = b.HasSwimmingPool,
-                    HasSauna = b.HasSauna,
                     IsActive = b.IsActive,
                     CreatedByName = b.CreatedByUser.Name,
                     CreatedAt = b.CreatedAt,
@@ -176,11 +154,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 CustomerId = targetCustomerId,
                 Name = createBuildingDto.Name,
                 Address = createBuildingDto.Address,
-                Floors = createBuildingDto.Floors,
-                ParkingFloor = createBuildingDto.ParkingFloor,
-                HasGym = createBuildingDto.HasGym,
-                HasSwimmingPool = createBuildingDto.HasSwimmingPool,
-                HasSauna = createBuildingDto.HasSauna,
                 IsActive = true, // New buildings are active by default
                 CreatedBy = currentUserId,
                 CreatedAt = DateTime.UtcNow
@@ -203,11 +176,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 CompanyName = createdBuilding.Customer.CompanyName ?? string.Empty,
                 Name = createdBuilding.Name,
                 Address = createdBuilding.Address,
-                Floors = createdBuilding.Floors,
-                ParkingFloor = createdBuilding.ParkingFloor,
-                HasGym = createdBuilding.HasGym,
-                HasSwimmingPool = createdBuilding.HasSwimmingPool,
-                HasSauna = createdBuilding.HasSauna,
                 IsActive = createdBuilding.IsActive,
                 CreatedByName = createdBuilding.CreatedByUser.Name,
                 CreatedAt = createdBuilding.CreatedAt,
@@ -257,20 +225,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             if (updateBuildingDto.Address != null)
                 building.Address = updateBuildingDto.Address;
             
-            if (updateBuildingDto.Floors.HasValue)
-                building.Floors = updateBuildingDto.Floors.Value;
-            
-            if (updateBuildingDto.ParkingFloor.HasValue)
-                building.ParkingFloor = updateBuildingDto.ParkingFloor.Value;
-            
-            if (updateBuildingDto.HasGym.HasValue)
-                building.HasGym = updateBuildingDto.HasGym.Value;
-            
-            if (updateBuildingDto.HasSwimmingPool.HasValue)
-                building.HasSwimmingPool = updateBuildingDto.HasSwimmingPool.Value;
-            
-            if (updateBuildingDto.HasSauna.HasValue)
-                building.HasSauna = updateBuildingDto.HasSauna.Value;
             
             if (updateBuildingDto.IsActive.HasValue)
                 building.IsActive = updateBuildingDto.IsActive.Value;
@@ -287,11 +241,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 CompanyName = building.Customer.CompanyName ?? string.Empty,
                 Name = building.Name,
                 Address = building.Address,
-                Floors = building.Floors,
-                ParkingFloor = building.ParkingFloor,
-                HasGym = building.HasGym,
-                HasSwimmingPool = building.HasSwimmingPool,
-                HasSauna = building.HasSauna,
                 IsActive = building.IsActive,
                 CreatedByName = building.CreatedByUser.Name,
                 CreatedAt = building.CreatedAt,

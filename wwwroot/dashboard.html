@@ -1241,28 +1241,6 @@
                         <input type="text" id="building-address" class="form-control" required placeholder="Enter building address" maxlength="500">
                     </div>
                     <div class="form-group">
-                        <label for="building-floors">Floors</label>
-                        <input type="number" id="building-floors" class="form-control" required min="1" value="1">
-                    </div>
-                    <div class="form-group">
-                        <label for="building-parking">Parking Floors</label>
-                        <input type="number" id="building-parking" class="form-control" min="0" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Amenities</label>
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
-                            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-weight: normal;">
-                                <input type="checkbox" id="building-gym"> Gym
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-weight: normal;">
-                                <input type="checkbox" id="building-pool"> Swimming Pool
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-weight: normal;">
-                                <input type="checkbox" id="building-sauna"> Sauna
-                            </label>
-                        </div>
-                    </div>
-                    <div class="form-group">
                         <button type="submit" class="btn btn-primary" id="add-building-btn">
                             🏢 Add Building
                         </button>
@@ -3356,13 +3334,8 @@
             
             const name = document.getElementById('building-name').value.trim();
             const address = document.getElementById('building-address').value.trim();
-            const floors = parseInt(document.getElementById('building-floors').value);
-            const parkingFloor = parseInt(document.getElementById('building-parking').value);
-            const hasGym = document.getElementById('building-gym').checked;
-            const hasSwimmingPool = document.getElementById('building-pool').checked;
-            const hasSauna = document.getElementById('building-sauna').checked;
             
-            if (!name || !address || floors < 1) {
+            if (!name || !address) {
                 showBuildingsMessage('Please fill in all required fields', 'error');
                 return;
             }
@@ -3383,14 +3356,8 @@
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        customerId: customerId,
                         name: name,
-                        address: address,
-                        floors: floors,
-                        parkingFloor: parkingFloor,
-                        hasGym: hasGym,
-                        hasSwimmingPool: hasSwimmingPool,
-                        hasSauna: hasSauna
+                        address: address
                     })
                 });
                 
@@ -3408,8 +3375,6 @@
                 
                 showBuildingsMessage(`✓ Building "${name}" created successfully!`, 'success');
                 document.getElementById('add-building-form').reset();
-                document.getElementById('building-floors').value = '1';
-                document.getElementById('building-parking').value = '0';
                 
                 // Refresh the buildings list after successful creation
                 loadBuildingsList();
@@ -3435,7 +3400,7 @@
         function setBuildingLoading(loading) {
             isBuildingLoading = loading;
             const btn = document.getElementById('add-building-btn');
-            const inputs = ['building-name', 'building-address', 'building-floors', 'building-parking', 'building-gym', 'building-pool', 'building-sauna'];
+            const inputs = ['building-name', 'building-address'];
             
             if (loading) {
                 btn.disabled = true;
@@ -3514,20 +3479,12 @@
                             <th>Building Name</th>
                             <th>Address</th>
                             <th>Property Manager</th>
-                            <th>Floors</th>
-                            <th>Amenities</th>
                             <th>Status</th>
                             ${isPropertyManager ? '<th>Actions</th>' : ''}
                         </tr>
                     </thead>
                     <tbody>
                         ${buildings.map(building => {
-                            const amenities = [];
-                            if (building.hasGym) amenities.push('🏋️ Gym');
-                            if (building.hasSwimmingPool) amenities.push('🏊 Pool');
-                            if (building.hasSauna) amenities.push('🧖 Sauna');
-                            const amenitiesText = amenities.length > 0 ? amenities.join('<br>') : 'None';
-                            
                             return `
                             <tr>
                                 <td><strong>${building.name}</strong></td>
@@ -3536,11 +3493,6 @@
                                     <div>${building.customerName || 'N/A'}</div>
                                     ${building.companyName ? `<small style="color: #666;">${building.companyName}</small>` : ''}
                                 </td>
-                                <td>
-                                    ${building.floors} floors
-                                    ${building.parkingFloor > 0 ? `<br><small style="color: #666;">${building.parkingFloor} parking</small>` : ''}
-                                </td>
-                                <td>${amenitiesText}</td>
                                 <td>
                                     <span class="status-badge ${building.isActive ? 'status-active' : 'status-expired'}">
                                         ${building.isActive ? 'Active' : 'Inactive'}
@@ -3640,11 +3592,6 @@
             document.getElementById('editBuildingId').value = building.buildingId;
             document.getElementById('editBuildingName').value = building.name || '';
             document.getElementById('editBuildingAddress').value = building.address || '';
-            document.getElementById('editBuildingFloors').value = building.floors || 1;
-            document.getElementById('editBuildingParkingFloors').value = building.parkingFloor || 0;
-            document.getElementById('editBuildingGym').checked = building.hasGym || false;
-            document.getElementById('editBuildingPool').checked = building.hasSwimmingPool || false;
-            document.getElementById('editBuildingSauna').checked = building.hasSauna || false;
             document.getElementById('editBuildingActive').checked = building.isActive !== false;
         }
         
@@ -3688,21 +3635,11 @@
                 
                 const name = document.getElementById('editBuildingName').value.trim();
                 const address = document.getElementById('editBuildingAddress').value.trim();
-                const floors = parseInt(document.getElementById('editBuildingFloors').value);
-                const parkingFloor = parseInt(document.getElementById('editBuildingParkingFloors').value);
-                const hasGym = document.getElementById('editBuildingGym').checked;
-                const hasSwimmingPool = document.getElementById('editBuildingPool').checked;
-                const hasSauna = document.getElementById('editBuildingSauna').checked;
                 const isActive = document.getElementById('editBuildingActive').checked;
                 
                 // Add fields to update (partial update - only include what we want to change)
                 if (name) updateData.name = name;
                 if (address) updateData.address = address;
-                if (!isNaN(floors) && floors > 0) updateData.floors = floors;
-                if (!isNaN(parkingFloor) && parkingFloor >= 0) updateData.parkingFloor = parkingFloor;
-                updateData.hasGym = hasGym;
-                updateData.hasSwimmingPool = hasSwimmingPool;
-                updateData.hasSauna = hasSauna;
                 updateData.isActive = isActive;
                 
                 // Basic validation
@@ -3894,30 +3831,6 @@
                         <input type="text" id="editBuildingAddress" name="address" required maxlength="500" placeholder="Enter building address">
                     </div>
 
-                    <div class="form-group">
-                        <label for="editBuildingFloors">Floors *</label>
-                        <input type="number" id="editBuildingFloors" name="floors" required min="1" placeholder="Number of floors">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="editBuildingParkingFloors">Parking Floors</label>
-                        <input type="number" id="editBuildingParkingFloors" name="parkingFloor" min="0" value="0" placeholder="Number of parking floors">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Amenities</label>
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
-                            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-weight: normal;">
-                                <input type="checkbox" id="editBuildingGym"> 🏑️ Gym
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-weight: normal;">
-                                <input type="checkbox" id="editBuildingPool"> 🏊 Swimming Pool
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-weight: normal;">
-                                <input type="checkbox" id="editBuildingSauna"> 🧖 Sauna
-                            </label>
-                        </div>
-                    </div>
 
                     <div class="form-group">
                         <label>Status</label>

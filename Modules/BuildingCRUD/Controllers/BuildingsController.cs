@@ -35,9 +35,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
         /// <param name="customerId">Optional filter by customer ID.</param>
         /// <param name="buildingId">Optional filter by specific building ID.</param>
         /// <param name="isActive">Optional filter by active status.</param>
-        /// <param name="hasGym">Optional filter by gym amenity.</param>
-        /// <param name="hasSwimmingPool">Optional filter by swimming pool amenity.</param>
-        /// <param name="hasSauna">Optional filter by sauna amenity.</param>
         /// <returns>Paginated list of buildings accessible to the current user.</returns>
         /// <response code="200">Returns the paginated list of buildings</response>
         /// <response code="401">If the user is not authenticated</response>
@@ -52,10 +49,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
             [FromQuery] string? searchTerm = null,
             [FromQuery] int? customerId = null,
             [FromQuery] int? buildingId = null,
-            [FromQuery] bool? isActive = null,
-            [FromQuery] bool? hasGym = null,
-            [FromQuery] bool? hasSwimmingPool = null,
-            [FromQuery] bool? hasSauna = null)
+            [FromQuery] bool? isActive = null)
         {
             try
             {
@@ -67,7 +61,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
 
                 var result = await _buildingService.GetBuildingsAsync(
                     currentUserId.Value, page, pageSize, searchTerm, customerId, buildingId,
-                    isActive, hasGym, hasSwimmingPool, hasSauna);
+                    isActive);
 
                 return Ok(result);
             }
