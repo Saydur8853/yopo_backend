@@ -46,6 +46,11 @@ namespace YopoBackend.Constants
         public const int UNIT_MODULE_ID = 6;
 
         /// <summary>
+        /// Module ID for the AmenityCRUD module.
+        /// </summary>
+        public const int AMENITY_MODULE_ID = 7;
+
+        /// <summary>
         /// Module name for the BuildingCRUD module.
         /// </summary>
         public const string BUILDING_MODULE_NAME = "BuildingCRUD";
@@ -169,6 +174,17 @@ namespace YopoBackend.Constants
                     Id = UNIT_MODULE_ID,
                     Name = "UnitCRUD",
                     Description = "Module for managing units under floors and buildings",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                AMENITY_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = AMENITY_MODULE_ID,
+                    Name = "AmenityCRUD",
+                    Description = "Module for managing building amenities and facilities",
                     Version = "1.0.0",
                     IsActive = true
                 }

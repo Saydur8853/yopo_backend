@@ -46,6 +46,9 @@ builder.Services.AddScoped<YopoBackend.Modules.FloorCRUD.Services.IFloorService,
 // Module: UnitCRUD
 builder.Services.AddScoped<YopoBackend.Modules.UnitCRUD.Services.IUnitService, YopoBackend.Modules.UnitCRUD.Services.UnitService>();
 
+// Module: AmenityCRUD
+builder.Services.AddScoped<YopoBackend.Modules.AmenityCRUD.Services.IAmenityService, YopoBackend.Modules.AmenityCRUD.Services.AmenityService>();
+
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
@@ -163,6 +166,7 @@ static string GetControllerDisplayOrder(string? controllerName)
         "buildings" => "04-Buildings",
         "floors" => "05-Floors",
         "units" => "06-Units",
+        "amenities" => "07-Amenities",
         _ => controllerName ?? "Other"
     };
 }

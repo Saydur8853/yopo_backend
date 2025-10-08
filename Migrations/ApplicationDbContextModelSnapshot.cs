@@ -59,6 +59,73 @@ namespace YopoBackend.Migrations
                     b.ToTable("Modules");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.AmenityCRUD.Models.Amenity", b =>
+                {
+                    b.Property<int>("AmenityId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("AmenityId"));
+
+                    b.Property<string>("AccessControl")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("AccessControl");
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int")
+                        .HasColumnName("BuildingId");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("Description");
+
+                    b.Property<int?>("FloorId")
+                        .HasColumnType("int")
+                        .HasColumnName("FloorId");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IsAvailable");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Name");
+
+                    b.Property<string>("OpenHours")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("OpenHours");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Type");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("UpdatedAt");
+
+                    b.HasKey("AmenityId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("FloorId");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Amenities");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.BuildingCRUD.Models.Building", b =>
                 {
                     b.Property<int>("BuildingId")
@@ -679,6 +746,24 @@ namespace YopoBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("UserTypeModulePermissions");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.AmenityCRUD.Models.Amenity", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.FloorCRUD.Models.Floor", "Floor")
+                        .WithMany()
+                        .HasForeignKey("FloorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Building");
+
+                    b.Navigation("Floor");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.BuildingCRUD.Models.Building", b =>
