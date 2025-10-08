@@ -3,6 +3,7 @@ using YopoBackend.Modules.InvitationCRUD.Models;
 using YopoBackend.Modules.UserTypeCRUD.Models;
 using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Modules.BuildingCRUD.Models;
+using YopoBackend.Modules.FloorCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -68,6 +69,12 @@ namespace YopoBackend.Data
         /// Gets or sets the Buildings DbSet for managing building entities.
         /// </summary>
         public DbSet<Building> Buildings { get; set; }
+
+        // Module: FloorCRUD
+        /// <summary>
+        /// Gets or sets the Floors DbSet for managing floor entities.
+        /// </summary>
+        public DbSet<Floor> Floors { get; set; }
 
         /// <summary>
         /// Gets or sets the InvitationBuildings DbSet for mapping invitations to buildings.
@@ -261,6 +268,29 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.CreatedBy)
                     .OnDelete(DeleteBehavior.Restrict); // Don't delete user if they created buildings
+            });
+
+            // Configure Floor entity (FloorCRUD)
+            modelBuilder.Entity<Floor>(entity =>
+            {
+                entity.HasKey(e => e.FloorId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => new { e.BuildingId, e.Number });
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.Type).HasMaxLength(100);
+                entity.Property(e => e.Status).HasMaxLength(50);
+                entity.Property(e => e.AreaSqFt).HasColumnType("decimal(18,2)");
+
+                // Configure foreign key with Building
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Cascade); // Delete floors when building is deleted
             });
             
             // Configure UserBuildingPermission entity (Module ID: 3)

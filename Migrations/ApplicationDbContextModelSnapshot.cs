@@ -112,6 +112,69 @@ namespace YopoBackend.Migrations
                     b.ToTable("Buildings");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.FloorCRUD.Models.Floor", b =>
+                {
+                    b.Property<int>("FloorId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("FloorId"));
+
+                    b.Property<decimal?>("AreaSqFt")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("AreaSqFt");
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int")
+                        .HasColumnName("BuildingId");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IsActive");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Name");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int")
+                        .HasColumnName("Number");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Status");
+
+                    b.Property<int>("TotalUnits")
+                        .HasColumnType("int")
+                        .HasColumnName("TotalUnits");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Type");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("UpdatedAt");
+
+                    b.HasKey("FloorId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("BuildingId", "Number");
+
+                    b.ToTable("Floors");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.InvitationCRUD.Models.Invitation", b =>
                 {
                     b.Property<int>("Id")
@@ -544,6 +607,17 @@ namespace YopoBackend.Migrations
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.FloorCRUD.Models.Floor", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Building");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.InvitationCRUD.Models.Invitation", b =>

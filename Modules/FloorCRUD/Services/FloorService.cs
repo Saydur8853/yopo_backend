@@ -1,0 +1,134 @@
+using Microsoft.EntityFrameworkCore;
+using YopoBackend.Data;
+using YopoBackend.Modules.FloorCRUD.DTOs;
+using YopoBackend.Modules.FloorCRUD.Models;
+
+namespace YopoBackend.Modules.FloorCRUD.Services
+{
+    /// <summary>
+    /// Service handling floor CRUD operations.
+    /// </summary>
+    public class FloorService : IFloorService
+    {
+        private readonly ApplicationDbContext _context;
+
+        public FloorService(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<List<FloorResponseDTO>> GetFloorsByBuildingAsync(int buildingId)
+        {
+            var buildingExists = await _context.Buildings.AnyAsync(b => b.BuildingId == buildingId);
+            if (!buildingExists)
+            {
+                // Return empty list if building doesn't exist (controller may translate to 404)
+                return new List<FloorResponseDTO>();
+            }
+
+            return await _context.Floors
+                .Where(f => f.BuildingId == buildingId)
+                .OrderBy(f => f.Number)
+                .Select(f => new FloorResponseDTO
+                {
+                    FloorId = f.FloorId,
+                    BuildingId = f.BuildingId,
+                    Name = f.Name,
+                    Number = f.Number,
+                    Type = f.Type,
+                    TotalUnits = f.TotalUnits,
+                    AreaSqFt = f.AreaSqFt,
+                    IsActive = f.IsActive,
+                    Status = f.Status,
+                    CreatedAt = f.CreatedAt,
+                    UpdatedAt = f.UpdatedAt
+                })
+                .ToListAsync();
+        }
+
+        public async Task<FloorResponseDTO?> CreateFloorAsync(CreateFloorDTO dto)
+        {
+            var building = await _context.Buildings.FirstOrDefaultAsync(b => b.BuildingId == dto.BuildingId);
+            if (building == null)
+            {
+                return null; // Building must exist
+            }
+
+            var floor = new Floor
+            {
+                BuildingId = dto.BuildingId,
+                Name = dto.Name,
+                Number = dto.Number,
+                Type = dto.Type,
+                TotalUnits = dto.TotalUnits,
+                AreaSqFt = dto.AreaSqFt,
+                IsActive = dto.IsActive,
+                Status = dto.Status,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Floors.Add(floor);
+            await _context.SaveChangesAsync();
+
+            return new FloorResponseDTO
+            {
+                FloorId = floor.FloorId,
+                BuildingId = floor.BuildingId,
+                Name = floor.Name,
+                Number = floor.Number,
+                Type = floor.Type,
+                TotalUnits = floor.TotalUnits,
+                AreaSqFt = floor.AreaSqFt,
+                IsActive = floor.IsActive,
+                Status = floor.Status,
+                CreatedAt = floor.CreatedAt,
+                UpdatedAt = floor.UpdatedAt
+            };
+        }
+
+        public async Task<FloorResponseDTO?> UpdateFloorAsync(int floorId, UpdateFloorDTO dto)
+        {
+            var floor = await _context.Floors.FirstOrDefaultAsync(f => f.FloorId == floorId);
+            if (floor == null)
+                return null;
+
+            if (dto.Name != null) floor.Name = dto.Name;
+            if (dto.Number.HasValue) floor.Number = dto.Number.Value;
+            if (dto.Type != null) floor.Type = dto.Type;
+            if (dto.TotalUnits.HasValue) floor.TotalUnits = dto.TotalUnits.Value;
+            if (dto.AreaSqFt.HasValue) floor.AreaSqFt = dto.AreaSqFt.Value;
+            if (dto.IsActive.HasValue) floor.IsActive = dto.IsActive.Value;
+            if (dto.Status != null) floor.Status = dto.Status;
+
+            floor.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new FloorResponseDTO
+            {
+                FloorId = floor.FloorId,
+                BuildingId = floor.BuildingId,
+                Name = floor.Name,
+                Number = floor.Number,
+                Type = floor.Type,
+                TotalUnits = floor.TotalUnits,
+                AreaSqFt = floor.AreaSqFt,
+                IsActive = floor.IsActive,
+                Status = floor.Status,
+                CreatedAt = floor.CreatedAt,
+                UpdatedAt = floor.UpdatedAt
+            };
+        }
+
+        public async Task<bool> DeleteFloorAsync(int floorId)
+        {
+            var floor = await _context.Floors.FirstOrDefaultAsync(f => f.FloorId == floorId);
+            if (floor == null)
+                return false;
+
+            _context.Floors.Remove(floor);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+    }
+}
