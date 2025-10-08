@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using YopoBackend.Modules.FloorCRUD.DTOs;
 using YopoBackend.Modules.FloorCRUD.Services;
+using YopoBackend.Data;
+using YopoBackend.Constants;
 
 namespace YopoBackend.Modules.FloorCRUD.Controllers
 {
@@ -13,10 +17,12 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
     public class FloorsController : ControllerBase
     {
         private readonly IFloorService _floorService;
+        private readonly ApplicationDbContext _context;
 
-        public FloorsController(IFloorService floorService)
+        public FloorsController(IFloorService floorService, ApplicationDbContext context)
         {
             _floorService = floorService;
+            _context = context;
         }
 
         /// <summary>
@@ -57,6 +63,20 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId == null)
+                return Unauthorized(new { message = "User authentication required." });
+
+            // Enforce Property Manager only
+            var isPm = await IsPropertyManagerAsync(currentUserId.Value);
+            if (!isPm)
+                return StatusCode(403, new { message = "Sorry! Floor create privilege is only for Property Managers." });
+
+            // Enforce Building module permission
+            var hasBuildingModule = await HasModulePermissionAsync(currentUserId.Value, ModuleConstants.BUILDING_MODULE_ID);
+            if (!hasBuildingModule)
+                return StatusCode(403, new { message = "Sorry! You need Building module permission to create floors." });
+
             var created = await _floorService.CreateFloorAsync(dto);
             if (created == null)
             {
@@ -78,6 +98,18 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId == null)
+                return Unauthorized(new { message = "User authentication required." });
+
+            var isPm = await IsPropertyManagerAsync(currentUserId.Value);
+            if (!isPm)
+                return StatusCode(403, new { message = "Sorry! Floor update privilege is only for Property Managers." });
+
+            var hasBuildingModule = await HasModulePermissionAsync(currentUserId.Value, ModuleConstants.BUILDING_MODULE_ID);
+            if (!hasBuildingModule)
+                return StatusCode(403, new { message = "Sorry! You need Building module permission to update floors." });
+
             var updated = await _floorService.UpdateFloorAsync(id, dto);
             if (updated == null)
                 return NotFound(new { message = $"Floor with ID {id} not found." });
@@ -93,11 +125,54 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteFloor(int id)
         {
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId == null)
+                return Unauthorized(new { message = "User authentication required." });
+
+            var isPm = await IsPropertyManagerAsync(currentUserId.Value);
+            if (!isPm)
+                return StatusCode(403, new { message = "Sorry! Floor delete privilege is only for Property Managers." });
+
+            var hasBuildingModule = await HasModulePermissionAsync(currentUserId.Value, ModuleConstants.BUILDING_MODULE_ID);
+            if (!hasBuildingModule)
+                return StatusCode(403, new { message = "Sorry! You need Building module permission to delete floors." });
+
             var deleted = await _floorService.DeleteFloorAsync(id);
             if (!deleted)
                 return NotFound(new { message = $"Floor with ID {id} not found." });
 
             return NoContent();
+        }
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out int userId))
+            {
+                return userId;
+            }
+            return null;
+        }
+
+        private async Task<bool> IsPropertyManagerAsync(int userId)
+        {
+            return await _context.Users
+                .AnyAsync(u => u.Id == userId && u.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && u.IsActive);
+        }
+
+        private async Task<bool> HasModulePermissionAsync(int userId, int moduleId)
+        {
+            // Check if the user's user type has the module permission active
+            return await _context.Users
+                .Where(u => u.Id == userId && u.IsActive)
+                .Join(_context.UserTypes,
+                      u => u.UserTypeId,
+                      ut => ut.Id,
+                      (u, ut) => ut)
+                .Join(_context.UserTypeModulePermissions.Where(p => p.IsActive),
+                      ut => ut.Id,
+                      p => p.UserTypeId,
+                      (ut, p) => p)
+                .AnyAsync(p => p.ModuleId == moduleId);
         }
     }
 }
