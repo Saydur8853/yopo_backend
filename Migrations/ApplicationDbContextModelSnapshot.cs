@@ -249,6 +249,97 @@ namespace YopoBackend.Migrations
                     b.ToTable("InvitationBuildings");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.UnitCRUD.Models.Unit", b =>
+                {
+                    b.Property<int>("UnitId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("UnitId"));
+
+                    b.Property<string>("Amenities")
+                        .HasColumnType("json")
+                        .HasColumnName("Amenities");
+
+                    b.Property<decimal?>("AreaSqFt")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("AreaSqFt");
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int")
+                        .HasColumnName("BuildingId");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("FloorId")
+                        .HasColumnType("int")
+                        .HasColumnName("FloorId");
+
+                    b.Property<bool>("HasBalcony")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("HasBalcony");
+
+                    b.Property<bool>("HasParking")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("HasParking");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IsActive");
+
+                    b.Property<int?>("OwnerId")
+                        .HasColumnType("int")
+                        .HasColumnName("OwnerId");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Status");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int")
+                        .HasColumnName("TenantId");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Type");
+
+                    b.Property<string>("UnitNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("UnitNumber");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("UpdatedAt");
+
+                    b.HasKey("UnitId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("FloorId");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("FloorId", "UnitNumber")
+                        .IsUnique();
+
+                    b.ToTable("Units");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.Customer", b =>
                 {
                     b.Property<int>("CustomerId")
@@ -629,6 +720,39 @@ namespace YopoBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("UserType");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.UnitCRUD.Models.Unit", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.FloorCRUD.Models.Floor", "Floor")
+                        .WithMany()
+                        .HasForeignKey("FloorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Building");
+
+                    b.Navigation("Floor");
+
+                    b.Navigation("Owner");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.Customer", b =>

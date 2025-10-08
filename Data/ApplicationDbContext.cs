@@ -4,6 +4,7 @@ using YopoBackend.Modules.UserTypeCRUD.Models;
 using YopoBackend.Modules.UserCRUD.Models;
 using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Modules.FloorCRUD.Models;
+using YopoBackend.Modules.UnitCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -75,6 +76,12 @@ namespace YopoBackend.Data
         /// Gets or sets the Floors DbSet for managing floor entities.
         /// </summary>
         public DbSet<Floor> Floors { get; set; }
+
+        // Module: UnitCRUD
+        /// <summary>
+        /// Gets or sets the Units DbSet for managing unit entities.
+        /// </summary>
+        public DbSet<Unit> Units { get; set; }
 
         /// <summary>
         /// Gets or sets the InvitationBuildings DbSet for mapping invitations to buildings.
@@ -319,6 +326,46 @@ namespace YopoBackend.Data
                 entity.Property(e => e.CreatedAt)
                     .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
+
+            // Configure Unit entity (UnitCRUD)
+            modelBuilder.Entity<Unit>(entity =>
+            {
+                entity.HasKey(e => e.UnitId);
+                entity.HasIndex(e => e.FloorId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => new { e.FloorId, e.UnitNumber }).IsUnique();
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.UnitNumber).HasMaxLength(50);
+                entity.Property(e => e.Type).HasMaxLength(100);
+                entity.Property(e => e.Category).HasMaxLength(50);
+                entity.Property(e => e.Status).HasMaxLength(50);
+                entity.Property(e => e.AreaSqFt).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Amenities).HasColumnType("json");
+
+                entity.HasOne(e => e.Floor)
+                    .WithMany()
+                    .HasForeignKey(e => e.FloorId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Owner)
+                    .WithMany()
+                    .HasForeignKey(e => e.OwnerId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
         }
