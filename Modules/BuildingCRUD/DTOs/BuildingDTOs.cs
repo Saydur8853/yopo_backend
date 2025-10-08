@@ -1,4 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using YopoBackend.Modules.FloorCRUD.DTOs;
+using YopoBackend.Modules.UnitCRUD.DTOs;
+using YopoBackend.Modules.AmenityCRUD.DTOs;
 
 namespace YopoBackend.Modules.BuildingCRUD.DTOs
 {
@@ -105,6 +108,21 @@ namespace YopoBackend.Modules.BuildingCRUD.DTOs
         /// Gets or sets the date and time when the building was last updated.
         /// </summary>
         public DateTime? UpdatedAt { get; set; }
+
+        /// <summary>
+        /// Floors that belong to this building.
+        /// </summary>
+        public List<FloorResponseDTO> Floors { get; set; } = new();
+
+        /// <summary>
+        /// Units that belong to this building.
+        /// </summary>
+        public List<UnitResponseDTO> Units { get; set; } = new();
+
+        /// <summary>
+        /// Amenities available in this building.
+        /// </summary>
+        public List<AmenityResponseDTO> Amenities { get; set; } = new();
     }
 
     /// <summary>

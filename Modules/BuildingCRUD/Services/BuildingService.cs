@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using YopoBackend.Data;
 using YopoBackend.Modules.BuildingCRUD.DTOs;
 using YopoBackend.Modules.BuildingCRUD.Models;
+using YopoBackend.Modules.FloorCRUD.DTOs;
+using YopoBackend.Modules.UnitCRUD.DTOs;
+using YopoBackend.Modules.AmenityCRUD.DTOs;
 using YopoBackend.Services;
 
 namespace YopoBackend.Modules.BuildingCRUD.Services
@@ -102,9 +106,117 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                     IsActive = b.IsActive,
                     CreatedByName = b.CreatedByUser.Name,
                     CreatedAt = b.CreatedAt,
-                    UpdatedAt = b.UpdatedAt
+                    UpdatedAt = b.UpdatedAt,
+                    Floors = new List<FloorResponseDTO>(),
+                    Units = new List<UnitResponseDTO>(),
+                    Amenities = new List<AmenityResponseDTO>()
                 })
                 .ToListAsync();
+
+            // Populate related data: Floors, Units, Amenities for the fetched buildings
+            var buildingIds = buildings.Select(b => b.BuildingId).ToList();
+
+            // Floors
+            var floors = await _context.Floors
+                .Where(f => buildingIds.Contains(f.BuildingId))
+                .Select(f => new FloorResponseDTO
+                {
+                    FloorId = f.FloorId,
+                    BuildingId = f.BuildingId,
+                    Name = f.Name,
+                    Number = f.Number,
+                    Type = f.Type,
+                    TotalUnits = f.TotalUnits,
+                    AreaSqFt = f.AreaSqFt,
+                    IsActive = f.IsActive,
+                    Status = f.Status,
+                    CreatedAt = f.CreatedAt,
+                    UpdatedAt = f.UpdatedAt
+                })
+                .ToListAsync();
+
+            var floorsByBuilding = floors
+                .GroupBy(f => f.BuildingId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Units (fetch amenities JSON as string then map in-memory)
+            var unitRows = await _context.Units
+                .Where(u => buildingIds.Contains(u.BuildingId))
+                .Select(u => new
+                {
+                    u.UnitId,
+                    u.FloorId,
+                    u.BuildingId,
+                    u.UnitNumber,
+                    u.Type,
+                    u.Category,
+                    u.AreaSqFt,
+                    u.Status,
+                    u.TenantId,
+                    u.OwnerId,
+                    u.IsActive,
+                    u.HasBalcony,
+                    u.HasParking,
+                    AmenitiesJson = u.Amenities,
+                    u.CreatedAt,
+                    u.UpdatedAt
+                })
+                .ToListAsync();
+
+            var units = unitRows.Select(u => new UnitResponseDTO
+            {
+                UnitId = u.UnitId,
+                FloorId = u.FloorId,
+                BuildingId = u.BuildingId,
+                UnitNumber = u.UnitNumber,
+                Type = u.Type,
+                Category = u.Category,
+                AreaSqFt = u.AreaSqFt,
+                Status = u.Status,
+                TenantId = u.TenantId,
+                OwnerId = u.OwnerId,
+                IsActive = u.IsActive,
+                HasBalcony = u.HasBalcony,
+                HasParking = u.HasParking,
+                Amenities = string.IsNullOrWhiteSpace(u.AmenitiesJson) ? null : JsonSerializer.Deserialize<List<string>>(u.AmenitiesJson),
+                CreatedAt = u.CreatedAt,
+                UpdatedAt = u.UpdatedAt
+            }).ToList();
+
+            var unitsByBuilding = units
+                .GroupBy(u => u.BuildingId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Amenities
+            var amenities = await _context.Amenities
+                .Where(a => buildingIds.Contains(a.BuildingId))
+                .Select(a => new AmenityResponseDTO
+                {
+                    AmenityId = a.AmenityId,
+                    BuildingId = a.BuildingId,
+                    Name = a.Name,
+                    Type = a.Type,
+                    Description = a.Description,
+                    FloorId = a.FloorId,
+                    IsAvailable = a.IsAvailable,
+                    OpenHours = a.OpenHours,
+                    AccessControl = a.AccessControl,
+                    CreatedAt = a.CreatedAt,
+                    UpdatedAt = a.UpdatedAt
+                })
+                .ToListAsync();
+
+            var amenitiesByBuilding = amenities
+                .GroupBy(a => a.BuildingId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Assign to each building DTO
+            foreach (var b in buildings)
+            {
+                if (floorsByBuilding.TryGetValue(b.BuildingId, out var bf)) b.Floors = bf; else b.Floors = new List<FloorResponseDTO>();
+                if (unitsByBuilding.TryGetValue(b.BuildingId, out var bu)) b.Units = bu; else b.Units = new List<UnitResponseDTO>();
+                if (amenitiesByBuilding.TryGetValue(b.BuildingId, out var ba)) b.Amenities = ba; else b.Amenities = new List<AmenityResponseDTO>();
+            }
 
             // Calculate pagination info
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
@@ -179,7 +291,10 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 IsActive = createdBuilding.IsActive,
                 CreatedByName = createdBuilding.CreatedByUser.Name,
                 CreatedAt = createdBuilding.CreatedAt,
-                UpdatedAt = createdBuilding.UpdatedAt
+                UpdatedAt = createdBuilding.UpdatedAt,
+                Floors = new List<FloorResponseDTO>(),
+                Units = new List<UnitResponseDTO>(),
+                Amenities = new List<AmenityResponseDTO>()
             };
         }
 
@@ -244,7 +359,10 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 IsActive = building.IsActive,
                 CreatedByName = building.CreatedByUser.Name,
                 CreatedAt = building.CreatedAt,
-                UpdatedAt = building.UpdatedAt
+                UpdatedAt = building.UpdatedAt,
+                Floors = new List<FloorResponseDTO>(),
+                Units = new List<UnitResponseDTO>(),
+                Amenities = new List<AmenityResponseDTO>()
             };
         }
 
