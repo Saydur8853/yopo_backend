@@ -51,6 +51,11 @@ namespace YopoBackend.Constants
         public const int AMENITY_MODULE_ID = 7;
 
         /// <summary>
+        /// Module ID for the TenantCRUD module.
+        /// </summary>
+        public const int TENANT_MODULE_ID = 8;
+
+        /// <summary>
         /// Module name for the BuildingCRUD module.
         /// </summary>
         public const string BUILDING_MODULE_NAME = "BuildingCRUD";
@@ -185,6 +190,17 @@ namespace YopoBackend.Constants
                     Id = AMENITY_MODULE_ID,
                     Name = "AmenityCRUD",
                     Description = "Module for managing building amenities and facilities",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                TENANT_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = TENANT_MODULE_ID,
+                    Name = "TenantCRUD",
+                    Description = "Module for managing tenants and invitations with PM access control",
                     Version = "1.0.0",
                     IsActive = true
                 }

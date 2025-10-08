@@ -6,6 +6,7 @@ using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Modules.FloorCRUD.Models;
 using YopoBackend.Modules.UnitCRUD.Models;
 using YopoBackend.Modules.AmenityCRUD.Models;
+using YopoBackend.Modules.TenantCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -89,6 +90,12 @@ namespace YopoBackend.Data
         /// Gets or sets the Amenities DbSet for managing amenity entities.
         /// </summary>
         public DbSet<Amenity> Amenities { get; set; }
+
+        // Module: TenantCRUD
+        /// <summary>
+        /// Gets or sets the Tenants DbSet for managing tenant entities.
+        /// </summary>
+        public DbSet<Tenant> Tenants { get; set; }
 
         /// <summary>
         /// Gets or sets the InvitationBuildings DbSet for mapping invitations to buildings.
@@ -404,6 +411,45 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.FloorId)
                     .OnDelete(DeleteBehavior.Restrict); // Don't delete floor if it has amenities
+            });
+
+            // Configure Tenant entity (TenantCRUD)
+            modelBuilder.Entity<Tenant>(entity =>
+            {
+                entity.HasKey(e => e.TenantId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.FloorId);
+                entity.HasIndex(e => e.UnitId);
+                entity.HasIndex(e => e.TenantName);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.TenantName).HasMaxLength(200);
+                entity.Property(e => e.Type).HasMaxLength(100);
+                entity.Property(e => e.MemberType).HasMaxLength(100);
+                entity.Property(e => e.DocumentFile).HasMaxLength(1000);
+
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Floor)
+                    .WithMany()
+                    .HasForeignKey(e => e.FloorId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.Unit)
+                    .WithMany()
+                    .HasForeignKey(e => e.UnitId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
         }
