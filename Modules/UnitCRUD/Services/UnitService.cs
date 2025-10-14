@@ -14,18 +14,24 @@ namespace YopoBackend.Modules.UnitCRUD.Services
             _context = context;
         }
 
-        public async Task<(bool Success, string Message, List<UnitResponseDTO>? Data)> GetUnitsByFloorAsync(int floorId)
+        public async Task<(List<UnitResponseDTO> units, int totalRecords)> GetUnitsByFloorAsync(int floorId, int pageNumber, int pageSize)
         {
             var floorExists = await _context.Floors.AnyAsync(f => f.FloorId == floorId);
             if (!floorExists)
             {
-                return (false, $"Floor with ID {floorId} not found.", null);
+                return (new List<UnitResponseDTO>(), 0);
             }
 
-            var unitEntities = await _context.Units
+            var query = _context.Units
                 .Where(u => u.FloorId == floorId)
                 .OrderBy(u => u.UnitNumber)
-                .AsNoTracking()
+                .AsNoTracking();
+
+            var totalRecords = await query.CountAsync();
+
+            var unitEntities = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             var units = unitEntities.Select(u => new UnitResponseDTO
@@ -48,7 +54,7 @@ namespace YopoBackend.Modules.UnitCRUD.Services
                 UpdatedAt = u.UpdatedAt
             }).ToList();
 
-            return (true, "Units retrieved successfully.", units);
+            return (units, totalRecords);
         }
 
         public async Task<(bool Success, string Message, UnitResponseDTO? Data)> CreateUnitAsync(CreateUnitDTO dto)

@@ -21,7 +21,7 @@ namespace YopoBackend.Modules.TenantCRUD.Services
             _invitationService = invitationService;
         }
 
-        public async Task<TenantListResponseDTO> GetTenantsAsync(int currentUserId, int page = 1, int pageSize = 10, string? searchTerm = null, int? buildingId = null, int? floorId = null, int? unitId = null, bool? isActive = null, bool? isPaid = null)
+        public async Task<(List<TenantResponseDTO> tenants, int totalRecords)> GetTenantsAsync(int currentUserId, int pageNumber = 1, int pageSize = 10, string? searchTerm = null, int? buildingId = null, int? floorId = null, int? unitId = null, bool? isActive = null, bool? isPaid = null)
         {
             var query = _context.Tenants
                 .Include(t => t.Building)
@@ -56,11 +56,11 @@ namespace YopoBackend.Modules.TenantCRUD.Services
             if (isActive.HasValue) query = query.Where(t => t.IsActive == isActive.Value);
             if (isPaid.HasValue) query = query.Where(t => t.IsPaid == isPaid.Value);
 
-            var totalCount = await query.CountAsync();
+            var totalRecords = await query.CountAsync();
 
             var tenants = await query
                 .OrderByDescending(t => t.CreatedAt)
-                .Skip((page - 1) * pageSize)
+                .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(t => new TenantResponseDTO
                 {
@@ -85,16 +85,7 @@ namespace YopoBackend.Modules.TenantCRUD.Services
                 })
                 .ToListAsync();
 
-            return new TenantListResponseDTO
-            {
-                Tenants = tenants,
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize),
-                HasPreviousPage = page > 1,
-                HasNextPage = (page * pageSize) < totalCount
-            };
+            return (tenants, totalRecords);
         }
 
         public async Task<TenantResponseDTO> CreateTenantAsync(CreateTenantDTO dto, int currentUserId)

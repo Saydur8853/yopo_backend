@@ -17,18 +17,23 @@ namespace YopoBackend.Modules.FloorCRUD.Services
             _context = context;
         }
 
-        public async Task<List<FloorResponseDTO>> GetFloorsByBuildingAsync(int buildingId)
+        public async Task<(List<FloorResponseDTO> floors, int totalRecords)> GetFloorsByBuildingAsync(int buildingId, int pageNumber, int pageSize)
         {
             var buildingExists = await _context.Buildings.AnyAsync(b => b.BuildingId == buildingId);
             if (!buildingExists)
             {
-                // Return empty list if building doesn't exist (controller may translate to 404)
-                return new List<FloorResponseDTO>();
+                return (new List<FloorResponseDTO>(), 0);
             }
 
-            return await _context.Floors
+            var query = _context.Floors
                 .Where(f => f.BuildingId == buildingId)
-                .OrderBy(f => f.Number)
+                .OrderBy(f => f.Number);
+
+            var totalRecords = await query.CountAsync();
+
+            var floors = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(f => new FloorResponseDTO
                 {
                     FloorId = f.FloorId,
@@ -44,6 +49,8 @@ namespace YopoBackend.Modules.FloorCRUD.Services
                     UpdatedAt = f.UpdatedAt
                 })
                 .ToListAsync();
+
+            return (floors, totalRecords);
         }
 
         public async Task<FloorResponseDTO?> CreateFloorAsync(CreateFloorDTO dto)

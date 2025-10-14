@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using YopoBackend.Modules.FloorCRUD.DTOs;
+using YopoBackend.DTOs;
 using YopoBackend.Modules.FloorCRUD.Services;
 using YopoBackend.Data;
 using YopoBackend.Constants;
@@ -30,25 +31,21 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
         /// </summary>
         /// <param name="buildingId">The building ID.</param>
         [HttpGet]
-        [ProducesResponseType(typeof(List<FloorResponseDTO>), 200)]
+        [ProducesResponseType(typeof(PagedResponseDTO<FloorResponseDTO>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<List<FloorResponseDTO>>> GetFloors([FromQuery] int? buildingId)
+        public async Task<ActionResult<PagedResponseDTO<FloorResponseDTO>>> GetFloors([FromQuery] int? buildingId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             if (!buildingId.HasValue)
             {
                 return BadRequest(new { message = "Query parameter 'buildingId' is required." });
             }
 
-            var floors = await _floorService.GetFloorsByBuildingAsync(buildingId.Value);
-            if (floors.Count == 0)
-            {
-                // If building doesn't exist or no floors, we return 404 for non-existent building
-                // Here we can't differentiate easily without extra call; keep behavior simple
-                return Ok(floors);
-            }
+            var (floors, totalRecords) = await _floorService.GetFloorsByBuildingAsync(buildingId.Value, pageNumber, pageSize);
 
-            return Ok(floors);
+            var pagedResponse = new PagedResponseDTO<FloorResponseDTO>(floors, pageNumber, pageSize, totalRecords);
+
+            return Ok(pagedResponse);
         }
 
         /// <summary>

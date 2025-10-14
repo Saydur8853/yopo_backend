@@ -12,7 +12,7 @@ namespace YopoBackend.Modules.AmenityCRUD.Services
         /// </summary>
         /// <param name="buildingId">The building ID to filter amenities by.</param>
         /// <returns>Service result with list of amenities.</returns>
-        Task<(bool Success, string Message, List<AmenityResponseDTO>? Data)> GetAmenitiesByBuildingAsync(int buildingId);
+        Task<(List<AmenityResponseDTO> amenities, int totalRecords)> GetAmenitiesByBuildingAsync(int buildingId, int pageNumber, int pageSize);
 
         /// <summary>
         /// Creates a new amenity under a building.

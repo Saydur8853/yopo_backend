@@ -22,37 +22,41 @@ namespace YopoBackend.Modules.AmenityCRUD.Services
         }
 
         /// <inheritdoc/>
-        public async Task<(bool Success, string Message, List<AmenityResponseDTO>? Data)> GetAmenitiesByBuildingAsync(int buildingId)
+        public async Task<(List<AmenityResponseDTO> amenities, int totalRecords)> GetAmenitiesByBuildingAsync(int buildingId, int pageNumber, int pageSize)
         {
-            // Verify building exists
             var buildingExists = await _context.Buildings.AnyAsync(b => b.BuildingId == buildingId);
             if (!buildingExists)
             {
-                return (false, $"Building with ID {buildingId} not found.", null);
+                return (new List<AmenityResponseDTO>(), 0);
             }
 
-            var amenities = await _context.Amenities
+            var query = _context.Amenities
                 .Where(a => a.BuildingId == buildingId)
                 .OrderBy(a => a.Name)
-                .AsNoTracking()
+                .AsNoTracking();
+
+            var totalRecords = await query.CountAsync();
+
+            var amenities = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new AmenityResponseDTO
+                {
+                    AmenityId = a.AmenityId,
+                    BuildingId = a.BuildingId,
+                    Name = a.Name,
+                    Type = a.Type,
+                    Description = a.Description,
+                    FloorId = a.FloorId,
+                    IsAvailable = a.IsAvailable,
+                    OpenHours = a.OpenHours,
+                    AccessControl = a.AccessControl,
+                    CreatedAt = a.CreatedAt,
+                    UpdatedAt = a.UpdatedAt
+                })
                 .ToListAsync();
 
-            var amenityDTOs = amenities.Select(a => new AmenityResponseDTO
-            {
-                AmenityId = a.AmenityId,
-                BuildingId = a.BuildingId,
-                Name = a.Name,
-                Type = a.Type,
-                Description = a.Description,
-                FloorId = a.FloorId,
-                IsAvailable = a.IsAvailable,
-                OpenHours = a.OpenHours,
-                AccessControl = a.AccessControl,
-                CreatedAt = a.CreatedAt,
-                UpdatedAt = a.UpdatedAt
-            }).ToList();
-
-            return (true, "Amenities retrieved successfully.", amenityDTOs);
+            return (amenities, totalRecords);
         }
 
         /// <inheritdoc/>

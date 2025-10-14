@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using YopoBackend.Modules.UnitCRUD.DTOs;
+using YopoBackend.DTOs;
 using YopoBackend.Modules.UnitCRUD.Services;
 
 namespace YopoBackend.Modules.UnitCRUD.Controllers
@@ -22,22 +23,21 @@ namespace YopoBackend.Modules.UnitCRUD.Controllers
         /// Retrieve all units under a specific floor.
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(PagedResponseDTO<UnitResponseDTO>), 200)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> GetUnits([FromQuery] int? floorId)
+        public async Task<ActionResult<PagedResponseDTO<UnitResponseDTO>>> GetUnits([FromQuery] int? floorId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             if (!floorId.HasValue)
             {
-                return BadRequest(new { success = false, message = "Query parameter 'floorId' is required.", data = (object?)null });
+                return BadRequest(new { message = "Query parameter 'floorId' is required." });
             }
 
-            var result = await _unitService.GetUnitsByFloorAsync(floorId.Value);
-            if (!result.Success)
-            {
-                return NotFound(new { success = false, message = result.Message, data = (object?)null });
-            }
+            var (units, totalRecords) = await _unitService.GetUnitsByFloorAsync(floorId.Value, pageNumber, pageSize);
 
-            return Ok(new { success = true, message = result.Message, data = result.Data });
+            var pagedResponse = new PagedResponseDTO<UnitResponseDTO>(units, pageNumber, pageSize, totalRecords);
+
+            return Ok(pagedResponse);
         }
 
         /// <summary>
