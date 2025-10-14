@@ -118,7 +118,7 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
         /// Deletes a specific floor record.
         /// </summary>
         [HttpDelete("{id}")]
-        [ProducesResponseType(204)]
+        [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteFloor(int id)
         {
@@ -134,11 +134,11 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
             if (!hasBuildingModule)
                 return StatusCode(403, new { message = "Sorry! You need Building module permission to delete floors." });
 
-            var deleted = await _floorService.DeleteFloorAsync(id);
+            var (deleted, floorName, buildingName) = await _floorService.DeleteFloorAsync(id);
             if (!deleted)
                 return NotFound(new { message = $"Floor with ID {id} not found." });
 
-            return NoContent();
+            return Ok(new { message = $"Successfully deleted '{floorName}' from '{buildingName}'" });
         }
         private int? GetCurrentUserId()
         {

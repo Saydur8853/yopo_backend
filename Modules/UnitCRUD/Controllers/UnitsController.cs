@@ -26,14 +26,14 @@ namespace YopoBackend.Modules.UnitCRUD.Controllers
         [ProducesResponseType(typeof(PagedResponseDTO<UnitResponseDTO>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<PagedResponseDTO<UnitResponseDTO>>> GetUnits([FromQuery] int? floorId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PagedResponseDTO<UnitResponseDTO>>> GetUnits([FromQuery] int? floorId, [FromQuery] int? buildingId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            if (!floorId.HasValue)
+            if (!floorId.HasValue && !buildingId.HasValue)
             {
-                return BadRequest(new { message = "Query parameter 'floorId' is required." });
+                return BadRequest(new { message = "Query parameter 'floorId' or 'buildingId' is required." });
             }
 
-            var (units, totalRecords) = await _unitService.GetUnitsByFloorAsync(floorId.Value, pageNumber, pageSize);
+            var (units, totalRecords) = await _unitService.GetUnitsAsync(floorId, buildingId, pageNumber, pageSize);
 
             var pagedResponse = new PagedResponseDTO<UnitResponseDTO>(units, pageNumber, pageSize, totalRecords);
 
@@ -62,7 +62,7 @@ namespace YopoBackend.Modules.UnitCRUD.Controllers
                 return BadRequest(new { success = false, message = result.Message, data = (object?)null });
             }
 
-            return CreatedAtAction(nameof(GetUnits), new { floorId = result.Data!.FloorId }, new { success = true, message = "Unit created successfully.", data = result.Data });
+            return CreatedAtAction(nameof(GetUnits), new { buildingId = result.Data!.BuildingId, floorId = result.Data!.FloorId }, new { success = true, message = "Unit created successfully.", data = result.Data });
         }
 
         /// <summary>

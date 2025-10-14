@@ -14,22 +14,27 @@ namespace YopoBackend.Modules.UnitCRUD.Services
             _context = context;
         }
 
-        public async Task<(List<UnitResponseDTO> units, int totalRecords)> GetUnitsByFloorAsync(int floorId, int pageNumber, int pageSize)
+        public async Task<(List<UnitResponseDTO> units, int totalRecords)> GetUnitsAsync(int? floorId, int? buildingId, int pageNumber, int pageSize)
         {
-            var floorExists = await _context.Floors.AnyAsync(f => f.FloorId == floorId);
-            if (!floorExists)
+            var query = _context.Units.AsNoTracking();
+
+            if (floorId.HasValue)
+            {
+                query = query.Where(u => u.FloorId == floorId.Value);
+            }
+            else if (buildingId.HasValue)
+            {
+                query = query.Where(u => u.BuildingId == buildingId.Value);
+            }
+            else
             {
                 return (new List<UnitResponseDTO>(), 0);
             }
 
-            var query = _context.Units
-                .Where(u => u.FloorId == floorId)
-                .OrderBy(u => u.UnitNumber)
-                .AsNoTracking();
-
             var totalRecords = await query.CountAsync();
 
             var unitEntities = await query
+                .OrderBy(u => u.UnitNumber)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
