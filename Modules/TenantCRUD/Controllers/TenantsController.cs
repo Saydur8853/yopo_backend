@@ -18,9 +18,9 @@ namespace YopoBackend.Modules.TenantCRUD.Controllers
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(PagedResponseDTO<TenantResponseDTO>), 200)]
-        public async Task<ActionResult<PagedResponseDTO<TenantResponseDTO>>> GetTenants(
-            [FromQuery] int pageNumber = 1,
+        [ProducesResponseType(typeof(PaginatedResponse<TenantResponseDTO>), 200)]
+        public async Task<ActionResult<PaginatedResponse<TenantResponseDTO>>> GetTenants(
+            [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
             [FromQuery] int? buildingId = null,
@@ -33,11 +33,11 @@ namespace YopoBackend.Modules.TenantCRUD.Controllers
             if (currentUserId == null)
                 return Unauthorized(new { message = "User authentication required." });
 
-            var (tenants, totalRecords) = await _tenantService.GetTenantsAsync(currentUserId.Value, pageNumber, pageSize, searchTerm, buildingId, floorId, unitId, isActive, isPaid);
+            var (tenants, totalRecords) = await _tenantService.GetTenantsAsync(currentUserId.Value, page, pageSize, searchTerm, buildingId, floorId, unitId, isActive, isPaid);
 
-            var pagedResponse = new PagedResponseDTO<TenantResponseDTO>(tenants, pageNumber, pageSize, totalRecords);
+            var paginatedResponse = new PaginatedResponse<TenantResponseDTO>(tenants, totalRecords, page, pageSize);
 
-            return Ok(pagedResponse);
+            return Ok(paginatedResponse);
         }
 
         [HttpPost]

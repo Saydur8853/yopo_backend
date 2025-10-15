@@ -31,10 +31,10 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
         /// </summary>
         /// <param name="buildingId">The building ID.</param>
         [HttpGet]
-        [ProducesResponseType(typeof(PagedResponseDTO<FloorResponseDTO>), 200)]
+        [ProducesResponseType(typeof(PaginatedResponse<FloorResponseDTO>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<PagedResponseDTO<FloorResponseDTO>>> GetFloors([FromQuery] int? buildingId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PaginatedResponse<FloorResponseDTO>>> GetFloors([FromQuery] int? buildingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             var currentUserId = GetCurrentUserId();
 
@@ -43,11 +43,11 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
                 return BadRequest(new { message = "Query parameter 'buildingId' is required when not authenticated." });
             }
 
-            var (floors, totalRecords) = await _floorService.GetFloorsAsync(buildingId, currentUserId, pageNumber, pageSize);
+            var (floors, totalRecords) = await _floorService.GetFloorsAsync(buildingId, currentUserId, page, pageSize);
 
-            var pagedResponse = new PagedResponseDTO<FloorResponseDTO>(floors, pageNumber, pageSize, totalRecords);
+            var paginatedResponse = new PaginatedResponse<FloorResponseDTO>(floors, totalRecords, page, pageSize);
 
-            return Ok(pagedResponse);
+            return Ok(paginatedResponse);
         }
 
         /// <summary>

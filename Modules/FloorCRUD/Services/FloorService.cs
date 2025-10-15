@@ -17,7 +17,7 @@ namespace YopoBackend.Modules.FloorCRUD.Services
             _context = context;
         }
 
-        public async Task<(List<FloorResponseDTO> floors, int totalRecords)> GetFloorsAsync(int? buildingId, int? userId, int pageNumber, int pageSize)
+        public async Task<(List<FloorResponseDTO> floors, int totalRecords)> GetFloorsAsync(int? buildingId, int? userId, int page, int pageSize)
         {
             var query = _context.Floors.AsQueryable();
 
@@ -54,7 +54,7 @@ namespace YopoBackend.Modules.FloorCRUD.Services
 
             var floors = await query
                 .OrderBy(f => f.Number)
-                .Skip((pageNumber - 1) * pageSize)
+                .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(f => new FloorResponseDTO
                 {

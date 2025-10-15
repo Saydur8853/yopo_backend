@@ -21,7 +21,7 @@ namespace YopoBackend.Modules.TenantCRUD.Services
             _invitationService = invitationService;
         }
 
-        public async Task<(List<TenantResponseDTO> tenants, int totalRecords)> GetTenantsAsync(int currentUserId, int pageNumber = 1, int pageSize = 10, string? searchTerm = null, int? buildingId = null, int? floorId = null, int? unitId = null, bool? isActive = null, bool? isPaid = null)
+        public async Task<(List<TenantResponseDTO> tenants, int totalRecords)> GetTenantsAsync(int currentUserId, int page = 1, int pageSize = 10, string? searchTerm = null, int? buildingId = null, int? floorId = null, int? unitId = null, bool? isActive = null, bool? isPaid = null)
         {
             var query = _context.Tenants
                 .Include(t => t.Building)
@@ -60,7 +60,7 @@ namespace YopoBackend.Modules.TenantCRUD.Services
 
             var tenants = await query
                 .OrderByDescending(t => t.CreatedAt)
-                .Skip((pageNumber - 1) * pageSize)
+                .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(t => new TenantResponseDTO
                 {

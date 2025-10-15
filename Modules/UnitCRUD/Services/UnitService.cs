@@ -28,7 +28,7 @@ namespace YopoBackend.Modules.UnitCRUD.Services
             return int.Parse(userId);
         }
 
-        public async Task<(List<UnitResponseDTO> units, int totalRecords)> GetUnitsAsync(int? floorId, int? buildingId, int pageNumber, int pageSize)
+        public async Task<(List<UnitResponseDTO> units, int totalRecords)> GetUnitsAsync(int? floorId, int? buildingId, int page, int pageSize)
         {
             var query = _context.Units.AsNoTracking();
             var userId = GetUserId();
@@ -63,7 +63,7 @@ namespace YopoBackend.Modules.UnitCRUD.Services
 
             var unitEntities = await query
                 .OrderBy(u => u.UnitNumber)
-                .Skip((pageNumber - 1) * pageSize)
+                .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 

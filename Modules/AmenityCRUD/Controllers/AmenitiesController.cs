@@ -33,21 +33,21 @@ namespace YopoBackend.Modules.AmenityCRUD.Controllers
         /// <response code="400">If buildingId is not provided</response>
         /// <response code="404">If building is not found</response>
         [HttpGet]
-        [ProducesResponseType(typeof(PagedResponseDTO<AmenityResponseDTO>), 200)]
+        [ProducesResponseType(typeof(PaginatedResponse<AmenityResponseDTO>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<PagedResponseDTO<AmenityResponseDTO>>> GetAmenities([FromQuery] int? buildingId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PaginatedResponse<AmenityResponseDTO>>> GetAmenities([FromQuery] int? buildingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             if (!buildingId.HasValue)
             {
                 return BadRequest(new { message = "Query parameter 'buildingId' is required." });
             }
 
-            var (amenities, totalRecords) = await _amenityService.GetAmenitiesByBuildingAsync(buildingId.Value, pageNumber, pageSize);
+            var (amenities, totalRecords) = await _amenityService.GetAmenitiesByBuildingAsync(buildingId.Value, page, pageSize);
 
-            var pagedResponse = new PagedResponseDTO<AmenityResponseDTO>(amenities, pageNumber, pageSize, totalRecords);
+            var paginatedResponse = new PaginatedResponse<AmenityResponseDTO>(amenities, totalRecords, page, pageSize);
 
-            return Ok(pagedResponse);
+            return Ok(paginatedResponse);
         }
 
         /// <summary>

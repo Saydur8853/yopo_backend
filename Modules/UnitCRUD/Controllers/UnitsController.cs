@@ -23,16 +23,16 @@ namespace YopoBackend.Modules.UnitCRUD.Controllers
         /// Retrieve all units under a specific floor.
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(PagedResponseDTO<UnitResponseDTO>), 200)]
+        [ProducesResponseType(typeof(PaginatedResponse<UnitResponseDTO>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<PagedResponseDTO<UnitResponseDTO>>> GetUnits([FromQuery] int? floorId, [FromQuery] int? buildingId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PaginatedResponse<UnitResponseDTO>>> GetUnits([FromQuery] int? floorId, [FromQuery] int? buildingId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var (units, totalRecords) = await _unitService.GetUnitsAsync(floorId, buildingId, pageNumber, pageSize);
+            var (units, totalRecords) = await _unitService.GetUnitsAsync(floorId, buildingId, page, pageSize);
 
-            var pagedResponse = new PagedResponseDTO<UnitResponseDTO>(units, pageNumber, pageSize, totalRecords);
+            var paginatedResponse = new PaginatedResponse<UnitResponseDTO>(units, totalRecords, page, pageSize);
 
-            return Ok(pagedResponse);
+            return Ok(paginatedResponse);
         }
 
         /// <summary>

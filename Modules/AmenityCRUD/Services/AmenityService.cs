@@ -22,7 +22,7 @@ namespace YopoBackend.Modules.AmenityCRUD.Services
         }
 
         /// <inheritdoc/>
-        public async Task<(List<AmenityResponseDTO> amenities, int totalRecords)> GetAmenitiesByBuildingAsync(int buildingId, int pageNumber, int pageSize)
+        public async Task<(List<AmenityResponseDTO> amenities, int totalRecords)> GetAmenitiesByBuildingAsync(int buildingId, int page, int pageSize)
         {
             var buildingExists = await _context.Buildings.AnyAsync(b => b.BuildingId == buildingId);
             if (!buildingExists)
@@ -38,7 +38,7 @@ namespace YopoBackend.Modules.AmenityCRUD.Services
             var totalRecords = await query.CountAsync();
 
             var amenities = await query
-                .Skip((pageNumber - 1) * pageSize)
+                .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(a => new AmenityResponseDTO
                 {
