@@ -54,7 +54,6 @@ namespace YopoBackend.Modules.UnitCRUD.Services
                 IsActive = u.IsActive,
                 HasBalcony = u.HasBalcony,
                 HasParking = u.HasParking,
-                Amenities = u.Amenities != null ? JsonSerializer.Deserialize<List<string>>(u.Amenities) : null,
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt
             }).ToList();
@@ -77,12 +76,6 @@ namespace YopoBackend.Modules.UnitCRUD.Services
                 return (false, "The provided floor does not belong to the specified building.", null);
 
             // Optional tenant/owner existence check (if provided)
-            if (dto.TenantId.HasValue)
-            {
-                var tenantExists = await _context.Users.AnyAsync(u => u.Id == dto.TenantId.Value);
-                if (!tenantExists)
-                    return (false, $"Tenant user with ID {dto.TenantId.Value} not found.", null);
-            }
             if (dto.OwnerId.HasValue)
             {
                 var ownerExists = await _context.Users.AnyAsync(u => u.Id == dto.OwnerId.Value);
@@ -104,12 +97,10 @@ namespace YopoBackend.Modules.UnitCRUD.Services
                 Category = dto.Category,
                 AreaSqFt = dto.AreaSqFt,
                 Status = dto.Status,
-                TenantId = dto.TenantId,
                 OwnerId = dto.OwnerId,
                 IsActive = dto.IsActive,
                 HasBalcony = dto.HasBalcony,
                 HasParking = dto.HasParking,
-                Amenities = dto.Amenities != null ? JsonSerializer.Serialize(dto.Amenities) : null,
                 CreatedAt = DateTime.UtcNow
             };
 

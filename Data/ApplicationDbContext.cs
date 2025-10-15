@@ -360,6 +360,7 @@ namespace YopoBackend.Data
                 entity.Property(e => e.Status).HasMaxLength(50);
                 entity.Property(e => e.AreaSqFt).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Amenities).HasColumnType("json");
+                
 
                 entity.HasOne(e => e.Floor)
                     .WithMany()

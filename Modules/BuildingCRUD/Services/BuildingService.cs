@@ -157,7 +157,6 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                     u.IsActive,
                     u.HasBalcony,
                     u.HasParking,
-                    AmenitiesJson = u.Amenities,
                     u.CreatedAt,
                     u.UpdatedAt
                 })
@@ -178,7 +177,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
                 IsActive = u.IsActive,
                 HasBalcony = u.HasBalcony,
                 HasParking = u.HasParking,
-                Amenities = string.IsNullOrWhiteSpace(u.AmenitiesJson) ? null : JsonSerializer.Deserialize<List<string>>(u.AmenitiesJson),
+                Amenities = new List<string>(),
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt
             }).ToList();

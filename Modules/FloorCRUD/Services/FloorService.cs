@@ -17,21 +17,43 @@ namespace YopoBackend.Modules.FloorCRUD.Services
             _context = context;
         }
 
-        public async Task<(List<FloorResponseDTO> floors, int totalRecords)> GetFloorsByBuildingAsync(int buildingId, int pageNumber, int pageSize)
+        public async Task<(List<FloorResponseDTO> floors, int totalRecords)> GetFloorsAsync(int? buildingId, int? userId, int pageNumber, int pageSize)
         {
-            var buildingExists = await _context.Buildings.AnyAsync(b => b.BuildingId == buildingId);
-            if (!buildingExists)
+            var query = _context.Floors.AsQueryable();
+
+            if (buildingId.HasValue)
             {
+                var buildingExists = await _context.Buildings.AnyAsync(b => b.BuildingId == buildingId.Value);
+                if (!buildingExists)
+                {
+                    return (new List<FloorResponseDTO>(), 0);
+                }
+                query = query.Where(f => f.BuildingId == buildingId.Value);
+            }
+            else if (userId.HasValue)
+            {
+                var buildingIds = await _context.Buildings
+                    .Where(b => b.CreatedBy == userId.Value)
+                    .Select(b => b.BuildingId)
+                    .ToListAsync();
+
+                if (!buildingIds.Any())
+                {
+                    return (new List<FloorResponseDTO>(), 0);
+                }
+
+                query = query.Where(f => buildingIds.Contains(f.BuildingId));
+            }
+            else
+            {
+                // If no buildingId and no userId, return empty list
                 return (new List<FloorResponseDTO>(), 0);
             }
-
-            var query = _context.Floors
-                .Where(f => f.BuildingId == buildingId)
-                .OrderBy(f => f.Number);
 
             var totalRecords = await query.CountAsync();
 
             var floors = await query
+                .OrderBy(f => f.Number)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(f => new FloorResponseDTO

@@ -60,11 +60,7 @@ namespace YopoBackend.Modules.UnitCRUD.Models
         [Column("HasParking")]
         public bool HasParking { get; set; }
 
-        /// <summary>
-        /// JSON array of amenities for this unit.
-        /// </summary>
-        [Column("Amenities", TypeName = "json")]
-        public string? Amenities { get; set; }
+        
 
         [Column("CreatedAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -84,5 +80,9 @@ namespace YopoBackend.Modules.UnitCRUD.Models
 
         [ForeignKey("OwnerId")]
         public virtual User? Owner { get; set; }
+    /// <summary>
+        /// Gets or sets the JSON string representing amenities associated with the unit.
+        /// </summary>
+        public string? Amenities { get; set; }
     }
 }

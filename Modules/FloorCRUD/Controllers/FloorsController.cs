@@ -36,12 +36,14 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<PagedResponseDTO<FloorResponseDTO>>> GetFloors([FromQuery] int? buildingId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            if (!buildingId.HasValue)
+            var currentUserId = GetCurrentUserId();
+
+            if (!buildingId.HasValue && !currentUserId.HasValue)
             {
-                return BadRequest(new { message = "Query parameter 'buildingId' is required." });
+                return BadRequest(new { message = "Query parameter 'buildingId' is required when not authenticated." });
             }
 
-            var (floors, totalRecords) = await _floorService.GetFloorsByBuildingAsync(buildingId.Value, pageNumber, pageSize);
+            var (floors, totalRecords) = await _floorService.GetFloorsAsync(buildingId, currentUserId, pageNumber, pageSize);
 
             var pagedResponse = new PagedResponseDTO<FloorResponseDTO>(floors, pageNumber, pageSize, totalRecords);
 

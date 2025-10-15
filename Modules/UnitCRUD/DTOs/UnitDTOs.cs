@@ -25,15 +25,10 @@ namespace YopoBackend.Modules.UnitCRUD.DTOs
         [MaxLength(50)]
         public string? Status { get; set; }
 
-        public int? TenantId { get; set; }
         public int? OwnerId { get; set; }
         public bool IsActive { get; set; } = true;
         public bool HasBalcony { get; set; }
         public bool HasParking { get; set; }
-
-        /// <summary>
-        /// Optional amenities list. Will be stored as JSON.
-        /// </summary>
         public List<string>? Amenities { get; set; }
     }
 
