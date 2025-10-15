@@ -83,7 +83,7 @@ namespace YopoBackend.Modules.UnitCRUD.Controllers
         /// Delete a unit record.
         /// </summary>
         [HttpDelete("{id}")]
-        [ProducesResponseType(204)]
+        [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteUnit(int id)
         {
@@ -91,7 +91,7 @@ namespace YopoBackend.Modules.UnitCRUD.Controllers
             if (!result.Success)
                 return NotFound(new { success = false, message = result.Message, data = (object?)null });
 
-            return NoContent();
+            return Ok(new { success = true, message = result.Message, data = (object?)null });
         }
     }
 }

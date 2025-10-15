@@ -211,13 +211,23 @@ namespace YopoBackend.Modules.UnitCRUD.Services
 
         public async Task<(bool Success, string Message)> DeleteUnitAsync(int unitId)
         {
-            var unit = await _context.Units.FirstOrDefaultAsync(u => u.UnitId == unitId);
+            var unit = await _context.Units
+                .Include(u => u.Floor)
+                .Include(u => u.Building)
+                .FirstOrDefaultAsync(u => u.UnitId == unitId);
+
             if (unit == null)
                 return (false, $"Unit with ID {unitId} not found.");
 
+            var unitNumber = unit.UnitNumber;
+            var floorName = unit.Floor?.Name ?? "N/A";
+            var buildingName = unit.Building?.Name ?? "N/A";
+
             _context.Units.Remove(unit);
             await _context.SaveChangesAsync();
-            return (true, "Unit deleted successfully.");
+
+            var message = $"Unit '{unitNumber}' from floor '{floorName}' in building '{buildingName}' has been deleted.";
+            return (true, message);
         }
     }
 }

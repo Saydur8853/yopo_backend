@@ -29,7 +29,6 @@ namespace YopoBackend.Modules.UnitCRUD.DTOs
         public bool IsActive { get; set; } = true;
         public bool HasBalcony { get; set; }
         public bool HasParking { get; set; }
-        public List<string>? Amenities { get; set; }
     }
 
     public class UpdateUnitDTO
