@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Text.Json;
 using YopoBackend.Data;
 using YopoBackend.Modules.UnitCRUD.DTOs;
@@ -9,27 +10,54 @@ namespace YopoBackend.Modules.UnitCRUD.Services
     public class UnitService : IUnitService
     {
         private readonly ApplicationDbContext _context;
-        public UnitService(ApplicationDbContext context)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public UnitService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        private int GetUserId()
+        {
+            var userId = _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new UnauthorizedAccessException("User is not authenticated.");
+            }
+            return int.Parse(userId);
         }
 
         public async Task<(List<UnitResponseDTO> units, int totalRecords)> GetUnitsAsync(int? floorId, int? buildingId, int pageNumber, int pageSize)
         {
             var query = _context.Units.AsNoTracking();
+            var userId = GetUserId();
 
             if (floorId.HasValue)
             {
                 query = query.Where(u => u.FloorId == floorId.Value);
             }
-            else if (buildingId.HasValue)
+
+            if (buildingId.HasValue)
             {
                 query = query.Where(u => u.BuildingId == buildingId.Value);
             }
-            else
+
+            if (!floorId.HasValue && !buildingId.HasValue)
             {
-                return (new List<UnitResponseDTO>(), 0);
+                var userBuilding = await _context.UserBuildingPermissions
+                    .FirstOrDefaultAsync(p => p.UserId == userId);
+
+                if (userBuilding != null)
+                {
+                    query = query.Where(u => u.BuildingId == userBuilding.BuildingId);
+                }
+                else
+                {
+                    return (new List<UnitResponseDTO>(), 0);
+                }
             }
+
 
             var totalRecords = await query.CountAsync();
 

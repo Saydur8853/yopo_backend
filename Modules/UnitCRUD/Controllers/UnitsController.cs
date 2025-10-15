@@ -28,11 +28,6 @@ namespace YopoBackend.Modules.UnitCRUD.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<PagedResponseDTO<UnitResponseDTO>>> GetUnits([FromQuery] int? floorId, [FromQuery] int? buildingId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            if (!floorId.HasValue && !buildingId.HasValue)
-            {
-                return BadRequest(new { message = "Query parameter 'floorId' or 'buildingId' is required." });
-            }
-
             var (units, totalRecords) = await _unitService.GetUnitsAsync(floorId, buildingId, pageNumber, pageSize);
 
             var pagedResponse = new PagedResponseDTO<UnitResponseDTO>(units, pageNumber, pageSize, totalRecords);
