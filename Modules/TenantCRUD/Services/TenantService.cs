@@ -271,47 +271,17 @@ namespace YopoBackend.Modules.TenantCRUD.Services
             return true;
         }
 
-        public async Task<bool> InviteTenantAsync(InviteTenantDTO dto, int currentUserId)
+
+        public async Task<bool> DeleteTenantAsync(int tenantId, int currentUserId)
         {
-            // Determine user type for the tenant invitation
-            int userTypeId;
-            if (dto.UserTypeId.HasValue)
-            {
-                userTypeId = dto.UserTypeId.Value;
-            }
-            else
-            {
-                // Try to find a PM-created user type named "Tenant"
-                var candidate = await _context.UserTypes
-                    .Where(ut => ut.Name == "Tenant" && ut.IsActive && ut.DataAccessControl == UserTypeConstants.DATA_ACCESS_PM)
-                    .Select(ut => (int?)ut.Id)
-                    .FirstOrDefaultAsync();
-                if (candidate == null)
-                {
-                    throw new ArgumentException("No suitable 'Tenant' user type found. Please create a user type named 'Tenant' with DataAccessControl = 'PM' or provide UserTypeId.");
-                }
-                userTypeId = candidate.Value;
-            }
+            var query = _context.Tenants.Where(t => t.TenantId == tenantId);
+            query = await ApplyAccessControlAsync(query, currentUserId);
+            var entity = await query.FirstOrDefaultAsync();
+            if (entity == null) return false;
 
-            // Use the existing Invitation service to create invitation with selected building
-            var createInvitation = new CreateInvitationDTO
-            {
-                EmailAddress = dto.Email,
-                UserTypeId = userTypeId,
-                ExpiryDays = dto.ExpiryDays,
-                BuildingIds = new List<System.Text.Json.JsonElement> // Use explicit building mapping
-                {
-                    System.Text.Json.JsonDocument.Parse(dto.BuildingId.ToString()).RootElement
-                }
-            };
-
-            // Validate inviter permissions via invitation service rules
-            var canInvite = await _invitationService.CanUserInviteUserTypeAsync(currentUserId, userTypeId);
-            if (!canInvite) throw new UnauthorizedAccessException("You are not allowed to invite this user type.");
-
-            // Note: InvitationService enforces PM access control and persists InvitationBuildings mapping
-            var invitation = await _invitationService.CreateInvitationAsync(createInvitation, currentUserId);
-            return invitation != null;
+            _context.Tenants.Remove(entity);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
     }

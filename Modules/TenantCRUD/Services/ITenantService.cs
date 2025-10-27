@@ -8,6 +8,6 @@ namespace YopoBackend.Modules.TenantCRUD.Services
         Task<TenantResponseDTO> CreateTenantAsync(CreateTenantDTO dto, int currentUserId);
         Task<TenantResponseDTO?> UpdateTenantAsync(int tenantId, UpdateTenantDTO dto, int currentUserId);
         Task<bool> UpdateTenantStatusAsync(int tenantId, UpdateTenantStatusDTO dto, int currentUserId);
-        Task<bool> InviteTenantAsync(InviteTenantDTO dto, int currentUserId);
+        Task<bool> DeleteTenantAsync(int tenantId, int currentUserId);
     }
 }

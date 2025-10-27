@@ -75,25 +75,5 @@ namespace YopoBackend.Modules.TenantCRUD.DTOs
         public bool HasNextPage { get; set; }
     }
 
-    public class InviteTenantDTO
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
-        [Required]
-        public int BuildingId { get; set; }
-        public int? FloorId { get; set; }
-        public int? UnitId { get; set; }
-        /// <summary>
-        /// Optional: UserTypeId to use for the invite. If omitted, backend will try to find a PM-created
-        /// user type named "Tenant"; if not found, a 400 is returned asking to supply a valid userTypeId.
-        /// </summary>
-        public int? UserTypeId { get; set; }
-        /// <summary>
-        /// Expiry days for invitation (default 7)
-        /// </summary>
-        [Range(1,7)]
-        public int ExpiryDays { get; set; } = 7;
-    }
 
 }

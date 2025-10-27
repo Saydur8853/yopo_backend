@@ -81,21 +81,20 @@ namespace YopoBackend.Modules.TenantCRUD.Controllers
             return NoContent();
         }
 
-        [HttpPost("invite")]
-        [ProducesResponseType(202)]
-        public async Task<ActionResult> InviteTenant([FromBody] InviteTenantDTO dto)
+
+        [HttpDelete("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult> DeleteTenant(int id)
         {
             var currentUserId = GetCurrentUserId();
             if (currentUserId == null)
                 return Unauthorized(new { message = "User authentication required." });
 
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            var ok = await _tenantService.InviteTenantAsync(dto, currentUserId.Value);
-            if (ok) return Accepted(new { message = "Invitation created." });
-            return StatusCode(500, new { message = "Failed to create invitation." });
+            var ok = await _tenantService.DeleteTenantAsync(id, currentUserId.Value);
+            if (!ok) return NotFound(new { message = $"Tenant with ID {id} not found or not accessible." });
+            return NoContent();
         }
-
 
         private int? GetCurrentUserId()
         {
