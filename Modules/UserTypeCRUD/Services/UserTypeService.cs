@@ -170,10 +170,19 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             _context.UserTypes.Add(userType);
             await _context.SaveChangesAsync();
 
-            // Add module permissions if provided
+            // Add module permissions: explicit list or auto-defaults
             if (createUserTypeDto.ModuleIds.Any())
             {
                 await UpdateUserTypeModulePermissionsAsync(userType.Id, createUserTypeDto.ModuleIds, createdByUserId);
+            }
+            else
+            {
+                // Auto-assign defaults based on DataAccessControl/name for non-SuperAdmin types
+                var defaultIds = GetDefaultModuleIdsForUserType(userType);
+                if (defaultIds.Any())
+                {
+                    await UpdateUserTypeModulePermissionsAsync(userType.Id, defaultIds, createdByUserId);
+                }
             }
 
             return await GetUserTypeByIdAsync(userType.Id, createdByUserId) ?? throw new InvalidOperationException("Failed to retrieve created user type");
@@ -502,6 +511,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             foreach (var userTypeInfo in UserTypeConstants.DefaultUserTypes)
             {
                 var existingUserType = await _context.UserTypes
+                    .Include(ut => ut.ModulePermissions)
                     .FirstOrDefaultAsync(ut => ut.Id == userTypeInfo.Key);
 
                 if (existingUserType == null)
@@ -536,8 +546,15 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                     {
                         await GrantAllModuleAccessAsync(userTypeInfo.Value.Id);
                     }
-                    // If HasAllModuleAccess = false, don't grant any module access
-                    // Super Admin will decide which modules this user type can access
+                    else
+                    {
+                        // Assign opinionated defaults for non-all-access system types
+                        var defaultIds = GetDefaultModuleIdsForUserType(newUserType);
+                        if (defaultIds.Any())
+                        {
+                            await UpdateUserTypeModulePermissionsAsync(newUserType.Id, defaultIds, createdByUserId);
+                        }
+                    }
                 }
                 else
                 {
@@ -596,9 +613,16 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                     }
                     else
                     {
-                        // If this user type should NOT have all module access, remove any existing permissions
-                        // This handles cases where the configuration was changed from HasAllModuleAccess=true to false
-                        await RemoveAllModuleAccessAsync(userTypeInfo.Value.Id);
+                        // Ensure defaults exist for non-all-access system types
+                        var defaultIds = GetDefaultModuleIdsForUserType(existingUserType);
+                        if (defaultIds.Any())
+                        {
+                            await UpdateUserTypeModulePermissionsAsync(existingUserType.Id, defaultIds, existingUserType.CreatedBy);
+                        }
+                        else
+                        {
+                            await RemoveAllModuleAccessAsync(userTypeInfo.Value.Id);
+                        }
                     }
                 }
             }
@@ -664,6 +688,45 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 _context.UserTypeModulePermissions.RemoveRange(existingPermissions);
                 await _context.SaveChangesAsync();
             }
+        }
+
+        /// <summary>
+        /// Returns default module IDs for a given user type, based on name/DataAccessControl.
+        /// Super Admin: handled elsewhere (all modules).
+        /// </summary>
+        private static List<int> GetDefaultModuleIdsForUserType(UserType ut)
+        {
+            // Constants for readability
+            var B = ModuleConstants.BUILDING_MODULE_ID;
+            var F = ModuleConstants.FLOOR_MODULE_ID;
+            var U = ModuleConstants.UNIT_MODULE_ID;
+            var A = ModuleConstants.AMENITY_MODULE_ID;
+            var T = ModuleConstants.TENANT_MODULE_ID;
+            var I = ModuleConstants.INVITATION_MODULE_ID;
+            var USER = ModuleConstants.USER_MODULE_ID;
+            var UTYPE = ModuleConstants.USER_TYPE_MODULE_ID;
+
+            var name = ut.Name.Trim();
+            // Defaults per requested flow
+            if (ut.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID || name.Equals(UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<int> { B, F, U, A, T, I }; // PM: no User/UserType
+            }
+            if (ut.Id == UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_ID || name.Equals(UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<int> { B, F, U, T }; // FDO
+            }
+            if (ut.Id == UserTypeConstants.TENANT_USER_TYPE_ID || name.Equals(UserTypeConstants.TENANT_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<int>(); // Tenant: none by default
+            }
+            // PM-created types (DataAccess=PM): baseline
+            if (ut.DataAccessControl == UserTypeConstants.DATA_ACCESS_PM)
+            {
+                return new List<int> { B, F, U, T };
+            }
+            // Default for other custom types: none
+            return new List<int>();
         }
 
         /// <summary>
