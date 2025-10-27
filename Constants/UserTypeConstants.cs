@@ -40,6 +40,21 @@ namespace YopoBackend.Constants
         public const string PROPERTY_MANAGER_USER_TYPE_DESCRIPTION = "Property manager with access to all modules but limited to managing only their own created data";
 
         /// <summary>
+        /// User Type ID for the Front desk Officer user type.
+        /// </summary>
+        public const int FRONT_DESK_OFFICER_USER_TYPE_ID = 3;
+
+        /// <summary>
+        /// User Type name for the Front desk Officer user type.
+        /// </summary>
+        public const string FRONT_DESK_OFFICER_USER_TYPE_NAME = "Front desk Officer";
+
+        /// <summary>
+        /// User Type description for the Front desk Officer user type.
+        /// </summary>
+        public const string FRONT_DESK_OFFICER_USER_TYPE_DESCRIPTION = "Front desk officer with access to modules for managing their assigned buildings";
+
+        /// <summary>
         /// Data Access Control type: Users can access all data (Super Admin level)
         /// </summary>
         public const string DATA_ACCESS_ALL = "ALL";
@@ -77,6 +92,17 @@ namespace YopoBackend.Constants
                     Id = PROPERTY_MANAGER_USER_TYPE_ID,
                     Name = PROPERTY_MANAGER_USER_TYPE_NAME,
                     Description = PROPERTY_MANAGER_USER_TYPE_DESCRIPTION,
+                    IsActive = true,
+                    HasAllModuleAccess = true
+                }
+            },
+            {
+                FRONT_DESK_OFFICER_USER_TYPE_ID,
+                new UserTypeInfo
+                {
+                    Id = FRONT_DESK_OFFICER_USER_TYPE_ID,
+                    Name = FRONT_DESK_OFFICER_USER_TYPE_NAME,
+                    Description = FRONT_DESK_OFFICER_USER_TYPE_DESCRIPTION,
                     IsActive = true,
                     HasAllModuleAccess = true
                 }
