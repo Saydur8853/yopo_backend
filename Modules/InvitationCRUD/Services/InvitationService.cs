@@ -175,12 +175,45 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 }
             }
             
+            // For Tenant invites, validate allocation inputs upfront
+            if (createDto.UserTypeId == UserTypeConstants.TENANT_USER_TYPE_ID)
+            {
+                if (!createDto.BuildingId.HasValue || !createDto.UnitId.HasValue)
+                {
+                    throw new ArgumentException("Tenant invitations require BuildingId and UnitId.");
+                }
+                // Validate building exists
+                var buildingExists = await _context.Buildings.AnyAsync(b => b.BuildingId == createDto.BuildingId.Value);
+                if (!buildingExists)
+                    throw new ArgumentException("Invalid BuildingId for tenant invitation.");
+
+                // Validate floor belongs to building when provided
+                if (createDto.FloorId.HasValue)
+                {
+                    var floorBelongs = await _context.Floors.AnyAsync(f => f.FloorId == createDto.FloorId.Value && f.BuildingId == createDto.BuildingId.Value);
+                    if (!floorBelongs)
+                        throw new ArgumentException("FloorId does not belong to the specified BuildingId.");
+                }
+                // Validate unit belongs to building (and floor if provided)
+                var unitQuery = _context.Units.Where(u => u.UnitId == createDto.UnitId.Value && u.BuildingId == createDto.BuildingId.Value);
+                if (createDto.FloorId.HasValue)
+                {
+                    unitQuery = unitQuery.Where(u => u.FloorId == createDto.FloorId.Value);
+                }
+                var unitBelongs = await unitQuery.AnyAsync();
+                if (!unitBelongs)
+                    throw new ArgumentException("UnitId does not belong to the specified BuildingId/FloorId.");
+            }
+
             var invitation = new Invitation
             {
                 EmailAddress = createDto.EmailAddress.ToLowerInvariant(),
                 UserTypeId = createDto.UserTypeId,
                 // Only Super Admins can set CompanyName
                 CompanyName = isSuperAdmin ? createDto.CompanyName : null,
+                BuildingId = createDto.BuildingId,
+                FloorId = createDto.FloorId,
+                UnitId = createDto.UnitId,
                 ExpiryTime = DateTime.UtcNow.AddDays(createDto.ExpiryDays),
                 CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow
@@ -494,6 +527,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             // BUSINESS LOGIC: For security and system integrity, invitations are restricted to:
             // - Super Admin: Full system access, can manage everything
             // - Property Manager: Limited access with OWN data access control
+            // - Tenant: End-user tenant (special case allowed for PMs)
             // - PM-created user types: User types created by Property Managers (DataAccessControl = "PM")
             // 
             // This allows Property Managers to invite users to their custom user types
@@ -512,7 +546,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 var fullUserType = fullUserTypes.FirstOrDefault(fut => fut.Id == ut.Id);
                 return fullUserType != null && (
                     // Allow default system user types
-                    ut.Name == "Super Admin" || ut.Name == "Property Manager" ||
+                    ut.Name == "Super Admin" || ut.Name == "Property Manager" || ut.Name == "Tenant" ||
                     // Allow PM-created user types (those with DataAccessControl = "PM")
                     fullUserType.DataAccessControl == "PM"
                 );
@@ -562,6 +596,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
             // - PM-created user types (DataAccessControl = "PM")
             return userType.Name == "Super Admin" || 
                    userType.Name == "Property Manager" || 
+                   userType.Name == "Tenant" ||
                    userType.DataAccessControl == "PM";
         }
         
@@ -577,11 +612,12 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 .FirstOrDefaultAsync(ut => ut.Id == targetUserTypeId && ut.IsActive);
             if (targetUserType == null) return false;
             
-            // Super Admins can only invite default system user types
+            // Super Admins can invite default system user types
             if (currentUser.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
             {
                 return targetUserType.Id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID ||
-                       targetUserType.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID;
+                       targetUserType.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID ||
+                       targetUserType.Id == UserTypeConstants.TENANT_USER_TYPE_ID;
             }
             
             // Property Managers have restrictions
@@ -595,8 +631,8 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                     return false;
                 }
                 
-                // Property Managers CAN only invite PM-created user types
-                return targetUserType.DataAccessControl == "PM";
+                // Property Managers CAN invite PM-created user types and Tenants
+                return targetUserType.DataAccessControl == "PM" || targetUserType.Id == UserTypeConstants.TENANT_USER_TYPE_ID;
             }
             
             // Users with PM-created user types can only invite within their PM ecosystem
@@ -623,6 +659,9 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 UserTypeId = invitation.UserTypeId,
                 UserTypeName = invitation.UserType?.Name ?? "Unknown",
                 CompanyName = invitation.CompanyName, // Will be filtered in service methods
+                BuildingId = invitation.BuildingId,
+                FloorId = invitation.FloorId,
+                UnitId = invitation.UnitId,
                 ExpiryTime = invitation.ExpiryTime,
                 CreatedAt = invitation.CreatedAt,
                 UpdatedAt = invitation.UpdatedAt,

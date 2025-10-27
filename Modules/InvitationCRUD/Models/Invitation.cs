@@ -37,6 +37,21 @@ namespace YopoBackend.Modules.InvitationCRUD.Models
         public string? CompanyName { get; set; }
 
         /// <summary>
+        /// For Tenant invitations: allocated Building ID.
+        /// </summary>
+        public int? BuildingId { get; set; }
+
+        /// <summary>
+        /// For Tenant invitations: allocated Floor ID (optional).
+        /// </summary>
+        public int? FloorId { get; set; }
+
+        /// <summary>
+        /// For Tenant invitations: allocated Unit ID (optional but recommended).
+        /// </summary>
+        public int? UnitId { get; set; }
+
+        /// <summary>
         /// Gets or sets the date and time when the invitation expires.
         /// </summary>
         [Required]

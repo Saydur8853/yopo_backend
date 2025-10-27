@@ -230,6 +230,32 @@ namespace YopoBackend.Modules.UserCRUD.Services
                         .Select(ib => ib.BuildingId)
                         .ToListAsync();
 
+                    // Tenant-specific: allocate unit and create tenant record after user creation
+                    if (invitation.UserTypeId == UserTypeConstants.TENANT_USER_TYPE_ID)
+                    {
+                        // Basic validations: ensure BuildingId and UnitId are present
+                        if (!invitation.BuildingId.HasValue || !invitation.UnitId.HasValue)
+                        {
+                            throw new InvalidOperationException("Tenant invitation is missing allocated BuildingId/UnitId.");
+                        }
+                        // Validate relationships (defensive)
+                        var validUnitQuery = _context.Units.Where(u => u.UnitId == invitation.UnitId.Value && u.BuildingId == invitation.BuildingId.Value);
+                        if (invitation.FloorId.HasValue)
+                        {
+                            validUnitQuery = validUnitQuery.Where(u => u.FloorId == invitation.FloorId.Value);
+                        }
+                        var unit = await validUnitQuery.FirstOrDefaultAsync();
+                        if (unit == null)
+                        {
+                            throw new InvalidOperationException("Allocated unit is not valid for the provided building/floor.");
+                        }
+                        if (unit.TenantId.HasValue)
+                        {
+                            throw new InvalidOperationException("Allocated unit already has a tenant.");
+                        }
+                        // Defer applying Unit.TenantId until after user is saved
+                    }
+
                     // Remove the used invitation and its building mappings
                     _context.Invitations.Remove(invitation);
                 }
@@ -313,6 +339,48 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 }
 
                 await _context.SaveChangesAsync();
+
+                // If the user is a Tenant via invitation, link to unit and create a Tenant record
+                if (!isFirstUser && user.UserTypeId == UserTypeConstants.TENANT_USER_TYPE_ID)
+                {
+                    // The invitation was removed already; fetch latest invitation details from history is not possible
+                    // However we still have allocated buildingIds for permissions; for Tenant, we rely on Unit mapping
+                    // Find any recent invitation for this email in ChangeTracker? Not available after removal
+                    // Safer: query the most recent expired-but-not-yet-removed invitation by email (edge case)
+                    var tenantInvite = await _context.Invitations
+                        .IgnoreQueryFilters()
+                        .OrderByDescending(i => i.CreatedAt)
+                        .FirstOrDefaultAsync(i => i.EmailAddress.ToLower() == user.Email.ToLower());
+
+                    int? allocBuildingId = tenantInvite?.BuildingId;
+                    int? allocFloorId = tenantInvite?.FloorId;
+                    int? allocUnitId = tenantInvite?.UnitId;
+
+                    if (allocBuildingId.HasValue && allocUnitId.HasValue)
+                    {
+                        var unitQuery = _context.Units.Where(u => u.UnitId == allocUnitId.Value && u.BuildingId == allocBuildingId.Value);
+                        if (allocFloorId.HasValue) unitQuery = unitQuery.Where(u => u.FloorId == allocFloorId.Value);
+                        var unit = await unitQuery.FirstOrDefaultAsync();
+                        if (unit != null && !unit.TenantId.HasValue)
+                        {
+                            unit.TenantId = user.Id;
+                            unit.UpdatedAt = DateTime.UtcNow;
+                            // Also create a Tenant record for living info
+                            _context.Tenants.Add(new YopoBackend.Modules.TenantCRUD.Models.Tenant
+                            {
+                                TenantName = user.Name,
+                                BuildingId = allocBuildingId.Value,
+                                FloorId = allocFloorId,
+                                UnitId = allocUnitId,
+                                IsPaid = false,
+                                IsActive = true,
+                                CreatedBy = inviterUserId ?? user.Id,
+                                CreatedAt = DateTime.UtcNow
+                            });
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+                }
 
                 // Create Customer record if user is a Property Manager
                 if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)

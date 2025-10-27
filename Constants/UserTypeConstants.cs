@@ -55,6 +55,21 @@ namespace YopoBackend.Constants
         public const string FRONT_DESK_OFFICER_USER_TYPE_DESCRIPTION = "Front desk officer with access to modules for managing their assigned buildings";
 
         /// <summary>
+        /// User Type ID for the Tenant user type.
+        /// </summary>
+        public const int TENANT_USER_TYPE_ID = 4;
+
+        /// <summary>
+        /// User Type name for the Tenant user type.
+        /// </summary>
+        public const string TENANT_USER_TYPE_NAME = "Tenant";
+
+        /// <summary>
+        /// User Type description for the Tenant user type.
+        /// </summary>
+        public const string TENANT_USER_TYPE_DESCRIPTION = "End-user tenant with access only to their allocated living spaces";
+
+        /// <summary>
         /// Data Access Control type: Users can access all data (Super Admin level)
         /// </summary>
         public const string DATA_ACCESS_ALL = "ALL";
@@ -105,6 +120,17 @@ namespace YopoBackend.Constants
                     Description = FRONT_DESK_OFFICER_USER_TYPE_DESCRIPTION,
                     IsActive = true,
                     HasAllModuleAccess = false  // Super Admin will decide which modules Front Desk Officer can access
+                }
+            },
+            {
+                TENANT_USER_TYPE_ID,
+                new UserTypeInfo
+                {
+                    Id = TENANT_USER_TYPE_ID,
+                    Name = TENANT_USER_TYPE_NAME,
+                    Description = TENANT_USER_TYPE_DESCRIPTION,
+                    IsActive = true,
+                    HasAllModuleAccess = false  // Tenants have minimal access; modules granted explicitly if needed
                 }
             }
         };

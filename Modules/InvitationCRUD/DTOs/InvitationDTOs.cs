@@ -18,11 +18,7 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// <summary>
         /// Gets or sets the user type ID for the invitation.
         /// 
-        /// **Allowed Values:**
-        /// - 1 (Super Admin): Full system access with all module permissions
-        /// - 2 (Property Manager): Limited access with own data access control
-        /// 
-        /// **Note:** Only these two user types are allowed for invitations for security reasons.
+        /// Allowed Values include: Super Admin, Property Manager, Tenant, and PM-created user types.
         /// Use GET /api/invitations/user-types to get the current available user types.
         /// </summary>
         [Required]
@@ -46,6 +42,21 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// Accepts ["all"] to grant access to all PM buildings. Ignored when inviting a Property Manager.
         /// </summary>
         public List<JsonElement>? BuildingIds { get; set; }
+
+        /// <summary>
+        /// For Tenant invitations: allocated Building ID (required for Tenant invites).
+        /// </summary>
+        public int? BuildingId { get; set; }
+
+        /// <summary>
+        /// For Tenant invitations: allocated Floor ID (optional).
+        /// </summary>
+        public int? FloorId { get; set; }
+
+        /// <summary>
+        /// For Tenant invitations: allocated Unit ID (required for Tenant invites).
+        /// </summary>
+        public int? UnitId { get; set; }
     }
 
     /// <summary>
@@ -144,6 +155,19 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// Empty when none were selected.
         /// </summary>
         public List<int> BuildingIds { get; set; } = new();
+
+        /// <summary>
+        /// For Tenant invitations: allocated Building ID.
+        /// </summary>
+        public int? BuildingId { get; set; }
+        /// <summary>
+        /// For Tenant invitations: allocated Floor ID.
+        /// </summary>
+        public int? FloorId { get; set; }
+        /// <summary>
+        /// For Tenant invitations: allocated Unit ID.
+        /// </summary>
+        public int? UnitId { get; set; }
     }
 
     /// <summary>

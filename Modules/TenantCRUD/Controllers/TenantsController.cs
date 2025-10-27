@@ -8,7 +8,10 @@ namespace YopoBackend.Modules.TenantCRUD.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
     [Tags("08-Tenants")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    [YopoBackend.Attributes.RequireModule(YopoBackend.Constants.ModuleConstants.TENANT_MODULE_ID)]
     public class TenantsController : ControllerBase
     {
         private readonly ITenantService _tenantService;
@@ -27,13 +30,14 @@ namespace YopoBackend.Modules.TenantCRUD.Controllers
             [FromQuery] int? floorId = null,
             [FromQuery] int? unitId = null,
             [FromQuery] bool? isActive = null,
-            [FromQuery] bool? isPaid = null)
+            [FromQuery] bool? isPaid = null,
+            [FromQuery] int? tenantId = null)
         {
             var currentUserId = GetCurrentUserId();
             if (currentUserId == null)
                 return Unauthorized(new { message = "User authentication required." });
 
-            var (tenants, totalRecords) = await _tenantService.GetTenantsAsync(currentUserId.Value, page, pageSize, searchTerm, buildingId, floorId, unitId, isActive, isPaid);
+            var (tenants, totalRecords) = await _tenantService.GetTenantsAsync(currentUserId.Value, page, pageSize, searchTerm, buildingId, floorId, unitId, isActive, isPaid, tenantId);
 
             var paginatedResponse = new PaginatedResponse<TenantResponseDTO>(tenants, totalRecords, page, pageSize);
 
