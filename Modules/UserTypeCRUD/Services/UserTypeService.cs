@@ -535,6 +535,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                     {
                         await GrantAllModuleAccessAsync(userTypeInfo.Value.Id);
                     }
+                    // If HasAllModuleAccess = false, don't grant any module access
+                    // Super Admin will decide which modules this user type can access
                 }
                 else
                 {
@@ -584,6 +586,12 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                     {
                         await GrantAllModuleAccessAsync(userTypeInfo.Value.Id);
                     }
+                    else
+                    {
+                        // If this user type should NOT have all module access, remove any existing permissions
+                        // This handles cases where the configuration was changed from HasAllModuleAccess=true to false
+                        await RemoveAllModuleAccessAsync(userTypeInfo.Value.Id);
+                    }
                 }
             }
         }
@@ -626,6 +634,27 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                     _context.UserTypeModulePermissions.AddRange(newPermissions);
                     await _context.SaveChangesAsync();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Removes all module access permissions for a specific user type.
+        /// This is used during initialization to clean up user types that should not have all module access.
+        /// </summary>
+        /// <param name="userTypeId">The ID of the user type.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task RemoveAllModuleAccessAsync(int userTypeId)
+        {
+            // Get existing permissions for this user type
+            var existingPermissions = await _context.UserTypeModulePermissions
+                .Where(p => p.UserTypeId == userTypeId)
+                .ToListAsync();
+
+            if (existingPermissions.Any())
+            {
+                Console.WriteLine($"   Removing {existingPermissions.Count} module permissions for user type ID {userTypeId} (Super Admin will manage access)");
+                _context.UserTypeModulePermissions.RemoveRange(existingPermissions);
+                await _context.SaveChangesAsync();
             }
         }
 
@@ -774,6 +803,122 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 default:
                     return true;
             }
+        }
+
+        /// <inheritdoc/>
+        public async Task<UserTypeListResponseDTO> GetUserTypesWithFiltersAsync(
+            int currentUserId, 
+            int page = 1, 
+            int pageSize = 10, 
+            string? searchTerm = null, 
+            bool? isActive = null, 
+            string? sortBy = null, 
+            bool isSortAscending = true,
+            bool includePermissions = false, 
+            int? moduleId = null,
+            bool includeInactiveModules = false,
+            bool includeUserCounts = false)
+        {
+            var query = _context.UserTypes.AsQueryable();
+
+            if (includePermissions)
+            {
+                query = query.Include(ut => ut.ModulePermissions)
+                             .ThenInclude(mp => mp.Module);
+            }
+
+            // Apply access control
+            query = await ApplyAccessControlAsync(query, currentUserId);
+
+            // Filters
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var lower = searchTerm.ToLower();
+                query = query.Where(ut => ut.Name.ToLower().Contains(lower) || 
+                                        (ut.Description != null && ut.Description.ToLower().Contains(lower)));
+            }
+            if (isActive.HasValue)
+            {
+                query = query.Where(ut => ut.IsActive == isActive.Value);
+            }
+            if (moduleId.HasValue)
+            {
+                query = query.Where(ut => ut.ModulePermissions.Any(mp => mp.ModuleId == moduleId.Value && (includeInactiveModules || mp.IsActive)));
+            }
+
+            // Sorting
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                query = sortBy.ToLowerInvariant() switch
+                {
+                    "name" => isSortAscending ? query.OrderBy(ut => ut.Name) : query.OrderByDescending(ut => ut.Name),
+                    "createdat" => isSortAscending ? query.OrderBy(ut => ut.CreatedAt) : query.OrderByDescending(ut => ut.CreatedAt),
+                    "isactive" => isSortAscending ? query.OrderBy(ut => ut.IsActive) : query.OrderByDescending(ut => ut.IsActive),
+                    _ => isSortAscending ? query.OrderBy(ut => ut.Id) : query.OrderByDescending(ut => ut.Id) // Default sort
+                };
+            }
+            else
+            {
+                query = query.OrderByDescending(ut => ut.CreatedAt);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var userTypeDtos = new List<UserTypeDto>();
+            foreach (var userType in items)
+            {
+                var dto = MapToDto(userType);
+                if (includeUserCounts)
+                {
+                    dto.UserCount = await _context.Users.CountAsync(u => u.UserTypeId == userType.Id);
+                }
+                userTypeDtos.Add(dto);
+            }
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+            return new UserTypeListResponseDTO
+            {
+                UserTypes = userTypeDtos,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            };
+        }
+
+        /// <inheritdoc/>
+        public async Task<UserTypeDto?> GetUserTypeByIdWithDetailsAsync(int id, int currentUserId, bool includeUserCount = false)
+        {
+            var userType = await _context.UserTypes
+                .Include(ut => ut.ModulePermissions.Where(mp => mp.IsActive))
+                .ThenInclude(mp => mp.Module)
+                .FirstOrDefaultAsync(ut => ut.Id == id);
+
+            if (userType == null)
+            {
+                return null;
+            }
+
+            // Check access control
+            if (!await HasAccessToEntityAsync(userType, currentUserId))
+            {
+                return null; // User doesn't have access to this user type
+            }
+            
+            var dto = MapToDto(userType);
+            if (includeUserCount)
+            {
+                dto.UserCount = await _context.Users.CountAsync(u => u.UserTypeId == userType.Id);
+            }
+            return dto;
         }
     }
 }

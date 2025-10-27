@@ -109,5 +109,43 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         /// </summary>
         /// <returns>A task that represents the asynchronous operation.</returns>
         Task InitializeDefaultUserTypesAsync();
+
+        /// <summary>
+        /// Gets user types with comprehensive filtering and pagination options.
+        /// This consolidated method replaces multiple separate endpoint methods.
+        /// </summary>
+        /// <param name="currentUserId">The ID of the current user making the request</param>
+        /// <param name="page">Page number (starting from 1)</param>
+        /// <param name="pageSize">Items per page</param>
+        /// <param name="searchTerm">Search by name or description</param>
+        /// <param name="isActive">Filter by active status</param>
+        /// <param name="sortBy">Sort field: name, createdAt, isActive (default: createdAt desc)</param>
+        /// <param name="isSortAscending">Sort order: true=ASC, false=DESC</param>
+        /// <param name="includePermissions">Include module permission details</param>
+        /// <param name="moduleId">Filter user types that have access to a specific module</param>
+        /// <param name="includeInactiveModules">Include inactive module permissions in results</param>
+        /// <param name="includeUserCounts">Include number of users per user type</param>
+        /// <returns>Paginated and filtered list of user types</returns>
+        Task<UserTypeListResponseDTO> GetUserTypesWithFiltersAsync(
+            int currentUserId,
+            int page = 1,
+            int pageSize = 10,
+            string? searchTerm = null,
+            bool? isActive = null,
+            string? sortBy = null,
+            bool isSortAscending = true,
+            bool includePermissions = false,
+            int? moduleId = null,
+            bool includeInactiveModules = false,
+            bool includeUserCounts = false);
+
+        /// <summary>
+        /// Gets a specific user type by ID with optional detailed information.
+        /// </summary>
+        /// <param name="id">The ID of the user type</param>
+        /// <param name="currentUserId">The ID of the current user making the request</param>
+        /// <param name="includePermissions">Include detailed module permission information</param>
+        /// <returns>The user type with specified detail level</returns>
+        Task<UserTypeDto?> GetUserTypeByIdWithDetailsAsync(int id, int currentUserId, bool includePermissions);
     }
 }

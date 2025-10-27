@@ -120,6 +120,11 @@ namespace YopoBackend.Modules.UserTypeCRUD.DTOs
         /// "ALL" = Users can access all data for their user type
         /// </summary>
         public string DataAccessControl { get; set; } = "ALL";
+        
+        /// <summary>
+        /// Gets or sets the number of users assigned to this user type.
+        /// </summary>
+        public int UserCount { get; set; }
     }
     
     /// <summary>

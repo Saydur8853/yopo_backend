@@ -93,7 +93,7 @@ namespace YopoBackend.Constants
                     Name = PROPERTY_MANAGER_USER_TYPE_NAME,
                     Description = PROPERTY_MANAGER_USER_TYPE_DESCRIPTION,
                     IsActive = true,
-                    HasAllModuleAccess = true
+                    HasAllModuleAccess = false  // Super Admin will decide which modules Property Manager can access
                 }
             },
             {
@@ -104,7 +104,7 @@ namespace YopoBackend.Constants
                     Name = FRONT_DESK_OFFICER_USER_TYPE_NAME,
                     Description = FRONT_DESK_OFFICER_USER_TYPE_DESCRIPTION,
                     IsActive = true,
-                    HasAllModuleAccess = true
+                    HasAllModuleAccess = false  // Super Admin will decide which modules Front Desk Officer can access
                 }
             }
         };

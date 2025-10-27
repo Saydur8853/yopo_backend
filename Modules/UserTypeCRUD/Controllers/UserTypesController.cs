@@ -66,7 +66,13 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
-            [FromQuery] bool? isActive = null)
+            [FromQuery] bool? isActive = null,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] bool isSortAscending = true,
+            [FromQuery] bool includePermissions = false,
+            [FromQuery] int? moduleId = null,
+            [FromQuery] bool includeInactiveModules = false,
+            [FromQuery] bool includeUserCounts = false)
         {
             try
             {
@@ -78,9 +84,20 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
 
                 if (page < 1) page = 1;
                 if (pageSize < 1) pageSize = 10;
-                if (pageSize > 50) pageSize = 50;
+                if (pageSize > 100) pageSize = 100;
 
-                var result = await _userTypeService.GetUserTypesAsync(userId, page, pageSize, searchTerm, isActive);
+                var result = await _userTypeService.GetUserTypesWithFiltersAsync(
+                    userId,
+                    page,
+                    pageSize,
+                    searchTerm,
+                    isActive,
+                    sortBy,
+                    isSortAscending,
+                    includePermissions,
+                    moduleId,
+                    includeInactiveModules,
+                    includeUserCounts);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -89,52 +106,6 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
             }
         }
 
-        /// <summary>
-        /// Gets all user types (non-paginated - for backwards compatibility).
-        /// </summary>
-        [HttpGet("list")]
-        public async Task<ActionResult<IEnumerable<UserTypeDto>>> GetAllUserTypesList()
-        {
-            try
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!int.TryParse(userIdClaim, out int userId))
-                {
-                    return Unauthorized(new { message = "Invalid token." });
-                }
-
-                var userTypes = await _userTypeService.GetAllUserTypesAsync(userId);
-                return Ok(userTypes);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Gets all active user types based on current user's access control.
-        /// </summary>
-        /// <returns>A list of all active user types the current user has access to.</returns>
-        [HttpGet("active")]
-        public async Task<ActionResult<IEnumerable<UserTypeDto>>> GetActiveUserTypes()
-        {
-            try
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!int.TryParse(userIdClaim, out int userId))
-                {
-                    return Unauthorized(new { message = "Invalid token." });
-                }
-
-                var userTypes = await _userTypeService.GetActiveUserTypesAsync(userId);
-                return Ok(userTypes);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// Gets a user type by ID based on current user's access control.
@@ -387,49 +358,6 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
             }
         }
 
-        /// <summary>
-        /// Gets a list of existing user type names for dropdown/autocomplete functionality.
-        /// </summary>
-        /// <param name="activeOnly">Optional parameter to return only active user types (default: true).</param>
-        /// <returns>A list of existing user type names.</returns>
-        [HttpGet("names")]
-        public async Task<ActionResult<IEnumerable<string>>> GetUserTypeNames([FromQuery] bool activeOnly = true)
-        {
-            try
-            {
-                var names = await _userTypeService.GetUserTypeNamesAsync(activeOnly);
-                return Ok(names);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Checks if a user type name is available.
-        /// </summary>
-        /// <param name="name">The name to check.</param>
-        /// <param name="excludeId">Optional ID to exclude from the check (for updates).</param>
-        /// <returns>True if the name is available, false if it already exists.</returns>
-        [HttpGet("check-name")]
-        public async Task<ActionResult<bool>> CheckUserTypeName([FromQuery] string name, [FromQuery] int? excludeId = null)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    return BadRequest(new { message = "Name parameter is required." });
-                }
-
-                var exists = await _userTypeService.UserTypeExistsAsync(name, excludeId);
-                return Ok(new { available = !exists, exists });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// Initializes default user types (like Super Admin) in the database.
