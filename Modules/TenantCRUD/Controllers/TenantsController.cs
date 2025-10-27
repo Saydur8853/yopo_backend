@@ -67,30 +67,16 @@ namespace YopoBackend.Modules.TenantCRUD.Controllers
             return Ok(tenant);
         }
 
-        [HttpPatch("{id}/deactivate")]
+        [HttpPatch("{id}/status")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult> DeactivateTenant(int id)
+        public async Task<ActionResult> UpdateTenantStatus(int id, [FromBody] UpdateTenantStatusDTO dto)
         {
             var currentUserId = GetCurrentUserId();
             if (currentUserId == null)
                 return Unauthorized(new { message = "User authentication required." });
 
-            var ok = await _tenantService.DeactivateTenantAsync(id, currentUserId.Value);
-            if (!ok) return NotFound(new { message = $"Tenant with ID {id} not found or not accessible." });
-            return NoContent();
-        }
-
-        [HttpPatch("{id}/activate")]
-        [ProducesResponseType(204)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult> ActivateTenant(int id)
-        {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == null)
-                return Unauthorized(new { message = "User authentication required." });
-
-            var ok = await _tenantService.ActivateTenantAsync(id, currentUserId.Value);
+            var ok = await _tenantService.UpdateTenantStatusAsync(id, dto, currentUserId.Value);
             if (!ok) return NotFound(new { message = $"Tenant with ID {id} not found or not accessible." });
             return NoContent();
         }

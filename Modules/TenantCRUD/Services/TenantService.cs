@@ -259,25 +259,13 @@ namespace YopoBackend.Modules.TenantCRUD.Services
             };
         }
 
-        public async Task<bool> ActivateTenantAsync(int tenantId, int currentUserId)
+        public async Task<bool> UpdateTenantStatusAsync(int tenantId, UpdateTenantStatusDTO dto, int currentUserId)
         {
             var query = _context.Tenants.Where(t => t.TenantId == tenantId);
             query = await ApplyAccessControlAsync(query, currentUserId);
             var entity = await query.FirstOrDefaultAsync();
             if (entity == null) return false;
-            entity.IsActive = true;
-            entity.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<bool> DeactivateTenantAsync(int tenantId, int currentUserId)
-        {
-            var query = _context.Tenants.Where(t => t.TenantId == tenantId);
-            query = await ApplyAccessControlAsync(query, currentUserId);
-            var entity = await query.FirstOrDefaultAsync();
-            if (entity == null) return false;
-            entity.IsActive = false;
+            entity.IsActive = dto.IsActive;
             entity.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;
