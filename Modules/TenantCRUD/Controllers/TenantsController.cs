@@ -93,7 +93,7 @@ namespace YopoBackend.Modules.TenantCRUD.Controllers
 
             var ok = await _tenantService.DeleteTenantAsync(id, currentUserId.Value);
             if (!ok) return NotFound(new { message = $"Tenant with ID {id} not found or not accessible." });
-            return NoContent();
+            return Ok(new { message = $"Tenant with ID {id} has been successfully deleted." });
         }
 
         private int? GetCurrentUserId()
