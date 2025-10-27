@@ -227,6 +227,116 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
         }
 
         /// <summary>
+        /// Tenant-only alias for creating invitations.
+        /// </summary>
+        [HttpPost("tenant")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<InvitationResponseDTO>> CreateTenantInvitation([FromBody] TenantInviteRequestDTO dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var currentUserId = GetCurrentUserId();
+
+            // Common checks
+            if (await _invitationService.EmailAlreadyInvitedAsync(dto.EmailAddress))
+                return Conflict($"Email {dto.EmailAddress} already has an active invitation.");
+            if (await _invitationService.EmailAlreadyRegisteredAsync(dto.EmailAddress))
+                return Conflict($"User {dto.EmailAddress} already exists and cannot be invited again.");
+
+            if (!await _invitationService.CanUserInviteUserTypeAsync(currentUserId, UserTypeConstants.TENANT_USER_TYPE_ID))
+                return StatusCode(403, new { message = "You are not allowed to invite Tenants." });
+
+            var createDto = new CreateInvitationDTO
+            {
+                EmailAddress = dto.EmailAddress,
+                UserTypeId = UserTypeConstants.TENANT_USER_TYPE_ID,
+                ExpiryDays = dto.ExpiryDays,
+                BuildingId = dto.BuildingId,
+                FloorId = dto.FloorId,
+                UnitId = dto.UnitId
+            };
+            var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
+            return CreatedAtAction(nameof(GetInvitation), new { id = invitation.Id }, invitation);
+        }
+
+        /// <summary>
+        /// Property Manager-only alias for creating invitations.
+        /// </summary>
+        [HttpPost("pm")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<InvitationResponseDTO>> CreatePMInvitation([FromBody] PMInviteRequestDTO dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var currentUserId = GetCurrentUserId();
+
+            if (await _invitationService.EmailAlreadyInvitedAsync(dto.EmailAddress))
+                return Conflict($"Email {dto.EmailAddress} already has an active invitation.");
+            if (await _invitationService.EmailAlreadyRegisteredAsync(dto.EmailAddress))
+                return Conflict($"User {dto.EmailAddress} already exists and cannot be invited again.");
+
+            if (!await _invitationService.CanUserInviteUserTypeAsync(currentUserId, UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID))
+                return StatusCode(403, new { message = "You are not allowed to invite Property Managers." });
+
+            // Company checks
+            var company = dto.CompanyName.Trim();
+            if (await _invitationService.CompanyAlreadyInvitedAsync(company))
+                return Conflict("This company's PM is already invited.");
+            if (await _invitationService.CompanyAlreadyRegisteredAsync(company))
+                return Conflict("This company's PM is already registered.");
+
+            var createDto = new CreateInvitationDTO
+            {
+                EmailAddress = dto.EmailAddress,
+                UserTypeId = UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID,
+                CompanyName = dto.CompanyName,
+                ExpiryDays = dto.ExpiryDays
+            };
+            var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
+            return CreatedAtAction(nameof(GetInvitation), new { id = invitation.Id }, invitation);
+        }
+
+        /// <summary>
+        /// PM staff-only alias for creating invitations (uses PM-created user types and building assignments).
+        /// </summary>
+        [HttpPost("staff")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<InvitationResponseDTO>> CreateStaffInvitation([FromBody] StaffInviteRequestDTO dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var currentUserId = GetCurrentUserId();
+
+            if (await _invitationService.EmailAlreadyInvitedAsync(dto.EmailAddress))
+                return Conflict($"Email {dto.EmailAddress} already has an active invitation.");
+            if (await _invitationService.EmailAlreadyRegisteredAsync(dto.EmailAddress))
+                return Conflict($"User {dto.EmailAddress} already exists and cannot be invited again.");
+
+            // Validate target user type
+            if (!await _invitationService.ValidateUserTypeIdAsync(dto.UserTypeId))
+                return BadRequest($"User type with ID {dto.UserTypeId} is not valid or not active.");
+
+            if (!await _invitationService.CanUserInviteUserTypeAsync(currentUserId, dto.UserTypeId))
+                return StatusCode(403, new { message = "You are not allowed to invite this staff user type." });
+
+            var createDto = new CreateInvitationDTO
+            {
+                EmailAddress = dto.EmailAddress,
+                UserTypeId = dto.UserTypeId,
+                ExpiryDays = dto.ExpiryDays,
+                BuildingIds = dto.BuildingIds
+            };
+            var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
+            return CreatedAtAction(nameof(GetInvitation), new { id = invitation.Id }, invitation);
+        }
+
+        /// <summary>
         /// Update an existing invitation
         /// </summary>
         /// <param name="id">Invitation ID</param>

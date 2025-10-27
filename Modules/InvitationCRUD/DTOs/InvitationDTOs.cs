@@ -238,4 +238,54 @@ namespace YopoBackend.Modules.InvitationCRUD.DTOs
         /// </summary>
         public bool IsActive { get; set; }
     }
+
+    // Alias request DTOs for clearer Swagger and stricter validation per case
+
+    /// <summary>
+    /// Create a Tenant invitation. Allocates tenant to a specific unit.
+    /// </summary>
+    public class TenantInviteRequestDTO
+    {
+        [Required]
+        [EmailAddress]
+        public string EmailAddress { get; set; } = string.Empty;
+        [Range(1,7)]
+        public int ExpiryDays { get; set; } = 7;
+        [Required]
+        public int BuildingId { get; set; }
+        public int? FloorId { get; set; }
+        [Required]
+        public int UnitId { get; set; }
+    }
+
+    /// <summary>
+    /// Create a Property Manager invitation. Requires company name.
+    /// </summary>
+    public class PMInviteRequestDTO
+    {
+        [Required]
+        [EmailAddress]
+        public string EmailAddress { get; set; } = string.Empty;
+        [Range(1,7)]
+        public int ExpiryDays { get; set; } = 7;
+        [Required]
+        [StringLength(300)]
+        public string CompanyName { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Create a PM staff invitation. Requires a PM-created userTypeId and buildingIds (or ["all"]).
+    /// </summary>
+    public class StaffInviteRequestDTO
+    {
+        [Required]
+        [EmailAddress]
+        public string EmailAddress { get; set; } = string.Empty;
+        [Required]
+        public int UserTypeId { get; set; }
+        [Range(1,7)]
+        public int ExpiryDays { get; set; } = 7;
+        [Required]
+        public List<System.Text.Json.JsonElement> BuildingIds { get; set; } = new();
+    }
 }
