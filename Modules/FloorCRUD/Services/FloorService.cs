@@ -149,7 +149,7 @@ namespace YopoBackend.Modules.FloorCRUD.Services
             };
         }
 
-        public async Task<(bool success, string floorName, string buildingName)> DeleteFloorAsync(int floorId)
+        public async Task<(bool success, string? floorName, string? buildingName)> DeleteFloorAsync(int floorId)
         {
             var floor = await _context.Floors.Include(f => f.Building).FirstOrDefaultAsync(f => f.FloorId == floorId);
             if (floor == null)

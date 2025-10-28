@@ -15,7 +15,7 @@ namespace YopoBackend.Services
         protected readonly ApplicationDbContext _context;
         
         // Cache for user access control data to prevent N+1 queries
-        private readonly Dictionary<int, (User User, string? DataAccessControl)> _userCache = new();
+        private readonly Dictionary<int, (User? User, string? DataAccessControl)> _userCache = new();
         private readonly Dictionary<int, List<int>> _pmEcosystemCache = new();
 
         /// <summary>

@@ -119,6 +119,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         /// <param name="pageSize">Items per page</param>
         /// <param name="searchTerm">Search by name or description</param>
         /// <param name="isActive">Filter by active status</param>
+        /// <param name="id">Filter by specific user type ID</param>
         /// <param name="sortBy">Sort field: name, createdAt, isActive (default: createdAt desc)</param>
         /// <param name="isSortAscending">Sort order: true=ASC, false=DESC</param>
         /// <param name="includePermissions">Include module permission details</param>
@@ -132,6 +133,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             int pageSize = 10,
             string? searchTerm = null,
             bool? isActive = null,
+            int? id = null,
             string? sortBy = null,
             bool isSortAscending = true,
             bool includePermissions = false,

@@ -60,6 +60,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
         /// <param name="pageSize">Items per page (default 10, max 50)</param>
         /// <param name="searchTerm">Optional search by name</param>
         /// <param name="isActive">Optional filter by active status</param>
+        /// <param name="id">Optional filter by specific user type ID</param>
         /// <returns>Paginated list of user types the current user has access to.</returns>
         [HttpGet]
         public async Task<ActionResult<UserTypeListResponseDTO>> GetAllUserTypes(
@@ -67,6 +68,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
             [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
             [FromQuery] bool? isActive = null,
+            [FromQuery] int? id = null,
             [FromQuery] string? sortBy = null,
             [FromQuery] bool isSortAscending = true,
             [FromQuery] bool includePermissions = false,
@@ -92,6 +94,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                     pageSize,
                     searchTerm,
                     isActive,
+                    id,
                     sortBy,
                     isSortAscending,
                     includePermissions,
@@ -99,37 +102,6 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                     includeInactiveModules,
                     includeUserCounts);
                 return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-        /// <summary>
-        /// Gets a user type by ID based on current user's access control.
-        /// </summary>
-        /// <param name="id">The ID of the user type.</param>
-        /// <returns>The user type with the specified ID if accessible.</returns>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<UserTypeDto>> GetUserType(int id)
-        {
-            try
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!int.TryParse(userIdClaim, out int userId))
-                {
-                    return Unauthorized(new { message = "Invalid token." });
-                }
-
-                var userType = await _userTypeService.GetUserTypeByIdAsync(id, userId);
-                if (userType == null)
-                {
-                    return NotFound($"User type with ID {id} not found or you don't have access to it.");
-                }
-
-                return Ok(userType);
             }
             catch (Exception ex)
             {
@@ -169,7 +141,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
                 }
 
                 var createdUserType = await _userTypeService.CreateUserTypeAsync(createUserTypeDto, userId);
-                return CreatedAtAction(nameof(GetUserType), new { id = createdUserType.Id }, new
+                return Ok(new
                 {
                     message = $"User type '{createdUserType.Name}' with ID {createdUserType.Id} has been created successfully.",
                     userType = createdUserType
@@ -351,26 +323,6 @@ namespace YopoBackend.Modules.UserTypeCRUD.Controllers
             catch (UnauthorizedAccessException ex)
             {
                 return StatusCode(403, new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-
-        /// <summary>
-        /// Initializes default user types (like Super Admin) in the database.
-        /// This is typically called during application startup.
-        /// </summary>
-        /// <returns>A confirmation of initialization.</returns>
-        [HttpPost("initialize-defaults")]
-        public async Task<ActionResult> InitializeDefaultUserTypes()
-        {
-            try
-            {
-                await _userTypeService.InitializeDefaultUserTypesAsync();
-                return Ok(new { message = "Default user types initialized successfully." });
             }
             catch (Exception ex)
             {

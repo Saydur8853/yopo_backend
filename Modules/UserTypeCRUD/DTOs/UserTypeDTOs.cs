@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace YopoBackend.Modules.UserTypeCRUD.DTOs
 {
@@ -107,19 +108,22 @@ namespace YopoBackend.Modules.UserTypeCRUD.DTOs
         /// <summary>
         /// Gets or sets the list of module IDs this user type has access to.
         /// </summary>
-        public List<int> ModuleIds { get; set; } = new List<int>();
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public List<int>? ModuleIds { get; set; } = new List<int>();
         
         /// <summary>
         /// Gets or sets the list of module names this user type has access to.
         /// </summary>
-        public List<string> ModuleNames { get; set; } = new List<string>();
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public List<string>? ModuleNames { get; set; } = new List<string>();
         
         /// <summary>
         /// Gets or sets the data access control type for this user type.
         /// "OWN" = Users can only access their own created data
         /// "ALL" = Users can access all data for their user type
         /// </summary>
-        public string DataAccessControl { get; set; } = "ALL";
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public string? DataAccessControl { get; set; } = "ALL";
         
         /// <summary>
         /// Gets or sets the number of users assigned to this user type.

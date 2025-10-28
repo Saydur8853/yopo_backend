@@ -31,8 +31,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 .ThenInclude(mp => mp.Module)
                 .AsQueryable();
             
-            // Apply access control
-            query = await ApplyAccessControlAsync(query, currentUserId);
+            // Apply custom access control for user types
+            query = await ApplyUserTypeAccessControlAsync(query, currentUserId);
 
             var userTypes = await query.ToListAsync();
             return userTypes.Select(MapToDto);
@@ -46,8 +46,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                     .ThenInclude(mp => mp.Module)
                 .AsQueryable();
 
-            // Apply access control
-            query = await ApplyAccessControlAsync(query, currentUserId);
+            // Apply custom access control for user types
+            query = await ApplyUserTypeAccessControlAsync(query, currentUserId);
 
             // Filters
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -91,8 +91,8 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 .Where(ut => ut.IsActive)
                 .AsQueryable();
             
-            // Apply access control
-            query = await ApplyAccessControlAsync(query, currentUserId);
+            // Apply custom access control for user types
+            query = await ApplyUserTypeAccessControlAsync(query, currentUserId);
 
             var userTypes = await query.ToListAsync();
             return userTypes.Select(MapToDto);
@@ -710,7 +710,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             // Defaults per requested flow
             if (ut.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID || name.Equals(UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<int> { B, F, U, A, T, I }; // PM: no User/UserType
+                return new List<int> { UTYPE, B, F, U, A, T, I }; // PM: includes UserType module
             }
             if (ut.Id == UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_ID || name.Equals(UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
@@ -792,6 +792,55 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         }
 
         /// <summary>
+        /// Custom access control logic for UserType entities.
+        /// Property Managers can see:
+        /// 1. User types they created (DataAccessControl = OWN)
+        /// 2. Their own user type (Property Manager)
+        /// 3. Subordinate user types (Front Desk Officer, Tenant)
+        /// </summary>
+        private async Task<IQueryable<UserType>> ApplyUserTypeAccessControlAsync(IQueryable<UserType> query, int currentUserId)
+        {
+            var userDataAccessControl = await GetUserDataAccessControlAsync(currentUserId);
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+
+            if (currentUser == null)
+            {
+                return query.Where(ut => false); // No access if user not found
+            }
+
+            // Super Admin (ALL access) - can see everything
+            if (userDataAccessControl == UserTypeConstants.DATA_ACCESS_ALL)
+            {
+                return query;
+            }
+
+            // Property Manager (OWN access) - can see subordinate types and types they created
+            if (currentUser.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                return query.Where(ut => 
+                    ut.CreatedBy == currentUserId || // User types they created
+                    ut.Id == UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_ID || // Subordinate
+                    ut.Id == UserTypeConstants.TENANT_USER_TYPE_ID); // Subordinate
+            }
+
+            // For PM ecosystem users (DATA_ACCESS_PM)
+            if (userDataAccessControl == UserTypeConstants.DATA_ACCESS_PM)
+            {
+                var pmEcosystemUserIds = await GetPMEcosystemUserIdsAsync(currentUserId);
+                return query.Where(ut => pmEcosystemUserIds.Contains(ut.CreatedBy));
+            }
+
+            // Default OWN access - can only see user types they created
+            if (userDataAccessControl == UserTypeConstants.DATA_ACCESS_OWN)
+            {
+                return query.Where(ut => ut.CreatedBy == currentUserId);
+            }
+
+            // Fallback - no access
+            return query.Where(ut => false);
+        }
+
+        /// <summary>
         /// Maps a UserType entity to a UserTypeDto.
         /// </summary>
         /// <param name="userType">The user type entity to map.</param>
@@ -811,6 +860,29 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                 UpdatedAt = userType.UpdatedAt,
                 ModuleIds = activePermissions.Select(mp => mp.ModuleId).ToList(),
                 ModuleNames = activePermissions.Select(mp => mp.Module.Name).ToList()
+            };
+        }
+
+        /// <summary>
+        /// Maps a UserType entity to a simplified UserTypeDto for Property Managers.
+        /// Excludes moduleIds, moduleNames, and dataAccessControl fields.
+        /// </summary>
+        /// <param name="userType">The user type entity to map.</param>
+        /// <returns>The mapped simplified user type DTO.</returns>
+        private static UserTypeDto MapToSimplifiedDto(UserType userType)
+        {
+            return new UserTypeDto
+            {
+                Id = userType.Id,
+                Name = userType.Name,
+                Description = userType.Description,
+                IsActive = userType.IsActive,
+                CreatedAt = userType.CreatedAt,
+                UpdatedAt = userType.UpdatedAt,
+                // Set these to null so JsonIgnore will omit them from the response
+                ModuleIds = null,
+                ModuleNames = null,
+                DataAccessControl = null
             };
         }
 
@@ -883,6 +955,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             int pageSize = 10, 
             string? searchTerm = null, 
             bool? isActive = null, 
+            int? id = null,
             string? sortBy = null, 
             bool isSortAscending = true,
             bool includePermissions = false, 
@@ -890,6 +963,10 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             bool includeInactiveModules = false,
             bool includeUserCounts = false)
         {
+            // Check if current user is a Property Manager
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            bool isPropertyManager = currentUser?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID;
+
             var query = _context.UserTypes.AsQueryable();
 
             if (includePermissions)
@@ -898,10 +975,14 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
                              .ThenInclude(mp => mp.Module);
             }
 
-            // Apply access control
-            query = await ApplyAccessControlAsync(query, currentUserId);
+            // Apply custom access control for user types
+            query = await ApplyUserTypeAccessControlAsync(query, currentUserId);
 
             // Filters
+            if (id.HasValue)
+            {
+                query = query.Where(ut => ut.Id == id.Value);
+            }
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var lower = searchTerm.ToLower();
@@ -943,7 +1024,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             var userTypeDtos = new List<UserTypeDto>();
             foreach (var userType in items)
             {
-                var dto = MapToDto(userType);
+                var dto = isPropertyManager ? MapToSimplifiedDto(userType) : MapToDto(userType);
                 if (includeUserCounts)
                 {
                     dto.UserCount = await _context.Users.CountAsync(u => u.UserTypeId == userType.Id);
