@@ -53,6 +53,9 @@ builder.Services.AddScoped<YopoBackend.Modules.AmenityCRUD.Services.IAmenityServ
 // Module: TenantCRUD
 builder.Services.AddScoped<YopoBackend.Modules.TenantCRUD.Services.ITenantService, YopoBackend.Modules.TenantCRUD.Services.TenantService>();
 
+// Module: IntercomCRUD
+builder.Services.AddScoped<YopoBackend.Modules.IntercomCRUD.Services.IIntercomService, YopoBackend.Modules.IntercomCRUD.Services.IntercomService>();
+
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
@@ -172,6 +175,7 @@ static string GetControllerDisplayOrder(string? controllerName)
         "units" => "06-Units",
         "amenities" => "07-Amenities",
         "tenants" => "08-Tenants",
+        "intercoms" => "09-Intercoms",
         _ => controllerName ?? "Other"
     };
 }

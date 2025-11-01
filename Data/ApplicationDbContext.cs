@@ -7,6 +7,7 @@ using YopoBackend.Modules.FloorCRUD.Models;
 using YopoBackend.Modules.UnitCRUD.Models;
 using YopoBackend.Modules.AmenityCRUD.Models;
 using YopoBackend.Modules.TenantCRUD.Models;
+using YopoBackend.Modules.IntercomCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -96,6 +97,12 @@ namespace YopoBackend.Data
         /// Gets or sets the Tenants DbSet for managing tenant entities.
         /// </summary>
         public DbSet<Tenant> Tenants { get; set; }
+
+        // Module: IntercomCRUD
+        /// <summary>
+        /// Gets or sets the Intercoms DbSet for managing intercom entities.
+        /// </summary>
+        public DbSet<Intercom> Intercoms { get; set; }
 
         /// <summary>
         /// Gets or sets the InvitationBuildings DbSet for mapping invitations to buildings.
@@ -451,6 +458,38 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.CreatedBy)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure Intercom entity (IntercomCRUD)
+            modelBuilder.Entity<Intercom>(entity =>
+            {
+                entity.HasKey(e => e.IntercomId);
+                entity.HasIndex(e => e.CustomerId);
+                entity.HasIndex(e => e.UnitId);
+                entity.HasIndex(e => e.IntercomName);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.IntercomName).HasMaxLength(200);
+                entity.Property(e => e.IntercomModel).HasMaxLength(100);
+                entity.Property(e => e.IntercomType).HasMaxLength(50);
+                entity.Property(e => e.IntercomSize).HasMaxLength(50);
+                entity.Property(e => e.IntercomColor).HasMaxLength(50);
+                entity.Property(e => e.OperatingSystem).HasMaxLength(50);
+                entity.Property(e => e.InstalledLocation).HasMaxLength(200);
+                entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+
+                entity.HasOne(e => e.Customer)
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Unit)
+                    .WithMany()
+                    .HasForeignKey(e => e.UnitId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
         }
