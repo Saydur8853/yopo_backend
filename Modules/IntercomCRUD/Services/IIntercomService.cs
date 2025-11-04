@@ -10,7 +10,6 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             string? searchTerm,
             int? customerId,
             int? buildingId,
-            int? unitId,
             bool? isActive,
             bool? isInstalled,
             string? intercomType,
@@ -30,6 +29,5 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
         Task<(bool Success, string Message, IntercomResponseDTO? Data)> CreateIntercomAsync(CreateIntercomDTO dto);
         Task<(bool Success, string Message, IntercomResponseDTO? Data)> UpdateIntercomAsync(int intercomId, UpdateIntercomDTO dto);
         Task<(bool Success, string Message)> DeleteIntercomAsync(int intercomId);
-        Task<(bool Success, string Message, IntercomResponseDTO? Data)> AssignToUnitAsync(int intercomId, int unitId);
     }
 }

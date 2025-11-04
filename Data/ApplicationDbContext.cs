@@ -465,8 +465,11 @@ namespace YopoBackend.Data
             {
                 entity.HasKey(e => e.IntercomId);
                 entity.HasIndex(e => e.CustomerId);
-                entity.HasIndex(e => e.UnitId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.AmenityId);
                 entity.HasIndex(e => e.IntercomName);
+                entity.HasIndex(e => e.CreatedBy);
+                entity.HasIndex(e => e.UpdatedBy);
                 entity.Property(e => e.CreatedAt)
                     .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -486,10 +489,25 @@ namespace YopoBackend.Data
                     .HasForeignKey(e => e.CustomerId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(e => e.Unit)
+                entity.HasOne(e => e.Building)
                     .WithMany()
-                    .HasForeignKey(e => e.UnitId)
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Amenity)
+                    .WithMany()
+                    .HasForeignKey(e => e.AmenityId)
                     .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.UpdatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.UpdatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
         }

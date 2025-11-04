@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using YopoBackend.Auth;
 using YopoBackend.DTOs;
 using YopoBackend.Modules.IntercomCRUD.DTOs;
 using YopoBackend.Modules.IntercomCRUD.Services;
@@ -28,7 +30,6 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
             [FromQuery] string? searchTerm = null,
             [FromQuery] int? customerId = null,
             [FromQuery] int? buildingId = null,
-            [FromQuery] int? unitId = null,
             [FromQuery] bool? isActive = null,
             [FromQuery] bool? isInstalled = null,
             [FromQuery] string? intercomType = null,
@@ -47,7 +48,7 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
         {
             try
             {
-                var (items, total) = await _service.GetIntercomsAsync(page, pageSize, searchTerm, customerId, buildingId, unitId, isActive, isInstalled, intercomType, operatingSystem, hasCCTV, hasPinPad, installedFrom, installedTo, serviceFrom, serviceTo, priceMin, priceMax, color, model);
+                var (items, total) = await _service.GetIntercomsAsync(page, pageSize, searchTerm, customerId, buildingId, isActive, isInstalled, intercomType, operatingSystem, hasCCTV, hasPinPad, installedFrom, installedTo, serviceFrom, serviceTo, priceMin, priceMax, color, model);
                 var response = new PaginatedResponse<IntercomResponseDTO>(items, total, page, pageSize);
                 return Ok(response);
             }
@@ -58,9 +59,11 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = Roles.SuperAdmin)]
         [ProducesResponseType(201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
         public async Task<IActionResult> Create([FromBody] CreateIntercomDTO dto)
         {
             try
@@ -70,7 +73,13 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
 
                 var result = await _service.CreateIntercomAsync(dto);
                 if (!result.Success)
+                {
+                    if (result.Message.StartsWith("Only Super Admins", StringComparison.OrdinalIgnoreCase) ||
+                        result.Message.StartsWith("You don't have permission", StringComparison.OrdinalIgnoreCase))
+                        return StatusCode(403, new { success = false, message = result.Message, data = (object?)null });
+
                     return BadRequest(new { success = false, message = result.Message, data = (object?)null });
+                }
 
                 return CreatedAtAction(nameof(GetIntercoms), new { intercomId = result.Data!.IntercomId }, new { success = true, message = result.Message, data = result.Data });
             }
@@ -81,9 +90,11 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = Roles.SuperAdmin)]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateIntercomDTO dto)
         {
@@ -94,7 +105,16 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
 
                 var result = await _service.UpdateIntercomAsync(id, dto);
                 if (!result.Success)
-                    return NotFound(new { success = false, message = result.Message, data = (object?)null });
+                {
+                    if (result.Message.StartsWith("Only Super Admins", StringComparison.OrdinalIgnoreCase) ||
+                        result.Message.StartsWith("You don't have permission", StringComparison.OrdinalIgnoreCase))
+                        return StatusCode(403, new { success = false, message = result.Message, data = (object?)null });
+
+                    if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                        return NotFound(new { success = false, message = result.Message, data = (object?)null });
+
+                    return BadRequest(new { success = false, message = result.Message, data = (object?)null });
+                }
 
                 return Ok(new { success = true, message = result.Message, data = result.Data });
             }
@@ -105,8 +125,10 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = Roles.SuperAdmin)]
         [ProducesResponseType(200)]
         [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> Delete(int id)
         {
@@ -114,7 +136,16 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
             {
                 var result = await _service.DeleteIntercomAsync(id);
                 if (!result.Success)
-                    return NotFound(new { success = false, message = result.Message });
+                {
+                    if (result.Message.StartsWith("Only Super Admins", StringComparison.OrdinalIgnoreCase) ||
+                        result.Message.StartsWith("You don't have permission", StringComparison.OrdinalIgnoreCase))
+                        return StatusCode(403, new { success = false, message = result.Message });
+
+                    if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                        return NotFound(new { success = false, message = result.Message });
+
+                    return BadRequest(new { success = false, message = result.Message });
+                }
 
                 return Ok(new { success = true, message = result.Message });
             }
@@ -124,24 +155,5 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
             }
         }
 
-        [HttpPut("{id}/assign")]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> AssignToUnit(int id, [FromBody] AssignIntercomDTO dto)
-        {
-            try
-            {
-                var result = await _service.AssignToUnitAsync(id, dto.UnitId);
-                if (!result.Success)
-                    return NotFound(new { success = false, message = result.Message, data = (object?)null });
-
-                return Ok(new { success = true, message = result.Message, data = result.Data });
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized(new { message = "User authentication required." });
-            }
-        }
     }
 }

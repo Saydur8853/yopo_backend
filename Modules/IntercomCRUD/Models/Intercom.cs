@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using YopoBackend.Modules.UnitCRUD.Models;
+using YopoBackend.Modules.BuildingCRUD.Models;
+using YopoBackend.Modules.AmenityCRUD.Models;
 using YopoBackend.Modules.UserCRUD.Models;
 
 namespace YopoBackend.Modules.IntercomCRUD.Models
@@ -65,8 +66,12 @@ namespace YopoBackend.Modules.IntercomCRUD.Models
         [Column("CustomerId")]
         public int CustomerId { get; set; }
 
-        [Column("UnitId")]
-        public int? UnitId { get; set; }
+        [Required]
+        [Column("BuildingId")]
+        public int BuildingId { get; set; }
+
+        [Column("AmenityId")]
+        public int? AmenityId { get; set; }
 
         [Column("CreatedAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -74,11 +79,26 @@ namespace YopoBackend.Modules.IntercomCRUD.Models
         [Column("UpdatedAt")]
         public DateTime? UpdatedAt { get; set; }
 
+        [Column("CreatedBy")]
+        public int? CreatedBy { get; set; }
+
+        [Column("UpdatedBy")]
+        public int? UpdatedBy { get; set; }
+
         // Navigation
         [ForeignKey("CustomerId")]
         public virtual Customer Customer { get; set; } = null!;
 
-        [ForeignKey("UnitId")]
-        public virtual Unit? Unit { get; set; }
+        [ForeignKey("BuildingId")]
+        public virtual Building Building { get; set; } = null!;
+
+        [ForeignKey("AmenityId")]
+        public virtual Amenity? Amenity { get; set; }
+
+        [ForeignKey("CreatedBy")]
+        public virtual User? CreatedByUser { get; set; }
+
+        [ForeignKey("UpdatedBy")]
+        public virtual User? UpdatedByUser { get; set; }
     }
 }

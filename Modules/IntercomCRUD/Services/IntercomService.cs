@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using YopoBackend.Auth;
 using YopoBackend.Data;
 using YopoBackend.Modules.IntercomCRUD.DTOs;
 using YopoBackend.Modules.IntercomCRUD.Models;
@@ -25,8 +26,22 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             return int.Parse(userId);
         }
 
+        private string GetUserRole()
+        {
+            return _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
+        }
+
+        private bool IsSuperAdmin() => string.Equals(GetUserRole(), Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
+
+        private async Task<bool> CanManageBuildingAsync(int buildingId)
+        {
+            if (IsSuperAdmin()) return true;
+            var userId = GetUserId();
+            return await _context.UserBuildingPermissions.AnyAsync(p => p.UserId == userId && p.BuildingId == buildingId);
+        }
+
         public async Task<(List<IntercomResponseDTO> intercoms, int totalRecords)> GetIntercomsAsync(
-            int page, int pageSize, string? searchTerm, int? customerId, int? buildingId, int? unitId,
+            int page, int pageSize, string? searchTerm, int? customerId, int? buildingId,
             bool? isActive, bool? isInstalled, string? intercomType, string? operatingSystem, bool? hasCCTV, bool? hasPinPad,
             DateTime? installedFrom, DateTime? installedTo, DateTime? serviceFrom, DateTime? serviceTo, decimal? priceMin, decimal? priceMax,
             string? color, string? model)
@@ -34,18 +49,28 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             var query = _context.Set<Intercom>()
                 .AsNoTracking()
                 .Include(i => i.Customer)
-                .Include(i => i.Unit)!.ThenInclude(u => u!.Floor)
-                .Include(i => i.Unit)!.ThenInclude(u => u!.Building)
+                .Include(i => i.Building)
+                .Include(i => i.Amenity)
                 .AsQueryable();
 
-            // Access control by building if none provided
-            if (!buildingId.HasValue)
+            // Access control by building - PM and FD only see their assigned buildings
+            var userRole = GetUserRole();
+            if (userRole != "SuperAdmin")
             {
                 var userId = GetUserId();
-                var userBuilding = await _context.UserBuildingPermissions.FirstOrDefaultAsync(p => p.UserId == userId);
-                if (userBuilding != null)
+                var userBuildings = await _context.UserBuildingPermissions
+                    .Where(p => p.UserId == userId)
+                    .Select(p => p.BuildingId)
+                    .ToListAsync();
+                
+                if (userBuildings.Any())
                 {
-                    query = query.Where(i => i.Unit != null && i.Unit.BuildingId == userBuilding.BuildingId);
+                    query = query.Where(i => userBuildings.Contains(i.BuildingId));
+                }
+                else
+                {
+                    // User has no building permissions
+                    return (new List<IntercomResponseDTO>(), 0);
                 }
             }
 
@@ -56,12 +81,12 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
                     || (i.IntercomModel != null && i.IntercomModel.ToLower().Contains(term))
                     || (i.IntercomType != null && i.IntercomType.ToLower().Contains(term))
                     || (i.OperatingSystem != null && i.OperatingSystem.ToLower().Contains(term))
+                    || (i.InstalledLocation != null && i.InstalledLocation.ToLower().Contains(term))
                 );
             }
 
             if (customerId.HasValue) query = query.Where(i => i.CustomerId == customerId);
-            if (buildingId.HasValue) query = query.Where(i => i.Unit != null && i.Unit.BuildingId == buildingId.Value);
-            if (unitId.HasValue) query = query.Where(i => i.UnitId == unitId.Value);
+            if (buildingId.HasValue) query = query.Where(i => i.BuildingId == buildingId.Value);
             if (isActive.HasValue) query = query.Where(i => i.IsActive == isActive.Value);
             if (isInstalled.HasValue) query = query.Where(i => i.IsInstalled == isInstalled.Value);
             if (!string.IsNullOrWhiteSpace(intercomType)) query = query.Where(i => i.IntercomType == intercomType);
@@ -91,15 +116,28 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
 
         public async Task<(bool Success, string Message, IntercomResponseDTO? Data)> CreateIntercomAsync(CreateIntercomDTO dto)
         {
+            // Only SuperAdmin can create intercoms
+            // Authorization: SuperAdmin only
+            if (!IsSuperAdmin())
+                return (false, "Only Super Admins can create intercoms.", null);
+
             // Validate references
+            var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == dto.BuildingId);
+            if (building == null)
+                return (false, $"Building with ID {dto.BuildingId} not found.", null);
+
             var customerExists = await _context.Customers.AnyAsync(c => c.CustomerId == dto.CustomerId);
             if (!customerExists)
                 return (false, $"Customer with ID {dto.CustomerId} not found.", null);
 
-            if (dto.UnitId.HasValue)
+            // Cross-entity consistency: Building.CustomerId must match Intercom.CustomerId
+            if (building.CustomerId != dto.CustomerId)
+                return (false, "CustomerId does not match the Building's CustomerId.", null);
+
+            if (dto.AmenityId.HasValue)
             {
-                var unitExists = await _context.Units.AnyAsync(u => u.UnitId == dto.UnitId.Value);
-                if (!unitExists) return (false, $"Unit with ID {dto.UnitId.Value} not found.", null);
+                var amenityExists = await _context.Amenities.AnyAsync(a => a.AmenityId == dto.AmenityId.Value);
+                if (!amenityExists) return (false, $"Amenity with ID {dto.AmenityId.Value} not found.", null);
             }
 
             var entity = new Intercom
@@ -119,22 +157,20 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
                 HasCCTV = dto.HasCCTV,
                 HasPinPad = dto.HasPinPad,
                 CustomerId = dto.CustomerId,
-                UnitId = dto.UnitId,
-                CreatedAt = DateTime.UtcNow
+                BuildingId = dto.BuildingId,
+                AmenityId = dto.AmenityId,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = GetUserId()
             };
 
             _context.Add(entity);
             await _context.SaveChangesAsync();
 
             await _context.Entry(entity).Reference(e => e.Customer).LoadAsync();
-            if (entity.UnitId.HasValue)
+            await _context.Entry(entity).Reference(e => e.Building).LoadAsync();
+            if (entity.AmenityId.HasValue)
             {
-                await _context.Entry(entity).Reference(e => e.Unit).LoadAsync();
-                if (entity.Unit != null)
-                {
-                    await _context.Entry(entity.Unit).Reference(u => u.Floor).LoadAsync();
-                    await _context.Entry(entity.Unit).Reference(u => u.Building).LoadAsync();
-                }
+                await _context.Entry(entity).Reference(e => e.Amenity).LoadAsync();
             }
 
             return (true, "Intercom created successfully.", MapToResponse(entity));
@@ -146,6 +182,10 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             if (entity == null)
                 return (false, $"Intercom with ID {intercomId} not found.", null);
 
+            // Authorization: SuperAdmin only
+            if (!IsSuperAdmin())
+                return (false, "Only Super Admins can update intercoms.", null);
+
             if (dto.CustomerId.HasValue)
             {
                 var customerExists = await _context.Customers.AnyAsync(c => c.CustomerId == dto.CustomerId.Value);
@@ -153,11 +193,22 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
                 entity.CustomerId = dto.CustomerId.Value;
             }
 
-            if (dto.UnitId.HasValue)
+            if (dto.BuildingId.HasValue)
             {
-                var unitExists = await _context.Units.AnyAsync(u => u.UnitId == dto.UnitId.Value);
-                if (!unitExists) return (false, $"Unit with ID {dto.UnitId.Value} not found.", null);
-                entity.UnitId = dto.UnitId.Value;
+                var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == dto.BuildingId.Value);
+                if (building == null) return (false, $"Building with ID {dto.BuildingId.Value} not found.", null);
+                // Cross-entity consistency: if CustomerId is set or existing, it must match building's customer
+                var effectiveCustomerId = dto.CustomerId ?? entity.CustomerId;
+                if (building.CustomerId != effectiveCustomerId)
+                    return (false, "CustomerId does not match the Building's CustomerId.", null);
+                entity.BuildingId = dto.BuildingId.Value;
+            }
+
+            if (dto.AmenityId.HasValue)
+            {
+                var amenityExists = await _context.Amenities.AnyAsync(a => a.AmenityId == dto.AmenityId.Value);
+                if (!amenityExists) return (false, $"Amenity with ID {dto.AmenityId.Value} not found.", null);
+                entity.AmenityId = dto.AmenityId.Value;
             }
 
             if (dto.IntercomName != null) entity.IntercomName = dto.IntercomName;
@@ -176,17 +227,14 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             if (dto.HasPinPad.HasValue) entity.HasPinPad = dto.HasPinPad.Value;
 
             entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedBy = GetUserId();
             await _context.SaveChangesAsync();
 
             await _context.Entry(entity).Reference(e => e.Customer).LoadAsync();
-            if (entity.UnitId.HasValue)
+            await _context.Entry(entity).Reference(e => e.Building).LoadAsync();
+            if (entity.AmenityId.HasValue)
             {
-                await _context.Entry(entity).Reference(e => e.Unit).LoadAsync();
-                if (entity.Unit != null)
-                {
-                    await _context.Entry(entity.Unit).Reference(u => u.Floor).LoadAsync();
-                    await _context.Entry(entity.Unit).Reference(u => u.Building).LoadAsync();
-                }
+                await _context.Entry(entity).Reference(e => e.Amenity).LoadAsync();
             }
 
             return (true, "Intercom updated successfully.", MapToResponse(entity));
@@ -198,32 +246,15 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             if (entity == null)
                 return (false, $"Intercom with ID {intercomId} not found.");
 
+            // Authorization: SuperAdmin only
+            if (!IsSuperAdmin())
+                return (false, "Only Super Admins can delete intercoms.");
+
             _context.Remove(entity);
             await _context.SaveChangesAsync();
             return (true, "Intercom deleted successfully.");
         }
 
-        public async Task<(bool Success, string Message, IntercomResponseDTO? Data)> AssignToUnitAsync(int intercomId, int unitId)
-        {
-            var entity = await _context.Set<Intercom>().FirstOrDefaultAsync(i => i.IntercomId == intercomId);
-            if (entity == null)
-                return (false, $"Intercom with ID {intercomId} not found.", null);
-
-            var unit = await _context.Units.Include(u => u.Floor).Include(u => u.Building).FirstOrDefaultAsync(u => u.UnitId == unitId);
-            if (unit == null)
-                return (false, $"Unit with ID {unitId} not found.", null);
-
-            entity.UnitId = unitId;
-            entity.IsInstalled = true;
-            if (!entity.DateInstalled.HasValue) entity.DateInstalled = DateTime.UtcNow;
-            entity.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
-            await _context.Entry(entity).Reference(e => e.Customer).LoadAsync();
-            entity.Unit = unit;
-
-            return (true, "Intercom assigned to unit successfully.", MapToResponse(entity));
-        }
 
         private static IntercomResponseDTO MapToResponse(Intercom e)
         {
@@ -245,7 +276,8 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
                 HasCCTV = e.HasCCTV,
                 HasPinPad = e.HasPinPad,
                 CustomerId = e.CustomerId,
-                UnitId = e.UnitId,
+                BuildingId = e.BuildingId,
+                AmenityId = e.AmenityId,
                 CreatedAt = e.CreatedAt,
                 UpdatedAt = e.UpdatedAt,
                 Customer = e.Customer != null ? new CustomerInfoDTO
@@ -254,31 +286,20 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
                     CustomerName = e.Customer.CustomerName,
                     CompanyName = e.Customer.CompanyName,
                     CompanyAddress = e.Customer.CompanyAddress
+                } : null,
+                Building = e.Building != null ? new BuildingInfoDTO
+                {
+                    BuildingId = e.Building.BuildingId,
+                    BuildingName = e.Building.Name,
+                    BuildingAddress = e.Building.Address
+                } : null,
+                Amenity = e.Amenity != null ? new AmenityInfoDTO
+                {
+                    AmenityId = e.Amenity.AmenityId,
+                    AmenityName = e.Amenity.Name,
+                    AmenityType = e.Amenity.Type
                 } : null
             };
-
-            if (e.Unit != null)
-            {
-                resp.Unit = new UnitInfoDTO { UnitId = e.Unit.UnitId, UnitNumber = e.Unit.UnitNumber };
-                if (e.Unit.Building != null)
-                {
-                    resp.Building = new BuildingInfoDTO
-                    {
-                        BuildingId = e.Unit.Building.BuildingId,
-                        BuildingName = e.Unit.Building.Name,
-                        BuildingAddress = e.Unit.Building.Address
-                    };
-                }
-                if (e.Unit.Floor != null)
-                {
-                    resp.Floor = new FloorInfoDTO
-                    {
-                        FloorId = e.Unit.Floor.FloorId,
-                        Name = e.Unit.Floor.Name,
-                        Number = e.Unit.Floor.Number
-                    };
-                }
-            }
 
             return resp;
         }

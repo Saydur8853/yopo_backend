@@ -30,8 +30,9 @@ namespace YopoBackend.Modules.IntercomCRUD.DTOs
         [MaxLength(50)]
         public string? OperatingSystem { get; set; }
 
+        [Required]
         [MaxLength(200)]
-        public string? InstalledLocation { get; set; }
+        public string InstalledLocation { get; set; } = string.Empty; // e.g., "Main Entrance", "Parking", "Pool Entrance"
 
         public bool HasCCTV { get; set; }
         public bool HasPinPad { get; set; }
@@ -39,8 +40,11 @@ namespace YopoBackend.Modules.IntercomCRUD.DTOs
         [Required]
         public int CustomerId { get; set; }
 
-        // Optional assignment at creation
-        public int? UnitId { get; set; }
+        [Required]
+        public int BuildingId { get; set; }
+
+        // Optional - if intercom is for a specific amenity
+        public int? AmenityId { get; set; }
     }
 
     public class UpdateIntercomDTO
@@ -67,14 +71,10 @@ namespace YopoBackend.Modules.IntercomCRUD.DTOs
         public bool? HasCCTV { get; set; }
         public bool? HasPinPad { get; set; }
         public int? CustomerId { get; set; }
-        public int? UnitId { get; set; }
+        public int? BuildingId { get; set; }
+        public int? AmenityId { get; set; }
     }
 
-    public class AssignIntercomDTO
-    {
-        [Required]
-        public int UnitId { get; set; }
-    }
 
     public class CustomerInfoDTO
     {
@@ -98,10 +98,11 @@ namespace YopoBackend.Modules.IntercomCRUD.DTOs
         public int Number { get; set; }
     }
 
-    public class UnitInfoDTO
+    public class AmenityInfoDTO
     {
-        public int UnitId { get; set; }
-        public string UnitNumber { get; set; } = string.Empty;
+        public int AmenityId { get; set; }
+        public string AmenityName { get; set; } = string.Empty;
+        public string? AmenityType { get; set; }
     }
 
     public class IntercomResponseDTO
@@ -122,14 +123,14 @@ namespace YopoBackend.Modules.IntercomCRUD.DTOs
         public bool HasCCTV { get; set; }
         public bool HasPinPad { get; set; }
         public int CustomerId { get; set; }
-        public int? UnitId { get; set; }
+        public int BuildingId { get; set; }
+        public int? AmenityId { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
         // Expanded info
         public CustomerInfoDTO? Customer { get; set; }
         public BuildingInfoDTO? Building { get; set; }
-        public FloorInfoDTO? Floor { get; set; }
-        public UnitInfoDTO? Unit { get; set; }
+        public AmenityInfoDTO? Amenity { get; set; }
     }
 }
