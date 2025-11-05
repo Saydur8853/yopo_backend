@@ -46,22 +46,28 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             // Apply access control
             query = await ApplyAccessControlAsync(query, currentUserId);
 
-            // If the user has explicit building permissions, restrict to those
-            var explicitBuildingIds = await _context.UserBuildingPermissions
-                .Where(p => p.UserId == currentUserId && p.IsActive)
-                .Select(p => p.BuildingId)
-                .ToListAsync();
-            if (explicitBuildingIds.Any())
+            // Get current user to check their type
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            
+            // SuperAdmin sees all buildings - skip building permission checks
+            if (currentUser?.UserTypeId != YopoBackend.Constants.UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
             {
-                query = query.Where(b => explicitBuildingIds.Contains(b.BuildingId));
-            }
-            else
-            {
-                // If invited non-PM with no explicit permissions, return none
-                var currentUser = await GetUserWithAccessControlAsync(currentUserId);
-                if (currentUser != null && currentUser.UserTypeId != YopoBackend.Constants.UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && currentUser.InviteById.HasValue)
+                // If the user has explicit building permissions, restrict to those
+                var explicitBuildingIds = await _context.UserBuildingPermissions
+                    .Where(p => p.UserId == currentUserId && p.IsActive)
+                    .Select(p => p.BuildingId)
+                    .ToListAsync();
+                if (explicitBuildingIds.Any())
                 {
-                    query = query.Where(b => false);
+                    query = query.Where(b => explicitBuildingIds.Contains(b.BuildingId));
+                }
+                else
+                {
+                    // If invited non-PM with no explicit permissions, return none
+                    if (currentUser != null && currentUser.UserTypeId != YopoBackend.Constants.UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && currentUser.InviteById.HasValue)
+                    {
+                        query = query.Where(b => false);
+                    }
                 }
             }
 
@@ -310,21 +316,27 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             // Apply access control
             query = await ApplyAccessControlAsync(query, currentUserId);
 
-            // If the user has explicit building permissions, restrict to those
-            var explicitBuildingIds = await _context.UserBuildingPermissions
-                .Where(p => p.UserId == currentUserId && p.IsActive)
-                .Select(p => p.BuildingId)
-                .ToListAsync();
-            if (explicitBuildingIds.Any())
+            // Get current user to check their type
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            
+            // SuperAdmin sees all buildings - skip building permission checks
+            if (currentUser?.UserTypeId != YopoBackend.Constants.UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
             {
-                query = query.Where(b => explicitBuildingIds.Contains(b.BuildingId));
-            }
-            else
-            {
-                var currentUser = await GetUserWithAccessControlAsync(currentUserId);
-                if (currentUser != null && currentUser.UserTypeId != YopoBackend.Constants.UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && currentUser.InviteById.HasValue)
+                // If the user has explicit building permissions, restrict to those
+                var explicitBuildingIds = await _context.UserBuildingPermissions
+                    .Where(p => p.UserId == currentUserId && p.IsActive)
+                    .Select(p => p.BuildingId)
+                    .ToListAsync();
+                if (explicitBuildingIds.Any())
                 {
-                    query = query.Where(b => false);
+                    query = query.Where(b => explicitBuildingIds.Contains(b.BuildingId));
+                }
+                else
+                {
+                    if (currentUser != null && currentUser.UserTypeId != YopoBackend.Constants.UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && currentUser.InviteById.HasValue)
+                    {
+                        query = query.Where(b => false);
+                    }
                 }
             }
 
@@ -375,21 +387,27 @@ namespace YopoBackend.Modules.BuildingCRUD.Services
             // Apply access control
             query = await ApplyAccessControlAsync(query, currentUserId);
 
-            // If the user has explicit building permissions, restrict to those
-            var explicitBuildingIds = await _context.UserBuildingPermissions
-                .Where(p => p.UserId == currentUserId && p.IsActive)
-                .Select(p => p.BuildingId)
-                .ToListAsync();
-            if (explicitBuildingIds.Any())
+            // Get current user to check their type
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            
+            // SuperAdmin sees all buildings - skip building permission checks
+            if (currentUser?.UserTypeId != YopoBackend.Constants.UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
             {
-                query = query.Where(b => explicitBuildingIds.Contains(b.BuildingId));
-            }
-            else
-            {
-                var currentUser = await GetUserWithAccessControlAsync(currentUserId);
-                if (currentUser != null && currentUser.UserTypeId != YopoBackend.Constants.UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && currentUser.InviteById.HasValue)
+                // If the user has explicit building permissions, restrict to those
+                var explicitBuildingIds = await _context.UserBuildingPermissions
+                    .Where(p => p.UserId == currentUserId && p.IsActive)
+                    .Select(p => p.BuildingId)
+                    .ToListAsync();
+                if (explicitBuildingIds.Any())
                 {
-                    query = query.Where(b => false);
+                    query = query.Where(b => explicitBuildingIds.Contains(b.BuildingId));
+                }
+                else
+                {
+                    if (currentUser != null && currentUser.UserTypeId != YopoBackend.Constants.UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && currentUser.InviteById.HasValue)
+                    {
+                        query = query.Where(b => false);
+                    }
                 }
             }
 
