@@ -61,6 +61,17 @@ namespace YopoBackend.Services
                 new Claim("IsEmailVerified", user.IsEmailVerified.ToString())
             };
 
+            // Add Role claim based on UserTypeId for authorization
+            string roleName = user.UserTypeId switch
+            {
+                1 => "SuperAdmin",           // Super Admin
+                2 => "PropertyManager",       // Property Manager
+                3 => "FrontDesk",             // Front Desk Officer
+                4 => "Tenant",                // Tenant
+                _ => "Unknown"
+            };
+            claims.Add(new Claim(ClaimTypes.Role, roleName));
+
             // Add module claims based on user's permissions
             if (user.UserType?.ModulePermissions != null)
             {
