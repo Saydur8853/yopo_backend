@@ -37,8 +37,8 @@ namespace YopoBackend.Modules.IntercomCRUD.DTOs
         public bool HasCCTV { get; set; }
         public bool HasPinPad { get; set; }
 
-        [Required]
-        public int CustomerId { get; set; }
+        // Optional - will be auto-derived from BuildingId if not provided
+        public int? CustomerId { get; set; }
 
         [Required]
         public int BuildingId { get; set; }

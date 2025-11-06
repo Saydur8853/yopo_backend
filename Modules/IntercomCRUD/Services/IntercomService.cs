@@ -121,18 +121,22 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             if (!IsSuperAdmin())
                 return (false, "Only Super Admins can create intercoms.", null);
 
-            // Validate references
+            // Validate building exists
             var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == dto.BuildingId);
             if (building == null)
                 return (false, $"Building with ID {dto.BuildingId} not found.", null);
 
-            var customerExists = await _context.Customers.AnyAsync(c => c.CustomerId == dto.CustomerId);
-            if (!customerExists)
-                return (false, $"Customer with ID {dto.CustomerId} not found.", null);
+            // Auto-derive CustomerId from Building if not provided
+            int customerId = dto.CustomerId ?? building.CustomerId;
 
-            // Cross-entity consistency: Building.CustomerId must match Intercom.CustomerId
-            if (building.CustomerId != dto.CustomerId)
+            // If CustomerId was explicitly provided, validate consistency with building
+            if (dto.CustomerId.HasValue && building.CustomerId != dto.CustomerId.Value)
                 return (false, "CustomerId does not match the Building's CustomerId.", null);
+
+            // Validate customer exists
+            var customerExists = await _context.Customers.AnyAsync(c => c.CustomerId == customerId);
+            if (!customerExists)
+                return (false, $"Customer with ID {customerId} not found.", null);
 
             if (dto.AmenityId.HasValue)
             {
@@ -156,7 +160,7 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
                 InstalledLocation = dto.InstalledLocation,
                 HasCCTV = dto.HasCCTV,
                 HasPinPad = dto.HasPinPad,
-                CustomerId = dto.CustomerId,
+                CustomerId = customerId, // Use derived customerId
                 BuildingId = dto.BuildingId,
                 AmenityId = dto.AmenityId,
                 CreatedAt = DateTime.UtcNow,
