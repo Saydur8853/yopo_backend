@@ -109,7 +109,12 @@ namespace YopoBackend.Data
         /// </summary>
         public DbSet<YopoBackend.Modules.InvitationCRUD.Models.InvitationBuilding> InvitationBuildings { get; set; }
 
-
+        // Module: Intercom Access Control
+        public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomMasterPin> IntercomMasterPins { get; set; }
+        public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomUserPin> IntercomUserPins { get; set; }
+        public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPin> IntercomTemporaryPins { get; set; }
+        public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPinUsage> IntercomTemporaryPinUsages { get; set; }
+        public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog> IntercomAccessLogs { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -508,6 +513,82 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.UpdatedBy)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure Intercom Access Control entities
+            modelBuilder.Entity<YopoBackend.Modules.IntercomAccess.Models.IntercomMasterPin>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.IntercomId, e.IsActive });
+                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                      .WithMany()
+                      .HasForeignKey(e => e.IntercomId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(e => e.PinHash).HasMaxLength(255);
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            });
+
+            modelBuilder.Entity<YopoBackend.Modules.IntercomAccess.Models.IntercomUserPin>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.IntercomId, e.UserId }).IsUnique();
+                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                      .WithMany()
+                      .HasForeignKey(e => e.IntercomId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<YopoBackend.Modules.UserCRUD.Models.User>()
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(e => e.PinHash).HasMaxLength(255);
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            });
+
+            modelBuilder.Entity<YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPin>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.IntercomId, e.IsActive });
+                entity.HasIndex(e => e.CreatedByUserId);
+                entity.Property(e => e.PinHash).HasMaxLength(255);
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.ExpiresAt).HasColumnType("datetime");
+                entity.Property(e => e.FirstUsedAt).HasColumnType("datetime");
+                entity.Property(e => e.LastUsedAt).HasColumnType("datetime");
+                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                      .WithMany()
+                      .HasForeignKey(e => e.IntercomId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<YopoBackend.Modules.UserCRUD.Models.User>()
+                      .WithMany()
+                      .HasForeignKey(e => e.CreatedByUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPinUsage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TemporaryPinId);
+                entity.Property(e => e.UsedAt).HasColumnType("datetime");
+                entity.HasOne<YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPin>()
+                      .WithMany()
+                      .HasForeignKey(e => e.TemporaryPinId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.IntercomId);
+                entity.HasIndex(e => e.OccurredAt);
+                entity.Property(e => e.OccurredAt).HasColumnType("datetime");
+                entity.Property(e => e.CredentialType).HasMaxLength(20);
+                entity.Property(e => e.Reason).HasMaxLength(200);
+                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                      .WithMany()
+                      .HasForeignKey(e => e.IntercomId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
         }

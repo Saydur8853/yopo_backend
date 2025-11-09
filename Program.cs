@@ -56,6 +56,9 @@ builder.Services.AddScoped<YopoBackend.Modules.TenantCRUD.Services.ITenantServic
 // Module: IntercomCRUD
 builder.Services.AddScoped<YopoBackend.Modules.IntercomCRUD.Services.IIntercomService, YopoBackend.Modules.IntercomCRUD.Services.IntercomService>();
 
+// Module: Intercom Access Control
+builder.Services.AddScoped<YopoBackend.Modules.IntercomAccess.Services.IIntercomAccessService, YopoBackend.Modules.IntercomAccess.Services.IntercomAccessService>();
+
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
