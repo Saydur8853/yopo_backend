@@ -115,6 +115,7 @@ namespace YopoBackend.Data
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPin> IntercomTemporaryPins { get; set; }
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPinUsage> IntercomTemporaryPinUsages { get; set; }
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog> IntercomAccessLogs { get; set; }
+        public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessCode> IntercomAccessCodes { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -589,6 +590,34 @@ namespace YopoBackend.Data
                       .WithMany()
                       .HasForeignKey(e => e.IntercomId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure IntercomAccessCode (building-level or intercom-level codes)
+            modelBuilder.Entity<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessCode>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.IntercomId);
+                entity.HasIndex(e => new { e.BuildingId, e.IntercomId, e.IsActive });
+                entity.Property(e => e.CodeType).HasMaxLength(10);
+                entity.Property(e => e.CodeHash).HasMaxLength(255);
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.ExpiresAt).HasColumnType("datetime");
+
+                entity.HasOne<YopoBackend.Modules.BuildingCRUD.Models.Building>()
+                      .WithMany()
+                      .HasForeignKey(e => e.BuildingId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                      .WithMany()
+                      .HasForeignKey(e => e.IntercomId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne<YopoBackend.Modules.UserCRUD.Models.User>()
+                      .WithMany()
+                      .HasForeignKey(e => e.CreatedBy)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
         }

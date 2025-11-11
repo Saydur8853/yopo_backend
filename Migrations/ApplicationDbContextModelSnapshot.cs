@@ -242,6 +242,80 @@ namespace YopoBackend.Migrations
                     b.ToTable("Floors");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomAccessCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int")
+                        .HasColumnName("BuildingId");
+
+                    b.Property<int>("BuildingId1")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("CodeHash");
+
+                    b.Property<string>("CodeType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("CodeType");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int")
+                        .HasColumnName("CreatedBy");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("ExpiresAt");
+
+                    b.Property<int?>("IntercomId")
+                        .HasColumnType("int")
+                        .HasColumnName("IntercomId");
+
+                    b.Property<int?>("IntercomId1")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IsActive");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("BuildingId1");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("IntercomId");
+
+                    b.HasIndex("IntercomId1");
+
+                    b.HasIndex("BuildingId", "IntercomId", "IsActive");
+
+                    b.ToTable("IntercomAccessCodes");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog", b =>
                 {
                     b.Property<long>("Id")
@@ -1303,6 +1377,48 @@ namespace YopoBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("Building");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomAccessCode", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", null)
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", null)
+                        .WithMany()
+                        .HasForeignKey("IntercomId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", "Intercom")
+                        .WithMany()
+                        .HasForeignKey("IntercomId1");
+
+                    b.Navigation("Building");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Intercom");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog", b =>

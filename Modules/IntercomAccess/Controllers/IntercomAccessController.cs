@@ -37,39 +37,6 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
             return StatusCode(code, res);
         }
 
-        [HttpPost("users/{userId:int}/pin")] // SuperAdmin sets or resets any user's pin (requires master pin if not self)
-        public async Task<IActionResult> SetUserPin(int intercomId, int userId, [FromBody] SetUserPinDTO dto)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var res = await _service.SetOrUpdateUserPinAsync(intercomId, userId, dto.Pin, GetCurrentUserId(), dto.MasterPin);
-            if (!res.Success)
-            {
-                if (res.Message.Contains("Not allowed", StringComparison.OrdinalIgnoreCase)) return StatusCode(403, res);
-                if (res.Message.Contains("Only Super Admin", StringComparison.OrdinalIgnoreCase)) return StatusCode(403, res);
-                return BadRequest(res);
-            }
-            return Ok(res);
-        }
-
-        [HttpPut("me/pin")] // user updates own pin for this intercom
-        public async Task<IActionResult> UpdateMyPin(int intercomId, [FromBody] UpdateOwnPinDTO dto)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var res = await _service.UpdateOwnUserPinAsync(intercomId, GetCurrentUserId(), dto.NewPin, dto.OldPin);
-            var code = res.Success ? 200 : 400;
-            return StatusCode(code, res);
-        }
-
-        [HttpPost("temporary-pin")] // tenant creates temporary pin
-        [Authorize(Roles = Roles.Tenant)]
-        public async Task<IActionResult> CreateTemporaryPin(int intercomId, [FromBody] CreateTemporaryPinDTO dto)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var expiresAt = dto.ExpiresAt ?? DateTime.UtcNow.AddMinutes(dto.ValidForMinutes ?? 30);
-            var res = await _service.CreateTemporaryPinAsync(intercomId, GetCurrentUserId(), dto.Pin, expiresAt, dto.MaxUses);
-            var code = res.Success ? 201 : 400;
-            return StatusCode(code, res);
-        }
 
         [AllowAnonymous]
         [HttpPost("verify")] // endpoint a device can call to verify a pin
@@ -82,42 +49,15 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
             return Ok(res);
         }
 
-        // History: Access logs for an intercom (paginated)
-        [HttpGet("logs")]
-        public async Task<IActionResult> GetAccessLogs(
-            int intercomId,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] DateTime? from = null,
-            [FromQuery] DateTime? to = null,
-            [FromQuery] bool? success = null,
-            [FromQuery] string? credentialType = null,
-            [FromQuery] int? userId = null)
+        [HttpPost("temporary-pin")] // Tenants only
+        [Authorize(Roles = Roles.Tenant)]
+        public async Task<IActionResult> CreateTemporaryPin(int intercomId, [FromBody] CreateTemporaryPinDTO dto)
         {
-            if (!User.IsInRole(YopoBackend.Auth.Roles.SuperAdmin))
-                return StatusCode(403, new { message = "Only Super Admin can view intercom access logs." });
-
-            var (items, total) = await _service.GetAccessLogsAsync(intercomId, page, pageSize, from, to, success, credentialType, userId);
-            var response = new YopoBackend.DTOs.PaginatedResponse<YopoBackend.Modules.IntercomAccess.DTOs.AccessLogDTO>(items, total, page, pageSize);
-            return Ok(response);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var res = await _service.CreateTemporaryPinAsync(intercomId, GetCurrentUserId(), dto.Pin, dto.ExpiresAt ?? DateTime.UtcNow.AddMinutes(dto.ValidForMinutes ?? 30), dto.MaxUses);
+            var code = res.Success ? 201 : 400;
+            return StatusCode(code, res);
         }
 
-        // History: Temporary pin usages for an intercom (paginated)
-        [HttpGet("temporary-usages")]
-        public async Task<IActionResult> GetTemporaryUsages(
-            int intercomId,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] DateTime? from = null,
-            [FromQuery] DateTime? to = null,
-            [FromQuery] int? temporaryPinId = null)
-        {
-            if (!User.IsInRole(YopoBackend.Auth.Roles.SuperAdmin))
-                return StatusCode(403, new { message = "Only Super Admin can view intercom temporary PIN usages." });
-
-            var (items, total) = await _service.GetTemporaryUsagesAsync(intercomId, page, pageSize, from, to, temporaryPinId);
-            var response = new YopoBackend.DTOs.PaginatedResponse<YopoBackend.Modules.IntercomAccess.DTOs.TemporaryPinUsageDTO>(items, total, page, pageSize);
-            return Ok(response);
-        }
     }
 }

@@ -38,6 +38,13 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             return await _context.UserBuildingPermissions.AnyAsync(p => p.UserId == userId && p.BuildingId == intercom.BuildingId);
         }
 
+        private async Task<bool> HasBuildingAccessAsync(int buildingId)
+        {
+            if (IsSuperAdmin()) return true;
+            var userId = GetUserId();
+            return await _context.UserBuildingPermissions.AsNoTracking().AnyAsync(p => p.UserId == userId && p.BuildingId == buildingId);
+        }
+
         public async Task<PinOperationResponseDTO> SetOrUpdateMasterPinAsync(int intercomId, string pin, int currentUserId)
         {
             if (!IsSuperAdmin()) return new PinOperationResponseDTO { Success = false, Message = "Only Super Admin can manage master pin." };
@@ -166,39 +173,73 @@ namespace YopoBackend.Modules.IntercomAccess.Services
         public async Task<VerifyPinResponseDTO> VerifyPinAsync(int intercomId, string pin, string? ip, string? deviceInfo)
         {
             var now = DateTime.UtcNow;
-            // Try Temporary pins valid and active with time and uses left
+
+            // Get intercom to determine building for building-wide codes
+            var intercom = await _context.Intercoms.AsNoTracking().FirstOrDefaultAsync(i => i.IntercomId == intercomId);
+            if (intercom == null)
+            {
+                return new VerifyPinResponseDTO { Granted = false, Reason = "Intercom not found", CredentialType = "None", CredentialRefId = null, Timestamp = now };
+            }
+
+            // Try AccessCodes first (intercom-specific or building-wide), active and not expired
+            var codeCandidates = await _context.Set<IntercomAccessCode>()
+                .Where(c => c.IsActive && (c.ExpiresAt == null || c.ExpiresAt > now)
+                            && (c.IntercomId == intercomId || (c.IntercomId == null && c.BuildingId == intercom.BuildingId)))
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            foreach (var c in codeCandidates)
+            {
+                if (BCrypt.Net.BCrypt.Verify(pin, c.CodeHash))
+                {
+                    _context.Add(new IntercomAccessLog {
+                        IntercomId = intercomId,
+                        UserId = c.CreatedBy, // attribute to creator for auditing, if desired
+                        CredentialType = "AccessCode",
+                        CredentialRefId = c.Id,
+                        IsSuccess = true,
+                        OccurredAt = now,
+                        IpAddress = ip,
+                        DeviceInfo = deviceInfo
+                    });
+                    await _context.SaveChangesAsync();
+                    return new VerifyPinResponseDTO { Granted = true, Reason = "OK", CredentialType = "AccessCode", CredentialRefId = c.Id, Timestamp = now };
+                }
+            }
+
+            // Try Temporary PINs (active, not expired, not max uses reached)
             var tempCandidates = await _context.Set<IntercomTemporaryPin>()
                 .Where(t => t.IntercomId == intercomId && t.IsActive && t.ExpiresAt > now && t.UsesCount < t.MaxUses)
-                .OrderBy(t => t.CreatedAt)
+                .OrderByDescending(t => t.CreatedAt)
                 .ToListAsync();
+
             foreach (var t in tempCandidates)
             {
                 if (BCrypt.Net.BCrypt.Verify(pin, t.PinHash))
                 {
-                    t.UsesCount += 1;
+                    // Increment usage
+                    t.UsesCount++;
+                    if (t.FirstUsedAt == null) t.FirstUsedAt = now;
                     t.LastUsedAt = now;
-                    if (!t.FirstUsedAt.HasValue) t.FirstUsedAt = now;
                     if (t.UsesCount >= t.MaxUses) t.IsActive = false;
-                    _context.Add(new IntercomTemporaryPinUsage { TemporaryPinId = t.Id, UsedAt = now, UsedFromIp = ip, DeviceInfo = deviceInfo });
-                    _context.Add(new IntercomAccessLog { IntercomId = intercomId, UserId = t.CreatedByUserId, CredentialType = "Temporary", CredentialRefId = t.Id, IsSuccess = true, OccurredAt = now, IpAddress = ip, DeviceInfo = deviceInfo });
+                    await _context.SaveChangesAsync();
+
+                    _context.Add(new IntercomAccessLog {
+                        IntercomId = intercomId,
+                        UserId = t.CreatedByUserId,
+                        CredentialType = "Temporary",
+                        CredentialRefId = t.Id,
+                        IsSuccess = true,
+                        OccurredAt = now,
+                        IpAddress = ip,
+                        DeviceInfo = deviceInfo
+                    });
                     await _context.SaveChangesAsync();
                     return new VerifyPinResponseDTO { Granted = true, Reason = "OK", CredentialType = "Temporary", CredentialRefId = t.Id, Timestamp = now };
                 }
             }
 
-            // Try User pins
-            var userPins = await _context.Set<IntercomUserPin>().Where(x => x.IntercomId == intercomId && x.IsActive).ToListAsync();
-            foreach (var up in userPins)
-            {
-                if (BCrypt.Net.BCrypt.Verify(pin, up.PinHash))
-                {
-                    _context.Add(new IntercomAccessLog { IntercomId = intercomId, UserId = up.UserId, CredentialType = "User", CredentialRefId = up.Id, IsSuccess = true, OccurredAt = now, IpAddress = ip, DeviceInfo = deviceInfo });
-                    await _context.SaveChangesAsync();
-                    return new VerifyPinResponseDTO { Granted = true, Reason = "OK", CredentialType = "User", CredentialRefId = up.Id, Timestamp = now };
-                }
-            }
-
-            // Try Master pin
+            // Optional: Master pin fallback (if you want to keep admin override)
             var master = await _context.Set<IntercomMasterPin>().FirstOrDefaultAsync(x => x.IntercomId == intercomId && x.IsActive);
             if (master != null && BCrypt.Net.BCrypt.Verify(pin, master.PinHash))
             {
@@ -208,9 +249,9 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             }
 
             // Log failed attempt
-            _context.Add(new IntercomAccessLog { IntercomId = intercomId, UserId = null, CredentialType = "None", CredentialRefId = null, IsSuccess = false, Reason = "Invalid PIN or expired", OccurredAt = now, IpAddress = ip, DeviceInfo = deviceInfo });
+            _context.Add(new IntercomAccessLog { IntercomId = intercomId, UserId = null, CredentialType = "None", CredentialRefId = null, IsSuccess = false, Reason = "Invalid or expired", OccurredAt = now, IpAddress = ip, DeviceInfo = deviceInfo });
             await _context.SaveChangesAsync();
-            return new VerifyPinResponseDTO { Granted = false, Reason = "Invalid PIN or expired", CredentialType = "None", CredentialRefId = null, Timestamp = now };
+            return new VerifyPinResponseDTO { Granted = false, Reason = "Invalid or expired", CredentialType = "None", CredentialRefId = null, Timestamp = now };
         }
 
         public async Task<(List<YopoBackend.Modules.IntercomAccess.DTOs.AccessLogDTO> items, int total)> GetAccessLogsAsync(
@@ -274,6 +315,169 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                                    UsedAt = u.UsedAt,
                                    UsedFromIp = u.UsedFromIp,
                                    DeviceInfo = u.DeviceInfo
+                               })
+                               .ToListAsync();
+            return (items, total);
+        }
+
+        // Access codes (QR or PIN)
+        public async Task<List<YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO>> GetAccessCodesAsync(int? buildingId, int? intercomId)
+        {
+            if (!IsSuperAdmin())
+            {
+                // Limit to buildings current user has access to
+                var userId = GetUserId();
+                var allowedBuildingIds = await _context.UserBuildingPermissions
+                    .AsNoTracking()
+                    .Where(p => p.UserId == userId)
+                    .Select(p => p.BuildingId)
+                    .ToListAsync();
+
+                var qLimited = _context.Set<IntercomAccessCode>()
+                    .AsNoTracking()
+                    .Where(c => allowedBuildingIds.Contains(c.BuildingId));
+
+                if (buildingId.HasValue) qLimited = qLimited.Where(c => c.BuildingId == buildingId.Value);
+                if (intercomId.HasValue) qLimited = qLimited.Where(c => c.IntercomId == intercomId.Value);
+
+                return await qLimited.OrderByDescending(c => c.CreatedAt)
+                    .Select(c => new AccessCodeDTO
+                    {
+                        Id = c.Id,
+                        BuildingId = c.BuildingId,
+                        IntercomId = c.IntercomId,
+                        Type = c.CodeType,
+                        ExpiresAt = c.ExpiresAt,
+                        IsActive = c.IsActive,
+                        CreatedAt = c.CreatedAt
+                    })
+                    .ToListAsync();
+            }
+            else
+            {
+                var q = _context.Set<IntercomAccessCode>().AsNoTracking().AsQueryable();
+                if (buildingId.HasValue) q = q.Where(c => c.BuildingId == buildingId.Value);
+                if (intercomId.HasValue) q = q.Where(c => c.IntercomId == intercomId.Value);
+
+                return await q.OrderByDescending(c => c.CreatedAt)
+                    .Select(c => new AccessCodeDTO
+                    {
+                        Id = c.Id,
+                        BuildingId = c.BuildingId,
+                        IntercomId = c.IntercomId,
+                        Type = c.CodeType,
+                        ExpiresAt = c.ExpiresAt,
+                        IsActive = c.IsActive,
+                        CreatedAt = c.CreatedAt
+                    })
+                    .ToListAsync();
+            }
+        }
+
+        public async Task<(bool Success, string Message, YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO? Code)> CreateAccessCodeAsync(YopoBackend.Modules.IntercomAccess.DTOs.CreateAccessCodeDTO dto, int currentUserId)
+        {
+            var type = (dto.Type ?? string.Empty).Trim().ToUpperInvariant();
+            if (type != "QR" && type != "PIN")
+                return (false, "Type must be 'QR' or 'PIN'.", null);
+
+            // Validate building exists
+            var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == dto.BuildingId);
+            if (building == null) return (false, $"Building {dto.BuildingId} not found.", null);
+
+            // Authz
+            if (!await HasBuildingAccessAsync(dto.BuildingId))
+                return (false, "Not allowed for this building.", null);
+
+            int? intercomIdToUse = dto.IntercomId;
+            if (dto.IntercomId.HasValue)
+            {
+                var intercom = await _context.Intercoms.AsNoTracking().FirstOrDefaultAsync(i => i.IntercomId == dto.IntercomId.Value);
+                if (intercom == null) return (false, $"Intercom {dto.IntercomId.Value} not found.", null);
+                if (intercom.BuildingId != dto.BuildingId) return (false, "Intercom does not belong to the specified building.", null);
+            }
+
+            // ExpiresAt can be null for infinity; if provided, must be in the future
+            if (dto.ExpiresAt.HasValue && dto.ExpiresAt.Value <= DateTime.UtcNow)
+                return (false, "Expiry must be in the future.", null);
+
+            var hash = BCrypt.Net.BCrypt.HashPassword(dto.Code);
+            var entity = new IntercomAccessCode
+            {
+                BuildingId = dto.BuildingId,
+                IntercomId = intercomIdToUse,
+                CodeType = type,
+                CodeHash = hash,
+                ExpiresAt = dto.ExpiresAt,
+                IsActive = true,
+                CreatedBy = currentUserId,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Add(entity);
+            await _context.SaveChangesAsync();
+
+            var result = new AccessCodeDTO
+            {
+                Id = entity.Id,
+                BuildingId = entity.BuildingId,
+                IntercomId = entity.IntercomId,
+                Type = entity.CodeType,
+                ExpiresAt = entity.ExpiresAt,
+                IsActive = entity.IsActive,
+                CreatedAt = entity.CreatedAt
+            };
+            return (true, "Access code created.", result);
+        }
+
+        public async Task<(bool Success, string Message)> DeactivateAccessCodeAsync(int id, int currentUserId)
+        {
+            var entity = await _context.Set<IntercomAccessCode>().FirstOrDefaultAsync(c => c.Id == id);
+            if (entity == null) return (false, "Not found.");
+            if (!await HasBuildingAccessAsync(entity.BuildingId)) return (false, "Not allowed.");
+            if (!entity.IsActive) return (true, "Already inactive.");
+            entity.IsActive = false;
+            await _context.SaveChangesAsync();
+            return (true, "Deactivated.");
+        }
+
+        public async Task<(List<YopoBackend.Modules.IntercomAccess.DTOs.AccessLogDTO> items, int total)> GetAccessLogsGlobalAsync(
+            int? buildingId, int? intercomId, int? codeId, int page, int pageSize, DateTime? from, DateTime? to, bool? success, string? credentialType, int? userId)
+        {
+            if (!IsSuperAdmin()) return (new List<YopoBackend.Modules.IntercomAccess.DTOs.AccessLogDTO>(), 0);
+
+            var q = _context.IntercomAccessLogs.AsNoTracking().AsQueryable();
+
+            if (buildingId.HasValue)
+            {
+                var intercomIds = await _context.Intercoms.AsNoTracking()
+                    .Where(i => i.BuildingId == buildingId.Value)
+                    .Select(i => i.IntercomId)
+                    .ToListAsync();
+                q = q.Where(l => intercomIds.Contains(l.IntercomId));
+            }
+            if (intercomId.HasValue) q = q.Where(l => l.IntercomId == intercomId.Value);
+            if (codeId.HasValue) q = q.Where(l => l.CredentialType == "AccessCode" && l.CredentialRefId == codeId.Value);
+            if (from.HasValue) q = q.Where(l => l.OccurredAt >= from.Value);
+            if (to.HasValue) q = q.Where(l => l.OccurredAt <= to.Value);
+            if (success.HasValue) q = q.Where(l => l.IsSuccess == success.Value);
+            if (!string.IsNullOrWhiteSpace(credentialType)) q = q.Where(l => l.CredentialType == credentialType);
+            if (userId.HasValue) q = q.Where(l => l.UserId == userId.Value);
+
+            var total = await q.CountAsync();
+            var items = await q.OrderByDescending(l => l.OccurredAt)
+                               .Skip((page - 1) * pageSize)
+                               .Take(pageSize)
+                               .Select(l => new YopoBackend.Modules.IntercomAccess.DTOs.AccessLogDTO
+                               {
+                                   Id = l.Id,
+                                   IntercomId = l.IntercomId,
+                                   UserId = l.UserId,
+                                   CredentialType = l.CredentialType,
+                                   CredentialRefId = l.CredentialRefId,
+                                   IsSuccess = l.IsSuccess,
+                                   Reason = l.Reason,
+                                   OccurredAt = l.OccurredAt,
+                                   IpAddress = l.IpAddress,
+                                   DeviceInfo = l.DeviceInfo
                                })
                                .ToListAsync();
             return (items, total);

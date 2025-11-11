@@ -179,6 +179,9 @@ static string GetControllerDisplayOrder(string? controllerName)
         "amenities" => "07-Amenities",
         "tenants" => "08-Tenants",
         "intercoms" => "09-Intercoms",
+        "intercomaccess" => "10-Intercom Access",
+        "accesscodes" => "10-Intercom Access",
+        "accesslogs" => "Audit/Access Logs",
         _ => controllerName ?? "Other"
     };
 }

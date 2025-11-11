@@ -10,6 +10,6 @@ namespace YopoBackend.Modules.FloorCRUD.Services
         Task<(List<FloorResponseDTO> floors, int totalRecords)> GetFloorsAsync(int? buildingId, int? userId, int page, int pageSize);
         Task<FloorResponseDTO?> CreateFloorAsync(CreateFloorDTO dto);
         Task<FloorResponseDTO?> UpdateFloorAsync(int floorId, UpdateFloorDTO dto);
-        Task<(bool success, string floorName, string buildingName)> DeleteFloorAsync(int floorId);
+        Task<(bool success, string? floorName, string? buildingName)> DeleteFloorAsync(int floorId);
     }
 }
