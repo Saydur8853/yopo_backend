@@ -42,7 +42,21 @@ namespace YopoBackend.Modules.IntercomAccess.Services
         {
             if (IsSuperAdmin()) return true;
             var userId = GetUserId();
-            return await _context.UserBuildingPermissions.AsNoTracking().AnyAsync(p => p.UserId == userId && p.BuildingId == buildingId);
+
+            // 1) Explicit per-user building permission
+            var hasExplicit = await _context.UserBuildingPermissions
+                .AsNoTracking()
+                .AnyAsync(p => p.UserId == userId && p.BuildingId == buildingId);
+            if (hasExplicit) return true;
+
+            // 2) Owner/PM of the building implicitly has access
+            var building = await _context.Buildings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.BuildingId == buildingId);
+            if (building == null) return false;
+            if (building.CustomerId == userId || building.CreatedBy == userId) return true;
+
+            return false;
         }
 
         public async Task<PinOperationResponseDTO> SetOrUpdateMasterPinAsync(int intercomId, string pin, int currentUserId)
@@ -321,57 +335,55 @@ namespace YopoBackend.Modules.IntercomAccess.Services
         }
 
         // Access codes (QR or PIN)
-        public async Task<List<YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO>> GetAccessCodesAsync(int? buildingId, int? intercomId)
+        public async Task<(List<YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO> items, int total)> GetAccessCodesAsync(int? buildingId, int? intercomId, int page, int pageSize)
         {
+            IQueryable<IntercomAccessCode> q;
             if (!IsSuperAdmin())
             {
-                // Limit to buildings current user has access to
                 var userId = GetUserId();
-                var allowedBuildingIds = await _context.UserBuildingPermissions
+                var explicitBuildingIds = await _context.UserBuildingPermissions
                     .AsNoTracking()
                     .Where(p => p.UserId == userId)
                     .Select(p => p.BuildingId)
                     .ToListAsync();
 
-                var qLimited = _context.Set<IntercomAccessCode>()
+                var ownedBuildingIds = await _context.Buildings
+                    .AsNoTracking()
+                    .Where(b => b.CustomerId == userId || b.CreatedBy == userId)
+                    .Select(b => b.BuildingId)
+                    .ToListAsync();
+
+                var allowedBuildingIds = explicitBuildingIds.Union(ownedBuildingIds).ToList();
+
+                q = _context.Set<IntercomAccessCode>()
                     .AsNoTracking()
                     .Where(c => allowedBuildingIds.Contains(c.BuildingId));
-
-                if (buildingId.HasValue) qLimited = qLimited.Where(c => c.BuildingId == buildingId.Value);
-                if (intercomId.HasValue) qLimited = qLimited.Where(c => c.IntercomId == intercomId.Value);
-
-                return await qLimited.OrderByDescending(c => c.CreatedAt)
-                    .Select(c => new AccessCodeDTO
-                    {
-                        Id = c.Id,
-                        BuildingId = c.BuildingId,
-                        IntercomId = c.IntercomId,
-                        Type = c.CodeType,
-                        ExpiresAt = c.ExpiresAt,
-                        IsActive = c.IsActive,
-                        CreatedAt = c.CreatedAt
-                    })
-                    .ToListAsync();
             }
             else
             {
-                var q = _context.Set<IntercomAccessCode>().AsNoTracking().AsQueryable();
-                if (buildingId.HasValue) q = q.Where(c => c.BuildingId == buildingId.Value);
-                if (intercomId.HasValue) q = q.Where(c => c.IntercomId == intercomId.Value);
-
-                return await q.OrderByDescending(c => c.CreatedAt)
-                    .Select(c => new AccessCodeDTO
-                    {
-                        Id = c.Id,
-                        BuildingId = c.BuildingId,
-                        IntercomId = c.IntercomId,
-                        Type = c.CodeType,
-                        ExpiresAt = c.ExpiresAt,
-                        IsActive = c.IsActive,
-                        CreatedAt = c.CreatedAt
-                    })
-                    .ToListAsync();
+                q = _context.Set<IntercomAccessCode>().AsNoTracking();
             }
+
+            if (buildingId.HasValue) q = q.Where(c => c.BuildingId == buildingId.Value);
+            if (intercomId.HasValue) q = q.Where(c => c.IntercomId == intercomId.Value);
+
+            var total = await q.CountAsync();
+            var items = await q.OrderByDescending(c => c.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(c => new AccessCodeDTO
+                {
+                    Id = c.Id,
+                    BuildingId = c.BuildingId,
+                    IntercomId = c.IntercomId,
+                    Type = c.CodeType,
+                    ExpiresAt = c.ExpiresAt,
+                    IsActive = c.IsActive,
+                    CreatedAt = c.CreatedAt
+                })
+                .ToListAsync();
+
+            return (items, total);
         }
 
         public async Task<(bool Success, string Message, YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO? Code)> CreateAccessCodeAsync(YopoBackend.Modules.IntercomAccess.DTOs.CreateAccessCodeDTO dto, int currentUserId)
@@ -442,9 +454,32 @@ namespace YopoBackend.Modules.IntercomAccess.Services
         public async Task<(List<YopoBackend.Modules.IntercomAccess.DTOs.AccessLogDTO> items, int total)> GetAccessLogsGlobalAsync(
             int? buildingId, int? intercomId, int? codeId, int page, int pageSize, DateTime? from, DateTime? to, bool? success, string? credentialType, int? userId)
         {
-            if (!IsSuperAdmin()) return (new List<YopoBackend.Modules.IntercomAccess.DTOs.AccessLogDTO>(), 0);
+            IQueryable<IntercomAccessLog> q;
+            if (!IsSuperAdmin())
+            {
+                var currentUserId = GetUserId();
+                var explicitBuildingIds = await _context.UserBuildingPermissions
+                    .AsNoTracking()
+                    .Where(p => p.UserId == currentUserId)
+                    .Select(p => p.BuildingId)
+                    .ToListAsync();
+                var ownedBuildingIds = await _context.Buildings
+                    .AsNoTracking()
+                    .Where(b => b.CustomerId == currentUserId || b.CreatedBy == currentUserId)
+                    .Select(b => b.BuildingId)
+                    .ToListAsync();
+                var allowedBuildingIds = explicitBuildingIds.Union(ownedBuildingIds).ToList();
+                var allowedIntercomIds = await _context.Intercoms.AsNoTracking()
+                    .Where(i => allowedBuildingIds.Contains(i.BuildingId))
+                    .Select(i => i.IntercomId)
+                    .ToListAsync();
 
-            var q = _context.IntercomAccessLogs.AsNoTracking().AsQueryable();
+                q = _context.IntercomAccessLogs.AsNoTracking().Where(l => allowedIntercomIds.Contains(l.IntercomId));
+            }
+            else
+            {
+                q = _context.IntercomAccessLogs.AsNoTracking();
+            }
 
             if (buildingId.HasValue)
             {

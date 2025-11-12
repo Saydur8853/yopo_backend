@@ -521,10 +521,17 @@ namespace YopoBackend.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => new { e.IntercomId, e.IsActive });
-                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                entity.HasOne(e => e.Intercom)
                       .WithMany()
                       .HasForeignKey(e => e.IntercomId)
                       .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.CreatedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.CreatedBy)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.UpdatedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.UpdatedBy);
                 entity.Property(e => e.PinHash).HasMaxLength(255);
                 entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
@@ -534,14 +541,21 @@ namespace YopoBackend.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => new { e.IntercomId, e.UserId }).IsUnique();
-                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                entity.HasOne(e => e.Intercom)
                       .WithMany()
                       .HasForeignKey(e => e.IntercomId)
                       .OnDelete(DeleteBehavior.Cascade);
-                entity.HasOne<YopoBackend.Modules.UserCRUD.Models.User>()
+                entity.HasOne(e => e.User)
                       .WithMany()
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.CreatedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.CreatedBy)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.UpdatedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.UpdatedBy);
                 entity.Property(e => e.PinHash).HasMaxLength(255);
                 entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
@@ -557,11 +571,11 @@ namespace YopoBackend.Data
                 entity.Property(e => e.ExpiresAt).HasColumnType("datetime");
                 entity.Property(e => e.FirstUsedAt).HasColumnType("datetime");
                 entity.Property(e => e.LastUsedAt).HasColumnType("datetime");
-                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                entity.HasOne(e => e.Intercom)
                       .WithMany()
                       .HasForeignKey(e => e.IntercomId)
                       .OnDelete(DeleteBehavior.Cascade);
-                entity.HasOne<YopoBackend.Modules.UserCRUD.Models.User>()
+                entity.HasOne(e => e.CreatedByUser)
                       .WithMany()
                       .HasForeignKey(e => e.CreatedByUserId)
                       .OnDelete(DeleteBehavior.Restrict);
@@ -572,7 +586,7 @@ namespace YopoBackend.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.TemporaryPinId);
                 entity.Property(e => e.UsedAt).HasColumnType("datetime");
-                entity.HasOne<YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPin>()
+                entity.HasOne(e => e.TemporaryPin)
                       .WithMany()
                       .HasForeignKey(e => e.TemporaryPinId)
                       .OnDelete(DeleteBehavior.Cascade);
@@ -586,7 +600,7 @@ namespace YopoBackend.Data
                 entity.Property(e => e.OccurredAt).HasColumnType("datetime");
                 entity.Property(e => e.CredentialType).HasMaxLength(20);
                 entity.Property(e => e.Reason).HasMaxLength(200);
-                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                entity.HasOne(e => e.Intercom)
                       .WithMany()
                       .HasForeignKey(e => e.IntercomId)
                       .OnDelete(DeleteBehavior.Cascade);
@@ -604,17 +618,17 @@ namespace YopoBackend.Data
                 entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.ExpiresAt).HasColumnType("datetime");
 
-                entity.HasOne<YopoBackend.Modules.BuildingCRUD.Models.Building>()
+                entity.HasOne(e => e.Building)
                       .WithMany()
                       .HasForeignKey(e => e.BuildingId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne<YopoBackend.Modules.IntercomCRUD.Models.Intercom>()
+                entity.HasOne(e => e.Intercom)
                       .WithMany()
                       .HasForeignKey(e => e.IntercomId)
                       .OnDelete(DeleteBehavior.SetNull);
 
-                entity.HasOne<YopoBackend.Modules.UserCRUD.Models.User>()
+                entity.HasOne(e => e.CreatedByUser)
                       .WithMany()
                       .HasForeignKey(e => e.CreatedBy)
                       .OnDelete(DeleteBehavior.Restrict);

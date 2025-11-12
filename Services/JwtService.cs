@@ -62,14 +62,33 @@ namespace YopoBackend.Services
             };
 
             // Add Role claim based on UserTypeId for authorization
-            string roleName = user.UserTypeId switch
+            // Prefer mapping by UserType.Name to avoid brittle ID assumptions
+            string roleName = user.UserType?.Name switch
             {
-                1 => "SuperAdmin",           // Super Admin
+                "Super Admin" => "SuperAdmin",
+                "Property Manager" => "PropertyManager",
+                "Front desk Officer" => "FrontDesk",
+                "Tenant" => "Tenant",
+                _ => null
+            };
+
+            // Fallback to historical ID-based mapping if name is unavailable
+            roleName ??= user.UserTypeId switch
+            {
+                1 => "SuperAdmin",           // Super Admin (default seed)
                 2 => "PropertyManager",       // Property Manager
                 3 => "FrontDesk",             // Front Desk Officer
                 4 => "Tenant",                // Tenant
                 _ => "Unknown"
             };
+
+            // If DataAccessControl indicates ALL, treat as SuperAdmin for authorization purposes
+            if (!string.Equals(roleName, "SuperAdmin", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(user.UserType?.DataAccessControl, "ALL", StringComparison.OrdinalIgnoreCase))
+            {
+                roleName = "SuperAdmin";
+            }
+
             claims.Add(new Claim(ClaimTypes.Role, roleName));
 
             // Add module claims based on user's permissions

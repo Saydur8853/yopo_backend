@@ -254,9 +254,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("BuildingId");
 
-                    b.Property<int>("BuildingId1")
-                        .HasColumnType("int");
-
                     b.Property<string>("CodeHash")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -279,9 +276,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("CreatedBy");
 
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime")
                         .HasColumnName("ExpiresAt");
@@ -289,9 +283,6 @@ namespace YopoBackend.Migrations
                     b.Property<int?>("IntercomId")
                         .HasColumnType("int")
                         .HasColumnName("IntercomId");
-
-                    b.Property<int?>("IntercomId1")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)")
@@ -301,15 +292,9 @@ namespace YopoBackend.Migrations
 
                     b.HasIndex("BuildingId");
 
-                    b.HasIndex("BuildingId1");
-
                     b.HasIndex("CreatedBy");
 
-                    b.HasIndex("CreatedByUserId");
-
                     b.HasIndex("IntercomId");
-
-                    b.HasIndex("IntercomId1");
 
                     b.HasIndex("BuildingId", "IntercomId", "IsActive");
 
@@ -343,9 +328,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("IntercomId");
 
-                    b.Property<int>("IntercomId1")
-                        .HasColumnType("int");
-
                     b.Property<string>("IpAddress")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
@@ -371,8 +353,6 @@ namespace YopoBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("IntercomId");
-
-                    b.HasIndex("IntercomId1");
 
                     b.HasIndex("OccurredAt");
 
@@ -401,9 +381,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("IntercomId");
 
-                    b.Property<int>("IntercomId1")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IsActive");
@@ -425,8 +402,6 @@ namespace YopoBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedBy");
-
-                    b.HasIndex("IntercomId1");
 
                     b.HasIndex("UpdatedBy");
 
@@ -453,9 +428,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("CreatedByUserId");
 
-                    b.Property<int>("CreatedByUserId1")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime")
                         .HasColumnName("ExpiresAt");
@@ -467,9 +439,6 @@ namespace YopoBackend.Migrations
                     b.Property<int>("IntercomId")
                         .HasColumnType("int")
                         .HasColumnName("IntercomId");
-
-                    b.Property<int>("IntercomId1")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)")
@@ -497,10 +466,6 @@ namespace YopoBackend.Migrations
 
                     b.HasIndex("CreatedByUserId");
 
-                    b.HasIndex("CreatedByUserId1");
-
-                    b.HasIndex("IntercomId1");
-
                     b.HasIndex("IntercomId", "IsActive");
 
                     b.ToTable("IntercomTemporaryPins");
@@ -523,9 +488,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("TemporaryPinId");
 
-                    b.Property<int>("TemporaryPinId1")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("UsedAt")
                         .HasColumnType("datetime")
                         .HasColumnName("UsedAt");
@@ -538,8 +500,6 @@ namespace YopoBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("TemporaryPinId");
-
-                    b.HasIndex("TemporaryPinId1");
 
                     b.ToTable("IntercomTemporaryPinUsages");
                 });
@@ -566,9 +526,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("IntercomId");
 
-                    b.Property<int>("IntercomId1")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IsActive");
@@ -591,20 +548,13 @@ namespace YopoBackend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("UserId");
 
-                    b.Property<int>("UserId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedBy");
 
-                    b.HasIndex("IntercomId1");
-
                     b.HasIndex("UpdatedBy");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserId1");
 
                     b.HasIndex("IntercomId", "UserId")
                         .IsUnique();
@@ -1381,38 +1331,22 @@ namespace YopoBackend.Migrations
 
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomAccessCode", b =>
                 {
-                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", null)
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
                         .WithMany()
                         .HasForeignKey("BuildingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
-                        .WithMany()
-                        .HasForeignKey("BuildingId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", null)
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedBy")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", null)
+                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", "Intercom")
                         .WithMany()
                         .HasForeignKey("IntercomId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", "Intercom")
-                        .WithMany()
-                        .HasForeignKey("IntercomId1");
 
                     b.Navigation("Building");
 
@@ -1423,15 +1357,9 @@ namespace YopoBackend.Migrations
 
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog", b =>
                 {
-                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", null)
-                        .WithMany()
-                        .HasForeignKey("IntercomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", "Intercom")
                         .WithMany()
-                        .HasForeignKey("IntercomId1")
+                        .HasForeignKey("IntercomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1446,15 +1374,9 @@ namespace YopoBackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", null)
-                        .WithMany()
-                        .HasForeignKey("IntercomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", "Intercom")
                         .WithMany()
-                        .HasForeignKey("IntercomId1")
+                        .HasForeignKey("IntercomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1471,27 +1393,15 @@ namespace YopoBackend.Migrations
 
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPin", b =>
                 {
-                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", null)
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", null)
-                        .WithMany()
-                        .HasForeignKey("IntercomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", "Intercom")
                         .WithMany()
-                        .HasForeignKey("IntercomId1")
+                        .HasForeignKey("IntercomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1502,18 +1412,11 @@ namespace YopoBackend.Migrations
 
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPinUsage", b =>
                 {
-                    b.HasOne("YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPin", null)
+                    b.HasOne("YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPin", "TemporaryPin")
                         .WithMany()
                         .HasForeignKey("TemporaryPinId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("YopoBackend.Modules.IntercomAccess.Models.IntercomTemporaryPin", "TemporaryPin")
-                        .WithMany()
-                        .HasForeignKey("TemporaryPinId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_IntercomTemporaryPinUsages_IntercomTemporaryPins_TemporaryP~1");
 
                     b.Navigation("TemporaryPin");
                 });
@@ -1526,15 +1429,9 @@ namespace YopoBackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", null)
-                        .WithMany()
-                        .HasForeignKey("IntercomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("YopoBackend.Modules.IntercomCRUD.Models.Intercom", "Intercom")
                         .WithMany()
-                        .HasForeignKey("IntercomId1")
+                        .HasForeignKey("IntercomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1542,15 +1439,9 @@ namespace YopoBackend.Migrations
                         .WithMany()
                         .HasForeignKey("UpdatedBy");
 
-                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "User")
                         .WithMany()
-                        .HasForeignKey("UserId1")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

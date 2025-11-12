@@ -17,7 +17,7 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             int intercomId, int page, int pageSize, DateTime? from, DateTime? to, int? temporaryPinId);
 
         // Access codes (QR or PIN), building-level or intercom-level
-        Task<List<YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO>> GetAccessCodesAsync(int? buildingId, int? intercomId);
+        Task<(List<YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO> items, int total)> GetAccessCodesAsync(int? buildingId, int? intercomId, int page, int pageSize);
         Task<(bool Success, string Message, YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO? Code)> CreateAccessCodeAsync(YopoBackend.Modules.IntercomAccess.DTOs.CreateAccessCodeDTO dto, int currentUserId);
         Task<(bool Success, string Message)> DeactivateAccessCodeAsync(int id, int currentUserId);
 

@@ -8,7 +8,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
     [ApiController]
     [Route("api/access-logs")]
     [Produces("application/json")]
-    [Authorize(Roles = Roles.SuperAdmin)]
+    [Authorize]
     [Tags("Audit/Access Logs")]
     public class AccessLogsController : ControllerBase
     {
