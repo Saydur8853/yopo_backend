@@ -49,15 +49,5 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
             return Ok(res);
         }
 
-        [HttpPost("temporary-pin")] // Tenants only
-        [Authorize(Roles = Roles.Tenant)]
-        public async Task<IActionResult> CreateTemporaryPin(int intercomId, [FromBody] CreateTemporaryPinDTO dto)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var res = await _service.CreateTemporaryPinAsync(intercomId, GetCurrentUserId(), dto.Pin, dto.ExpiresAt ?? DateTime.UtcNow.AddMinutes(dto.ValidForMinutes ?? 30), dto.MaxUses);
-            var code = res.Success ? 201 : 400;
-            return StatusCode(code, res);
-        }
-
     }
 }

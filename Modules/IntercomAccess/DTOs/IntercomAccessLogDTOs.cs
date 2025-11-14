@@ -14,12 +14,4 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public string? DeviceInfo { get; set; }
     }
 
-    public class TemporaryPinUsageDTO
-    {
-        public long Id { get; set; }
-        public int TemporaryPinId { get; set; }
-        public DateTime UsedAt { get; set; }
-        public string? UsedFromIp { get; set; }
-        public string? DeviceInfo { get; set; }
-    }
 }

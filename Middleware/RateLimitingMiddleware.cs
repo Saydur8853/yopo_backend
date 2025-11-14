@@ -21,8 +21,8 @@ namespace YopoBackend.Middleware
         {
             var endpoint = context.Request.Path.Value?.ToLower();
             
-            // Apply rate limiting only to authentication endpoints
-            if (endpoint != null && (endpoint.Contains("/login") || endpoint.Contains("/register")))
+            // Apply rate limiting to authentication endpoints and PIN verification endpoint
+            if (endpoint != null && (endpoint.Contains("/login") || endpoint.Contains("/register") || endpoint.Contains("/access/verify")))
             {
                 var clientIp = GetClientIP(context);
                 var now = DateTime.UtcNow;
@@ -32,10 +32,24 @@ namespace YopoBackend.Middleware
                 // Clean up old entries
                 CleanupOldEntries(windowMinutes);
 
-                var key = $"{clientIp}_{endpoint}";
+                // Build a key that differentiates verify attempts per intercom as well as per IP
+                var isVerifyEndpoint = endpoint.Contains("/access/verify");
+                string keySuffix;
+                if (isVerifyEndpoint)
+                {
+                    var intercomId = ExtractIntercomId(endpoint);
+                    keySuffix = $"/access/verify/{intercomId}";
+                }
+                else
+                {
+                    keySuffix = endpoint;
+                }
+
+                var key = $"{clientIp}_{keySuffix}";
                 var rateLimitInfo = _requests.GetOrAdd(key, new RateLimitInfo());
 
                 bool rateLimitExceeded = false;
+                int backoffMs = 0;
                 lock (rateLimitInfo)
                 {
                     // Reset counter if window has passed
@@ -52,11 +66,26 @@ namespace YopoBackend.Middleware
                         rateLimitExceeded = true;
                     }
 
+                    // Simple backoff: for verify endpoint, start adding delay after half the maxRequests
+                    if (!rateLimitExceeded && isVerifyEndpoint)
+                    {
+                        var threshold = Math.Max(1, maxRequests / 2);
+                        if (rateLimitInfo.RequestCount > threshold)
+                        {
+                            backoffMs = (rateLimitInfo.RequestCount - threshold) * 100; // 100ms per request over threshold
+                        }
+                    }
+
                     // Set first request time if this is the first request
                     if (rateLimitInfo.RequestCount == 1)
                     {
                         rateLimitInfo.FirstRequestTime = now;
                     }
+                }
+
+                if (backoffMs > 0)
+                {
+                    await Task.Delay(backoffMs);
                 }
 
                 if (rateLimitExceeded)
@@ -68,6 +97,26 @@ namespace YopoBackend.Middleware
             }
 
             await _next(context);
+        }
+
+        private static string ExtractIntercomId(string endpoint)
+        {
+            // Expected pattern: /api/intercoms/{intercomId}/access/verify
+            try
+            {
+                var segments = endpoint.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                var idx = Array.IndexOf(segments, "intercoms");
+                if (idx >= 0 && idx + 1 < segments.Length)
+                {
+                    var idSeg = segments[idx + 1];
+                    return int.TryParse(idSeg, out _) ? idSeg : "unknown";
+                }
+            }
+            catch
+            {
+                // ignore and fall through
+            }
+            return "unknown";
         }
 
         private static string GetClientIP(HttpContext context)

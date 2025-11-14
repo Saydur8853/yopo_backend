@@ -365,6 +365,22 @@ namespace YopoBackend.Modules.UserCRUD.Services
                         {
                             unit.TenantId = user.Id;
                             unit.UpdatedAt = DateTime.UtcNow;
+
+                            // Ensure tenant has explicit building permission for their allocated building
+                            bool hasTenantBuildingPerm = await _context.UserBuildingPermissions
+                                .AnyAsync(p => p.UserId == user.Id && p.BuildingId == allocBuildingId.Value && p.IsActive);
+
+                            if (!hasTenantBuildingPerm)
+                            {
+                                _context.UserBuildingPermissions.Add(new UserBuildingPermission
+                                {
+                                    UserId = user.Id,
+                                    BuildingId = allocBuildingId.Value,
+                                    IsActive = true,
+                                    CreatedAt = DateTime.UtcNow
+                                });
+                            }
+
                             // Also create a Tenant record for living info
                             _context.Tenants.Add(new YopoBackend.Modules.TenantCRUD.Models.Tenant
                             {

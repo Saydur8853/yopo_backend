@@ -34,22 +34,6 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public string? OldPin { get; set; }
     }
 
-    public class CreateTemporaryPinDTO
-    {
-        [Required]
-        [MinLength(4)]
-        [MaxLength(20)]
-        public string Pin { get; set; } = string.Empty;
-
-        // Either absolute expiry or duration minutes must be provided
-        public DateTime? ExpiresAt { get; set; }
-        public int? ValidForMinutes { get; set; }
-
-        // Default 1 (single-use)
-        [Range(1, 100)]
-        public int MaxUses { get; set; } = 1;
-    }
-
     public class VerifyPinDTO
     {
         [Required]

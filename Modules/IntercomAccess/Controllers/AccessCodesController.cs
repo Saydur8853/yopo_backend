@@ -46,12 +46,48 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
             return StatusCode(201, new { success = true, message = res.Message, data = res.Code });
         }
 
-        // PATCH: deactivate an access code (soft delete)
+        /// <summary>
+        /// Deactivates an access code (soft delete).
+        /// </summary>
+        /// <remarks>
+        /// Role behavior:
+        /// - <b>Tenant</b>: may deactivate only codes they created.
+        /// - <b>Property Manager / FrontDesk / other building users</b>: may deactivate codes in buildings they have access to.
+        /// - <b>SuperAdmin</b>: may deactivate any code.
+        /// </remarks>
+        /// <param name="id">Access code ID.</param>
+        /// <returns>Operation result (success flag and message).</returns>
         [HttpPatch("{id:int}/deactivate")]
         public async Task<IActionResult> Deactivate(int id)
         {
             var res = await _service.DeactivateAccessCodeAsync(id, GetCurrentUserId());
             if (!res.Success) return BadRequest(new { success = false, message = res.Message });
+            return Ok(new { success = true, message = res.Message });
+        }
+
+        /// <summary>
+        /// Permanently deletes an access code.
+        /// </summary>
+        /// <remarks>
+        /// Role behavior:
+        /// - <b>Tenant</b>: may delete only codes they created.
+        /// - <b>Property Manager / FrontDesk / other building users</b>: may delete codes in buildings they have access to.
+        /// - <b>SuperAdmin</b>: may delete any code.
+        /// </remarks>
+        /// <param name="id">Access code ID.</param>
+        /// <returns>Operation result (success flag and message).</returns>
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var res = await _service.DeleteAccessCodeAsync(id, GetCurrentUserId());
+            if (!res.Success)
+            {
+                if (res.Message == "Not found.")
+                    return NotFound(new { success = false, message = res.Message });
+
+                return BadRequest(new { success = false, message = res.Message });
+            }
+
             return Ok(new { success = true, message = res.Message });
         }
     }
