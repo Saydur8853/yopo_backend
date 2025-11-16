@@ -57,7 +57,7 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public DateTime Timestamp { get; set; }
     }
 
-    // New DTOs for generic access codes (QR or PIN)
+    // New DTOs for intercom access codes (currently PIN-only)
     public class CreateAccessCodeDTO
     {
         [Required]
@@ -65,9 +65,9 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
 
         public int? IntercomId { get; set; } // optional; if null, applies to all intercoms in building
 
-        [Required]
-        [RegularExpression("^(QR|PIN)$", ErrorMessage = "Type must be 'QR' or 'PIN'.")]
-        public string Type { get; set; } = string.Empty;
+        // Optional user-facing label/alias; not used for verification
+        [MaxLength(200)]
+        public string? CodeUser { get; set; }
 
         [Required]
         [MinLength(4)]
@@ -83,7 +83,8 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public int Id { get; set; }
         public int BuildingId { get; set; }
         public int? IntercomId { get; set; }
-        public string Type { get; set; } = string.Empty; // QR or PIN
+        public string? CodeUser { get; set; } // optional user-facing label
+        public string? Code { get; set; } // raw PIN if available (may be null for older records)
         public DateTime? ExpiresAt { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }

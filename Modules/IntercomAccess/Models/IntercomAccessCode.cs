@@ -29,6 +29,16 @@ namespace YopoBackend.Modules.IntercomAccess.Models
         [Column("CodeHash")]
         public string CodeHash { get; set; } = string.Empty;
 
+        // TEMPORARY: store raw PIN so it can be shown via API; consider removing or encrypting later.
+        [MaxLength(200)]
+        [Column("CodePlain")]
+        public string? CodePlain { get; set; }
+
+        // Optional user-facing label/alias for the code
+        [MaxLength(200)]
+        [Column("CodeUser")]
+        public string? CodeUser { get; set; }
+
         [Column("ExpiresAt")]
         public DateTime? ExpiresAt { get; set; }
 

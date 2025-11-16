@@ -260,11 +260,21 @@ namespace YopoBackend.Migrations
                         .HasColumnType("varchar(255)")
                         .HasColumnName("CodeHash");
 
+                    b.Property<string>("CodePlain")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("CodePlain");
+
                     b.Property<string>("CodeType")
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("varchar(10)")
                         .HasColumnName("CodeType");
+
+                    b.Property<string>("CodeUser")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("CodeUser");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()

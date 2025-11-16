@@ -133,16 +133,22 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 // create if none exists
                 var hashNew = BCrypt.Net.BCrypt.HashPassword(newPin);
                 _context.Add(new IntercomUserPin { IntercomId = intercomId, UserId = currentUserId, PinHash = hashNew, IsActive = true, CreatedBy = currentUserId, CreatedAt = DateTime.UtcNow });
-            await _context.SaveChangesAsync();
-            _context.IntercomAccessLogs.Add(new IntercomAccessLog { IntercomId = intercomId, UserId = currentUserId, CredentialType = "User", CredentialRefId = null, IsSuccess = true, Reason = "Own pin created", OccurredAt = DateTime.UtcNow });
-            await _context.SaveChangesAsync();
-            return new PinOperationResponseDTO { Success = true, Message = "Pin created." };
+                await _context.SaveChangesAsync();
+                _context.IntercomAccessLogs.Add(new IntercomAccessLog { IntercomId = intercomId, UserId = currentUserId, CredentialType = "User", CredentialRefId = null, IsSuccess = true, Reason = "Own pin created", OccurredAt = DateTime.UtcNow });
+                await _context.SaveChangesAsync();
+                return new PinOperationResponseDTO { Success = true, Message = "Pin created." };
             }
-            // if exists and oldPin provided, verify
-            if (!string.IsNullOrEmpty(oldPin) && !BCrypt.Net.BCrypt.Verify(oldPin, existing.PinHash))
+
+            // PIN exists: require oldPin and verify it
+            if (string.IsNullOrEmpty(oldPin))
+            {
+                return new PinOperationResponseDTO { Success = false, Message = "Old pin is required." };
+            }
+            if (!BCrypt.Net.BCrypt.Verify(oldPin, existing.PinHash))
             {
                 return new PinOperationResponseDTO { Success = false, Message = "Old pin does not match." };
             }
+
             existing.PinHash = BCrypt.Net.BCrypt.HashPassword(newPin);
             existing.UpdatedBy = currentUserId;
             existing.UpdatedAt = DateTime.UtcNow;
@@ -295,7 +301,8 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                     Id = c.Id,
                     BuildingId = c.BuildingId,
                     IntercomId = c.IntercomId,
-                    Type = c.CodeType,
+                    CodeUser = c.CodeUser,
+                    Code = c.CodePlain ?? c.CodeHash, // fallback to hash for legacy records
                     ExpiresAt = c.ExpiresAt,
                     IsActive = c.IsActive,
                     CreatedAt = c.CreatedAt
@@ -307,9 +314,8 @@ namespace YopoBackend.Modules.IntercomAccess.Services
 
         public async Task<(bool Success, string Message, YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO? Code)> CreateAccessCodeAsync(YopoBackend.Modules.IntercomAccess.DTOs.CreateAccessCodeDTO dto, int currentUserId)
         {
-            var type = (dto.Type ?? string.Empty).Trim().ToUpperInvariant();
-            if (type != "QR" && type != "PIN")
-                return (false, "Type must be 'QR' or 'PIN'.", null);
+            // Currently only PIN-type access codes are supported.
+            var type = "PIN";
 
             // Validate building exists
             var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == dto.BuildingId);
@@ -338,6 +344,8 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 IntercomId = intercomIdToUse,
                 CodeType = type,
                 CodeHash = hash,
+                CodePlain = dto.Code, // store raw PIN so it can be shown via API
+                CodeUser = dto.CodeUser,
                 ExpiresAt = dto.ExpiresAt,
                 IsActive = true,
                 CreatedBy = currentUserId,
@@ -351,7 +359,8 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 Id = entity.Id,
                 BuildingId = entity.BuildingId,
                 IntercomId = entity.IntercomId,
-                Type = entity.CodeType,
+                CodeUser = entity.CodeUser,
+                Code = entity.CodePlain ?? entity.CodeHash, // should be plain for new records, hash fallback otherwise
                 ExpiresAt = entity.ExpiresAt,
                 IsActive = entity.IsActive,
                 CreatedAt = entity.CreatedAt

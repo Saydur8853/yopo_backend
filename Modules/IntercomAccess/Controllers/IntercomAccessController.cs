@@ -49,5 +49,44 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
             return Ok(res);
         }
 
+        /// <summary>
+        /// Update the current user's own PIN.
+        /// </summary>
+        /// <remarks>
+        /// This endpoint lets any authenticated user (including Super Admin) update their own PIN.
+        /// If a PIN already exists, the old PIN must be provided and will be validated before updating.
+        /// If no PIN exists yet, a new PIN will be created without requiring an old PIN.
+        /// </remarks>
+        [HttpPost("pin/self")]
+        [Authorize]
+        public async Task<IActionResult> UpdateOwnPin(int intercomId, [FromBody] UpdateOwnPinDTO dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var currentUserId = GetCurrentUserId();
+            var res = await _service.UpdateOwnUserPinAsync(intercomId, currentUserId, dto.NewPin, dto.OldPin);
+
+            return StatusCode(res.Success ? 200 : 400, res);
+        }
+
+        /// <summary>
+        /// Set or update a specific user's PIN by Super Admin.
+        /// </summary>
+        /// <remarks>
+        /// This endpoint is primarily used for resetting a user's PIN (e.g., when they forget their old PIN).
+        /// Non-SuperAdmin users may only change their own PIN. SuperAdmin may reset another user's PIN, but must provide a valid master pin.
+        /// </remarks>
+        [HttpPost("users/{userId:int}/pin")] // reset pin endpoint
+        [Authorize]
+        public async Task<IActionResult> SetOrUpdateUserPin(int intercomId, int userId, [FromBody] SetUserPinDTO dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var currentUserId = GetCurrentUserId();
+            var res = await _service.SetOrUpdateUserPinAsync(intercomId, userId, dto.Pin, currentUserId, dto.MasterPin);
+
+            return StatusCode(res.Success ? 200 : 400, res);
+        }
+
     }
 }
