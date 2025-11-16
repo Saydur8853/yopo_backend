@@ -46,6 +46,40 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
             return StatusCode(201, new { success = true, message = res.Message, data = res.Code });
         }
 
+        // PUT: update an existing access code (only mutable fields like code, label, expiry)
+        /// <summary>
+        /// Updates an existing access code's mutable fields (label, PIN value, expiry).
+        /// </summary>
+        /// <remarks>
+        /// Role behavior:
+        /// - <b>Tenant</b>: may update only codes they created.
+        /// - <b>Property Manager / FrontDesk / other building users</b>: may update codes in buildings they have access to.
+        /// - <b>SuperAdmin</b>: may update any code.
+        /// 
+        /// Notes:
+        /// - If <c>code</c> is provided, the PIN value is re-hashed and replaced.
+        /// - If <c>codeUser</c> is provided, the user-facing label is updated (can be set to null).
+        /// - If <c>expiresAt</c> is provided, it must be in the future; null means no expiry.
+        /// - <c>buildingId</c> and <c>intercomId</c> of the code cannot be changed via this endpoint.
+        /// </remarks>
+        /// <param name="id">Access code ID.</param>
+        /// <param name="dto">Fields to update for the access code.</param>
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateAccessCodeDTO dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(new { success = false, message = "Validation failed.", data = ModelState });
+            var res = await _service.UpdateAccessCodeAsync(id, dto, GetCurrentUserId());
+            if (!res.Success)
+            {
+                if (res.Message == "Not found.")
+                    return NotFound(new { success = false, message = res.Message, data = (object?)null });
+
+                return BadRequest(new { success = false, message = res.Message, data = (object?)null });
+            }
+
+            return Ok(new { success = true, message = res.Message, data = res.Code });
+        }
+
         /// <summary>
         /// Deactivates an access code (soft delete).
         /// </summary>

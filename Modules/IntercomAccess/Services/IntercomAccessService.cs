@@ -368,6 +368,62 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             return (true, "Access code created.", result);
         }
 
+        public async Task<(bool Success, string Message, YopoBackend.Modules.IntercomAccess.DTOs.AccessCodeDTO? Code)> UpdateAccessCodeAsync(int id, YopoBackend.Modules.IntercomAccess.DTOs.UpdateAccessCodeDTO dto, int currentUserId)
+        {
+            var entity = await _context.Set<IntercomAccessCode>().FirstOrDefaultAsync(c => c.Id == id);
+            if (entity == null) return (false, "Not found.", null);
+
+            var role = GetUserRole();
+            if (string.Equals(role, Roles.Tenant, StringComparison.OrdinalIgnoreCase))
+            {
+                // Tenants may only update codes they created themselves
+                if (entity.CreatedBy != currentUserId)
+                    return (false, "Not allowed.", null);
+            }
+            else if (!IsSuperAdmin())
+            {
+                // PM/FD/other roles require building access; SuperAdmin can update any
+                if (!await HasBuildingAccessAsync(entity.BuildingId)) return (false, "Not allowed.", null);
+            }
+
+            // ExpiresAt can be null for infinity; if provided, must be in the future
+            if (dto.ExpiresAt.HasValue && dto.ExpiresAt.Value <= DateTime.UtcNow)
+                return (false, "Expiry must be in the future.", null);
+
+            // Update mutable fields only when explicitly provided
+            if (!string.IsNullOrWhiteSpace(dto.Code))
+            {
+                entity.CodeHash = BCrypt.Net.BCrypt.HashPassword(dto.Code);
+                entity.CodePlain = dto.Code;
+            }
+
+            if (dto.CodeUser != null)
+            {
+                entity.CodeUser = dto.CodeUser;
+            }
+
+            if (dto.ExpiresAt.HasValue)
+            {
+                entity.ExpiresAt = dto.ExpiresAt;
+            }
+
+            await _context.SaveChangesAsync();
+
+            var result = new AccessCodeDTO
+            {
+                Id = entity.Id,
+                BuildingId = entity.BuildingId,
+                IntercomId = entity.IntercomId,
+                CodeUser = entity.CodeUser,
+                Code = entity.CodePlain ?? entity.CodeHash,
+                ExpiresAt = entity.ExpiresAt,
+                IsActive = entity.IsActive,
+                CreatedAt = entity.CreatedAt
+            };
+
+            return (true, "Access code updated.", result);
+        }
+
         public async Task<(bool Success, string Message)> DeactivateAccessCodeAsync(int id, int currentUserId)
         {
             var entity = await _context.Set<IntercomAccessCode>().FirstOrDefaultAsync(c => c.Id == id);

@@ -78,6 +78,22 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public DateTime? ExpiresAt { get; set; }
     }
 
+    // DTO for updating an existing access code (only mutable fields)
+    public class UpdateAccessCodeDTO
+    {
+        // Optional user-facing label; if null, it will be left unchanged
+        [MaxLength(200)]
+        public string? CodeUser { get; set; }
+
+        // If provided, code will be re-hashed and replaced
+        [MinLength(4)]
+        [MaxLength(200)]
+        public string? Code { get; set; }
+
+        // null => infinite (no expiry); if null, leave unchanged
+        public DateTime? ExpiresAt { get; set; }
+    }
+
     public class AccessCodeDTO
     {
         public int Id { get; set; }

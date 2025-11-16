@@ -57,6 +57,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         /// If a PIN already exists, the old PIN must be provided and will be validated before updating.
         /// If no PIN exists yet, a new PIN will be created without requiring an old PIN.
         /// </remarks>
+        [ApiExplorerSettings(IgnoreApi = true)]
         [HttpPost("pin/self")]
         [Authorize]
         public async Task<IActionResult> UpdateOwnPin(int intercomId, [FromBody] UpdateOwnPinDTO dto)
@@ -76,6 +77,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         /// This endpoint is primarily used for resetting a user's PIN (e.g., when they forget their old PIN).
         /// Non-SuperAdmin users may only change their own PIN. SuperAdmin may reset another user's PIN, but must provide a valid master pin.
         /// </remarks>
+        [ApiExplorerSettings(IgnoreApi = true)]
         [HttpPost("users/{userId:int}/pin")] // reset pin endpoint
         [Authorize]
         public async Task<IActionResult> SetOrUpdateUserPin(int intercomId, int userId, [FromBody] SetUserPinDTO dto)
