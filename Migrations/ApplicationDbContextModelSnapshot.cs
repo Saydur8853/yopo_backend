@@ -271,11 +271,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("varchar(10)")
                         .HasColumnName("CodeType");
 
-                    b.Property<string>("CodeUser")
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
-                        .HasColumnName("CodeUser");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -298,6 +293,10 @@ namespace YopoBackend.Migrations
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IsActive");
 
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int")
+                        .HasColumnName("TenantId");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BuildingId");
@@ -305,6 +304,8 @@ namespace YopoBackend.Migrations
                     b.HasIndex("CreatedBy");
 
                     b.HasIndex("IntercomId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("BuildingId", "IntercomId", "IsActive");
 
@@ -1264,11 +1265,18 @@ namespace YopoBackend.Migrations
                         .HasForeignKey("IntercomId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("YopoBackend.Modules.TenantCRUD.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Building");
 
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Intercom");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog", b =>

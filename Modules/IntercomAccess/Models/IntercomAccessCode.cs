@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Modules.IntercomCRUD.Models;
 using YopoBackend.Modules.UserCRUD.Models;
+using YopoBackend.Modules.TenantCRUD.Models;
 
 namespace YopoBackend.Modules.IntercomAccess.Models
 {
@@ -34,10 +35,9 @@ namespace YopoBackend.Modules.IntercomAccess.Models
         [Column("CodePlain")]
         public string? CodePlain { get; set; }
 
-        // Optional user-facing label/alias for the code
-        [MaxLength(200)]
-        [Column("CodeUser")]
-        public string? CodeUser { get; set; }
+        // Optional tenant owner for this access code
+        [Column("TenantId")]
+        public int? TenantId { get; set; }
 
         [Column("ExpiresAt")]
         public DateTime? ExpiresAt { get; set; }
@@ -56,5 +56,7 @@ namespace YopoBackend.Modules.IntercomAccess.Models
         public virtual Intercom? Intercom { get; set; }
 
         public virtual User CreatedByUser { get; set; } = null!;
+
+        public virtual Tenant? Tenant { get; set; }
     }
 }

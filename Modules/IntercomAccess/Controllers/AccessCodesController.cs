@@ -58,7 +58,6 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         /// 
         /// Notes:
         /// - If <c>code</c> is provided, the PIN value is re-hashed and replaced.
-        /// - If <c>codeUser</c> is provided, the user-facing label is updated (can be set to null).
         /// - If <c>expiresAt</c> is provided, it must be in the future; null means no expiry.
         /// - <c>buildingId</c> and <c>intercomId</c> of the code cannot be changed via this endpoint.
         /// </remarks>

@@ -301,7 +301,7 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                     Id = c.Id,
                     BuildingId = c.BuildingId,
                     IntercomId = c.IntercomId,
-                    CodeUser = c.CodeUser,
+                    TenantId = c.TenantId,
                     Code = c.CodePlain ?? c.CodeHash, // fallback to hash for legacy records
                     ExpiresAt = c.ExpiresAt,
                     IsActive = c.IsActive,
@@ -337,15 +337,27 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             if (dto.ExpiresAt.HasValue && dto.ExpiresAt.Value <= DateTime.UtcNow)
                 return (false, "Expiry must be in the future.", null);
 
+            int? tenantIdToUse = null;
+            if (dto.TenantId.HasValue)
+            {
+                var tenant = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.TenantId == dto.TenantId.Value);
+                if (tenant == null)
+                    return (false, $"Tenant {dto.TenantId.Value} not found.", null);
+                if (tenant.BuildingId != dto.BuildingId)
+                    return (false, "Tenant does not belong to the specified building.", null);
+
+                tenantIdToUse = tenant.TenantId;
+            }
+
             var hash = BCrypt.Net.BCrypt.HashPassword(dto.Code);
             var entity = new IntercomAccessCode
             {
                 BuildingId = dto.BuildingId,
                 IntercomId = intercomIdToUse,
+                TenantId = tenantIdToUse,
                 CodeType = type,
                 CodeHash = hash,
                 CodePlain = dto.Code, // store raw PIN so it can be shown via API
-                CodeUser = dto.CodeUser,
                 ExpiresAt = dto.ExpiresAt,
                 IsActive = true,
                 CreatedBy = currentUserId,
@@ -359,7 +371,7 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 Id = entity.Id,
                 BuildingId = entity.BuildingId,
                 IntercomId = entity.IntercomId,
-                CodeUser = entity.CodeUser,
+                TenantId = entity.TenantId,
                 Code = entity.CodePlain ?? entity.CodeHash, // should be plain for new records, hash fallback otherwise
                 ExpiresAt = entity.ExpiresAt,
                 IsActive = entity.IsActive,
@@ -397,11 +409,6 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 entity.CodePlain = dto.Code;
             }
 
-            if (dto.CodeUser != null)
-            {
-                entity.CodeUser = dto.CodeUser;
-            }
-
             if (dto.ExpiresAt.HasValue)
             {
                 entity.ExpiresAt = dto.ExpiresAt;
@@ -414,7 +421,7 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 Id = entity.Id,
                 BuildingId = entity.BuildingId,
                 IntercomId = entity.IntercomId,
-                CodeUser = entity.CodeUser,
+                TenantId = entity.TenantId,
                 Code = entity.CodePlain ?? entity.CodeHash,
                 ExpiresAt = entity.ExpiresAt,
                 IsActive = entity.IsActive,

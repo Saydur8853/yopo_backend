@@ -579,6 +579,7 @@ namespace YopoBackend.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.BuildingId);
                 entity.HasIndex(e => e.IntercomId);
+                entity.HasIndex(e => e.TenantId);
                 entity.HasIndex(e => new { e.BuildingId, e.IntercomId, e.IsActive });
                 entity.Property(e => e.CodeType).HasMaxLength(10);
                 entity.Property(e => e.CodeHash).HasMaxLength(255);
@@ -593,6 +594,11 @@ namespace YopoBackend.Data
                 entity.HasOne(e => e.Intercom)
                       .WithMany()
                       .HasForeignKey(e => e.IntercomId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.Tenant)
+                      .WithMany()
+                      .HasForeignKey(e => e.TenantId)
                       .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasOne(e => e.CreatedByUser)

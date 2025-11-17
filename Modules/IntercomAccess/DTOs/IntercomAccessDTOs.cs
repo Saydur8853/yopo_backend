@@ -65,9 +65,8 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
 
         public int? IntercomId { get; set; } // optional; if null, applies to all intercoms in building
 
-        // Optional user-facing label/alias; not used for verification
-        [MaxLength(200)]
-        public string? CodeUser { get; set; }
+        // Optional tenant owner for this access code
+        public int? TenantId { get; set; }
 
         [Required]
         [MinLength(4)]
@@ -81,10 +80,6 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
     // DTO for updating an existing access code (only mutable fields)
     public class UpdateAccessCodeDTO
     {
-        // Optional user-facing label; if null, it will be left unchanged
-        [MaxLength(200)]
-        public string? CodeUser { get; set; }
-
         // If provided, code will be re-hashed and replaced
         [MinLength(4)]
         [MaxLength(200)]
@@ -99,7 +94,7 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public int Id { get; set; }
         public int BuildingId { get; set; }
         public int? IntercomId { get; set; }
-        public string? CodeUser { get; set; } // optional user-facing label
+        public int? TenantId { get; set; }
         public string? Code { get; set; } // raw PIN if available (may be null for older records)
         public DateTime? ExpiresAt { get; set; }
         public bool IsActive { get; set; }
