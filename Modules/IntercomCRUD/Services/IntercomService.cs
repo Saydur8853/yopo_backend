@@ -4,17 +4,17 @@ using YopoBackend.Auth;
 using YopoBackend.Data;
 using YopoBackend.Modules.IntercomCRUD.DTOs;
 using YopoBackend.Modules.IntercomCRUD.Models;
+using YopoBackend.Services;
+using YopoBackend.Constants;
 
 namespace YopoBackend.Modules.IntercomCRUD.Services
 {
-    public class IntercomService : IIntercomService
+    public class IntercomService : BaseAccessControlService, IIntercomService
     {
-        private readonly ApplicationDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public IntercomService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
+        public IntercomService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor) : base(context)
         {
-            _context = context;
             _httpContextAccessor = httpContextAccessor;
         }
 
@@ -33,11 +33,46 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
 
         private bool IsSuperAdmin() => string.Equals(GetUserRole(), Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
 
+        private async Task<List<int>> GetUserBuildingIdsAsync(int userId, string userRole)
+        {
+            var explicitBuildingIds = await _context.UserBuildingPermissions
+                .Where(p => p.UserId == userId && p.IsActive)
+                .Select(p => p.BuildingId)
+                .ToListAsync();
+
+            if (explicitBuildingIds.Any())
+            {
+                return explicitBuildingIds;
+            }
+
+            int? pmId = null;
+            var user = await GetUserWithAccessControlAsync(userId);
+            if (user?.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            {
+                pmId = user.Id;
+            }
+            else if (user != null)
+            {
+                pmId = await FindPropertyManagerForUserAsync(user.Id);
+            }
+
+            if (pmId.HasValue)
+            {
+                return await _context.Buildings
+                    .Where(b => b.CustomerId == pmId.Value && b.IsActive)
+                    .Select(b => b.BuildingId)
+                    .ToListAsync();
+            }
+
+            return new List<int>();
+        }
+
         private async Task<bool> CanManageBuildingAsync(int buildingId)
         {
             if (IsSuperAdmin()) return true;
             var userId = GetUserId();
-            return await _context.UserBuildingPermissions.AnyAsync(p => p.UserId == userId && p.BuildingId == buildingId);
+            var userBuildings = await GetUserBuildingIdsAsync(userId, GetUserRole());
+            return userBuildings.Contains(buildingId);
         }
 
         public async Task<(List<IntercomResponseDTO> intercoms, int totalRecords)> GetIntercomsAsync(
@@ -53,23 +88,18 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
                 .Include(i => i.Amenity)
                 .AsQueryable();
 
-            // Access control by building - PM and FD only see their assigned buildings
             var userRole = GetUserRole();
-            if (userRole != "SuperAdmin")
+            if (userRole != Roles.SuperAdmin)
             {
                 var userId = GetUserId();
-                var userBuildings = await _context.UserBuildingPermissions
-                    .Where(p => p.UserId == userId)
-                    .Select(p => p.BuildingId)
-                    .ToListAsync();
-                
+                var userBuildings = await GetUserBuildingIdsAsync(userId, userRole);
+
                 if (userBuildings.Any())
                 {
                     query = query.Where(i => userBuildings.Contains(i.BuildingId));
                 }
                 else
                 {
-                    // User has no building permissions
                     return (new List<IntercomResponseDTO>(), 0);
                 }
             }
@@ -116,24 +146,18 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
 
         public async Task<(bool Success, string Message, IntercomResponseDTO? Data)> CreateIntercomAsync(CreateIntercomDTO dto)
         {
-            // Only SuperAdmin can create intercoms
-            // Authorization: SuperAdmin only
             if (!IsSuperAdmin())
                 return (false, "Only Super Admins can create intercoms.", null);
 
-            // Validate building exists
             var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == dto.BuildingId);
             if (building == null)
                 return (false, $"Building with ID {dto.BuildingId} not found.", null);
 
-            // Auto-derive CustomerId from Building if not provided
             int customerId = dto.CustomerId ?? building.CustomerId;
 
-            // If CustomerId was explicitly provided, validate consistency with building
             if (dto.CustomerId.HasValue && building.CustomerId != dto.CustomerId.Value)
                 return (false, "CustomerId does not match the Building's CustomerId.", null);
 
-            // Validate customer exists
             var customerExists = await _context.Customers.AnyAsync(c => c.CustomerId == customerId);
             if (!customerExists)
                 return (false, $"Customer with ID {customerId} not found.", null);
@@ -160,7 +184,7 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
                 InstalledLocation = dto.InstalledLocation,
                 HasCCTV = dto.HasCCTV,
                 HasPinPad = dto.HasPinPad,
-                CustomerId = customerId, // Use derived customerId
+                CustomerId = customerId,
                 BuildingId = dto.BuildingId,
                 AmenityId = dto.AmenityId,
                 CreatedAt = DateTime.UtcNow,
@@ -186,7 +210,6 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             if (entity == null)
                 return (false, $"Intercom with ID {intercomId} not found.", null);
 
-            // Authorization: SuperAdmin only
             if (!IsSuperAdmin())
                 return (false, "Only Super Admins can update intercoms.", null);
 
@@ -201,7 +224,6 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             {
                 var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == dto.BuildingId.Value);
                 if (building == null) return (false, $"Building with ID {dto.BuildingId.Value} not found.", null);
-                // Cross-entity consistency: if CustomerId is set or existing, it must match building's customer
                 var effectiveCustomerId = dto.CustomerId ?? entity.CustomerId;
                 if (building.CustomerId != effectiveCustomerId)
                     return (false, "CustomerId does not match the Building's CustomerId.", null);
@@ -250,7 +272,6 @@ namespace YopoBackend.Modules.IntercomCRUD.Services
             if (entity == null)
                 return (false, $"Intercom with ID {intercomId} not found.");
 
-            // Authorization: SuperAdmin only
             if (!IsSuperAdmin())
                 return (false, "Only Super Admins can delete intercoms.");
 
