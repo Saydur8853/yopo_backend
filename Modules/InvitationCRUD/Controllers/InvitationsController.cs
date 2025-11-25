@@ -15,7 +15,7 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
     [ApiController]
     [Route("api/invitations")]
     [Produces("application/json")]
-    [Tags("Invitations")]
+    [Tags("02-Invitations")]
     [Authorize]
     [RequireModule(ModuleConstants.INVITATION_MODULE_ID)]
     public class InvitationsController : ControllerBase

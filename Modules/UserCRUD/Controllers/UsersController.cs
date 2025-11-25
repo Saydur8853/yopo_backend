@@ -21,6 +21,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
+    [Tags("01-Users")]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;

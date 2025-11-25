@@ -710,7 +710,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             // Defaults per requested flow
             if (ut.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID || name.Equals(UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<int> { UTYPE, B, F, U, A, T, I }; // PM: includes UserType module
+                return new List<int> { UTYPE, B, F, U, A, T, I, USER }; // PM: includes UserType and UserCRUD module
             }
             if (ut.Id == UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_ID || name.Equals(UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {

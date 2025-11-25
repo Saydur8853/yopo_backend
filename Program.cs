@@ -170,18 +170,18 @@ static string GetControllerDisplayOrder(string? controllerName)
     return controllerName?.ToLower() switch
     {
         "users" => "01-Users",
-        "modules" => "Modules",
-        "usertypes" => "UserTypes",
-        "invitations" => "Invitations",
-        "buildings" => "04-Buildings",
-        "floors" => "05-Floors",
-        "units" => "06-Units",
-        "amenities" => "07-Amenities",
-        "tenants" => "08-Tenants",
-        "intercoms" => "09-Intercoms",
-        "intercomaccess" => "10-Intercom Access",
-        "accesscodes" => "10-Intercom Access",
-        "accesslogs" => "Audit/Access Logs",
+        "invitations" => "02-Invitations",
+        "buildings" => "03-Buildings",
+        "floors" => "04-Floors",
+        "units" => "05-Units",
+        "amenities" => "06-Amenities",
+        "tenants" => "07-Tenants",
+        "intercoms" => "08-Intercoms",
+        "intercomaccess" => "09-Intercom Access",
+        "accesscodes" => "09-Intercom Access",
+        "modules" => "10-Modules",
+        "usertypes" => "11-UserTypes",
+        "accesslogs" => "12-Audit/Access Logs",
         _ => controllerName ?? "Other"
     };
 }

@@ -184,13 +184,14 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                 // Check if this is the first user in the system
                 var isFirstUser = !await _context.Users.AnyAsync();
-                
+
                 int userTypeId;
                 string? invitationCompanyName = null;
                 int? inviterUserId = null;
                 string? inviterUserName = null;
                 List<int> invitationBuildingIds = new List<int>();
-                
+                YopoBackend.Modules.InvitationCRUD.Models.Invitation? invitation = null;
+
                 if (isFirstUser)
                 {
                     // First user becomes Super Admin
@@ -202,18 +203,18 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 else
                 {
                     // Check if email has a valid invitation
-                    var invitation = await _context.Invitations
+                    invitation = await _context.Invitations
                         .Include(i => i.UserType)
-                        .FirstOrDefaultAsync(i => i.EmailAddress.ToLower() == registerRequest.Email.ToLower() 
+                        .FirstOrDefaultAsync(i => i.EmailAddress.ToLower() == registerRequest.Email.ToLower()
                                                  && i.ExpiryTime > DateTime.UtcNow);
-                    
+
                     if (invitation == null)
                     {
                         // No valid invitation found
                         Console.WriteLine($"Registration denied for {registerRequest.Email} - no valid invitation");
                         throw new UnauthorizedAccessException("You are not invited. Please contact with Authority.");
                     }
-                    
+
                     userTypeId = invitation.UserTypeId;
                     invitationCompanyName = invitation.CompanyName;
 
@@ -223,7 +224,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     inviterUserName = inviter?.Name;
 
                     Console.WriteLine($"User registration with invitation - assigning user type {invitation.UserType?.Name} to: {registerRequest.Email}; invited by ID {inviterUserId} name '{inviterUserName}'");
-                    
+
                     // Collect invitation building IDs to apply after user creation
                     invitationBuildingIds = await _context.InvitationBuildings
                         .Where(ib => ib.InvitationId == invitation.Id)
@@ -255,9 +256,6 @@ namespace YopoBackend.Modules.UserCRUD.Services
                         }
                         // Defer applying Unit.TenantId until after user is saved
                     }
-
-                    // Remove the used invitation and its building mappings
-                    _context.Invitations.Remove(invitation);
                 }
 
                 var userType = await _context.UserTypes.FindAsync(userTypeId);
@@ -272,7 +270,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 // Process profile photo (optional)
                 byte[]? profilePhotoBytes = null;
                 string? profilePhotoMimeType = null;
-                
+
                 if (!string.IsNullOrEmpty(registerRequest.ProfilePhotoBase64))
                 {
                     var validationResult = ImageUtils.ValidateBase64Image(registerRequest.ProfilePhotoBase64);
@@ -280,7 +278,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     {
                         throw new ArgumentException($"Invalid profile photo: {validationResult.ErrorMessage}");
                     }
-                    
+
                     profilePhotoBytes = validationResult.ImageBytes;
                     profilePhotoMimeType = validationResult.MimeType;
                 }
@@ -341,20 +339,11 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 await _context.SaveChangesAsync();
 
                 // If the user is a Tenant via invitation, link to unit and create a Tenant record
-                if (!isFirstUser && user.UserTypeId == UserTypeConstants.TENANT_USER_TYPE_ID)
+                if (!isFirstUser && user.UserTypeId == UserTypeConstants.TENANT_USER_TYPE_ID && invitation != null)
                 {
-                    // The invitation was removed already; fetch latest invitation details from history is not possible
-                    // However we still have allocated buildingIds for permissions; for Tenant, we rely on Unit mapping
-                    // Find any recent invitation for this email in ChangeTracker? Not available after removal
-                    // Safer: query the most recent expired-but-not-yet-removed invitation by email (edge case)
-                    var tenantInvite = await _context.Invitations
-                        .IgnoreQueryFilters()
-                        .OrderByDescending(i => i.CreatedAt)
-                        .FirstOrDefaultAsync(i => i.EmailAddress.ToLower() == user.Email.ToLower());
-
-                    int? allocBuildingId = tenantInvite?.BuildingId;
-                    int? allocFloorId = tenantInvite?.FloorId;
-                    int? allocUnitId = tenantInvite?.UnitId;
+                    int? allocBuildingId = invitation.BuildingId;
+                    int? allocFloorId = invitation.FloorId;
+                    int? allocUnitId = invitation.UnitId;
 
                     if (allocBuildingId.HasValue && allocUnitId.HasValue)
                     {
@@ -390,7 +379,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                                 UnitId = allocUnitId,
                                 IsPaid = false,
                                 IsActive = true,
-                                CreatedBy = inviterUserId ?? user.Id,
+                                CreatedBy = inviterUserId ?? throw new InvalidOperationException("Cannot create a tenant record from a registration without a valid inviter."),
                                 CreatedAt = DateTime.UtcNow
                             });
                             await _context.SaveChangesAsync();
@@ -412,6 +401,13 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     }
                 }
 
+                // Remove the used invitation and its building mappings after all operations are complete
+                if (invitation != null)
+                {
+                    _context.Invitations.Remove(invitation);
+                    await _context.SaveChangesAsync();
+                }
+
                 // Reload user with full relationships for response
                 var registeredUser = await _context.Users
                     .Include(u => u.UserType)
@@ -425,7 +421,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 var (token, expiresAt) = await _jwtService.GenerateTokenAsync(registeredUser);
 
                 var message = isFirstUser ? "Registration successful - You are now the Super Administrator!" : "Registration successful";
-                
+
                 return new AuthenticationResponseDTO
                 {
                     Token = token,
