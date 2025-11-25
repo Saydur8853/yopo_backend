@@ -573,6 +573,11 @@ namespace YopoBackend.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("ServiceDate");
 
+                    b.Property<string>("StreamUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("StreamUrl");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime")
                         .HasColumnName("UpdatedAt");

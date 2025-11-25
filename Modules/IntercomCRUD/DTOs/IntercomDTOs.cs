@@ -35,6 +35,9 @@ namespace YopoBackend.Modules.IntercomCRUD.DTOs
         public string InstalledLocation { get; set; } = string.Empty; // e.g., "Main Entrance", "Parking", "Pool Entrance"
 
         public bool HasCCTV { get; set; }
+        
+        [MaxLength(500)]
+        public string? StreamUrl { get; set; }
         public bool HasPinPad { get; set; }
 
         // Optional - will be auto-derived from BuildingId if not provided
@@ -69,6 +72,8 @@ namespace YopoBackend.Modules.IntercomCRUD.DTOs
         [MaxLength(200)]
         public string? InstalledLocation { get; set; }
         public bool? HasCCTV { get; set; }
+        [MaxLength(500)]
+        public string? StreamUrl { get; set; }
         public bool? HasPinPad { get; set; }
         public int? CustomerId { get; set; }
         public int? BuildingId { get; set; }
@@ -121,6 +126,7 @@ namespace YopoBackend.Modules.IntercomCRUD.DTOs
         public string? OperatingSystem { get; set; }
         public string? InstalledLocation { get; set; }
         public bool HasCCTV { get; set; }
+        public string? StreamUrl { get; set; }
         public bool HasPinPad { get; set; }
         public int CustomerId { get; set; }
         public int BuildingId { get; set; }

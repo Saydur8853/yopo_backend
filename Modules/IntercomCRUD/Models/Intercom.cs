@@ -59,6 +59,10 @@ namespace YopoBackend.Modules.IntercomCRUD.Models
         [Column("HasCCTV")]
         public bool HasCCTV { get; set; }
 
+        [MaxLength(500)]
+        [Column("StreamUrl")]
+        public string? StreamUrl { get; set; }
+
         [Column("HasPinPad")]
         public bool HasPinPad { get; set; }
 

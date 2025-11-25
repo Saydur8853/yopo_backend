@@ -59,6 +59,9 @@ builder.Services.AddScoped<YopoBackend.Modules.IntercomCRUD.Services.IIntercomSe
 // Module: Intercom Access Control
 builder.Services.AddScoped<YopoBackend.Modules.IntercomAccess.Services.IIntercomAccessService, YopoBackend.Modules.IntercomAccess.Services.IntercomAccessService>();
 
+// Module: CCTV (Module ID: 10)
+builder.Services.AddScoped<YopoBackend.Modules.CCTVCRUD.Services.ICCTVService, YopoBackend.Modules.CCTVCRUD.Services.CCTVService>();
+
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
@@ -178,6 +181,7 @@ static string GetControllerDisplayOrder(string? controllerName)
         "tenants" => "07-Tenants",
         "intercoms" => "08-Intercoms",
         "intercomaccess" => "09-Intercom Access",
+        "cctv" => "10-CCTV",
         "accesscodes" => "09-Intercom Access",
         "modules" => "10-Modules",
         "usertypes" => "11-UserTypes",
