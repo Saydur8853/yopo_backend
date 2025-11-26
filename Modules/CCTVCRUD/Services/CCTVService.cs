@@ -11,7 +11,7 @@ namespace YopoBackend.Modules.CCTVCRUD.Services
 {
     public interface ICCTVService
     {
-        Task<IEnumerable<CCTVResponseDto>> GetAllCCTVsAsync(int currentUserId);
+        Task<(IEnumerable<CCTVResponseDto> Items, int TotalCount)> GetAllCCTVsAsync(int currentUserId, int page, int pageSize, string? searchTerm = null, int? buildingId = null, bool? isActive = null);
         Task<CCTVResponseDto?> GetCCTVByIdAsync(int id, int currentUserId);
         Task<CCTVResponseDto> CreateCCTVAsync(CreateCCTVDto createDto, int createdByUserId);
         Task<CCTVResponseDto?> UpdateCCTVAsync(int id, UpdateCCTVDto updateDto, int currentUserId);
@@ -24,15 +24,91 @@ namespace YopoBackend.Modules.CCTVCRUD.Services
         {
         }
 
-        public async Task<IEnumerable<CCTVResponseDto>> GetAllCCTVsAsync(int currentUserId)
+        public async Task<(IEnumerable<CCTVResponseDto> Items, int TotalCount)> GetAllCCTVsAsync(int currentUserId, int page, int pageSize, string? searchTerm = null, int? buildingId = null, bool? isActive = null)
         {
             var user = await GetUserWithAccessControlAsync(currentUserId);
-            if (user == null) return new List<CCTVResponseDto>();
+            if (user == null) return (new List<CCTVResponseDto>(), 0);
 
             var query = _context.Intercoms
                 .Include(i => i.Building)
-                .Where(i => i.HasCCTV && i.IsActive)
+                .Where(i => i.HasCCTV)
                 .AsQueryable();
+
+            // Apply filters
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim().ToLower();
+                query = query.Where(i => i.IntercomName.ToLower().Contains(term) 
+                                      || (i.InstalledLocation != null && i.InstalledLocation.ToLower().Contains(term)));
+            }
+
+            if (buildingId.HasValue)
+            {
+                query = query.Where(i => i.BuildingId == buildingId.Value);
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(i => i.IsActive == isActive.Value);
+            }
+            else
+            {
+                // Default behavior if not specified: show active only? 
+                // The original code had .Where(i => i.HasCCTV && i.IsActive)
+                // But usually filters override defaults. Let's keep the original default if not specified?
+                // Actually, standard pattern is usually: if filter is null, return all (or default).
+                // Original code: .Where(i => i.HasCCTV && i.IsActive)
+                // Let's assume if isActive is null, we default to true (Active only) to match previous behavior, OR we return all?
+                // The user asked for "filter option", implying they might want to see inactive ones too.
+                // However, the original code strictly filtered `i.IsActive`.
+                // Let's make it: if isActive is null, we stick to `IsActive == true` to preserve backward compatibility unless user explicitly asks for all?
+                // Wait, usually `isActive = null` means "don't filter by active status" (show both).
+                // BUT, the previous hardcoded behavior was `IsActive`.
+                // Let's stick to: if `isActive` is provided, use it. If NOT provided, default to `IsActive = true` to match previous behavior?
+                // Or maybe just remove the hardcoded `IsActive` and let the filter handle it.
+                // If I remove `&& i.IsActive` from the base query, then `isActive = null` would return both active and inactive.
+                // This is likely what "filter option" implies.
+                // BUT, for safety, let's default to `true` if not specified, effectively keeping the old behavior as default.
+                
+                // Let's check IntercomService for reference.
+                // IntercomService: `if (isActive.HasValue) query = query.Where(i => i.IsActive == isActive.Value);`
+                // And it does NOT have a default `IsActive` filter in the base query.
+                // So I should remove `&& i.IsActive` from base query and only apply if `isActive.HasValue`.
+                // However, `CCTVService` originally had `&& i.IsActive`.
+                // I will follow IntercomService pattern: remove hardcoded `IsActive` and only filter if requested.
+                // Wait, if I do that, existing calls might start seeing inactive CCTVs if they don't specify `isActive=true`.
+                // The Controller defaults `isActive` to null.
+                // So by default, it would show ALL (active and inactive).
+                // Is this desired? "Pagination is missing... make filter option".
+                // Usually "filter option" means "I want to be able to filter", not "Change default behavior".
+                // But `IntercomService` shows all by default.
+                // Let's stick to: If `isActive` is null, default to `true` (Active only) to be safe?
+                // Or just follow the instruction "make filter option".
+                // I'll implement it as: if `isActive` is null, do NOT filter (show all). This gives the most flexibility.
+                // But wait, the original code was: `.Where(i => i.HasCCTV && i.IsActive)`
+                // If I change it to show all by default, I might break the "view only active CCTVs" expectation.
+                // Let's look at the implementation plan again.
+                // "Update GetAllCCTVsAsync to accept filter parameters... Apply filters to the query."
+                // I'll make `isActive` default to `true` in the Controller? No, usually null in controller.
+                // Let's set the default in the Service to `true` if null?
+                // `if (isActive.HasValue) ... else query = query.Where(i => i.IsActive);`
+                // This preserves original behavior (only active) while allowing `isActive=false` to see inactive ones.
+                
+                // Actually, looking at `IntercomService`, it has `if (isActive.HasValue) ...`.
+                // And the base query is `_context.Set<Intercom>()...`. It doesn't filter by IsActive by default.
+                // So Intercoms list shows everything.
+                // CCTV list was showing only active.
+                // I will preserve the "Only Active" default behavior for CCTV list, as it might be used for a dashboard or something.
+                // So:
+                if (isActive.HasValue)
+                {
+                    query = query.Where(i => i.IsActive == isActive.Value);
+                }
+                else
+                {
+                    query = query.Where(i => i.IsActive);
+                }
+            }
 
             // Apply access control
             if (user.UserTypeId != UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
@@ -41,8 +117,15 @@ namespace YopoBackend.Modules.CCTVCRUD.Services
                 query = query.Where(i => allowedBuildingIds.Contains(i.BuildingId));
             }
 
-            var cctvs = await query.ToListAsync();
-            return cctvs.Select(MapToDto);
+            var totalCount = await query.CountAsync();
+
+            var cctvs = await query
+                .OrderByDescending(i => i.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (cctvs.Select(MapToDto), totalCount);
         }
 
         public async Task<CCTVResponseDto?> GetCCTVByIdAsync(int id, int currentUserId)
