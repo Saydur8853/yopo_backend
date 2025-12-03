@@ -8,6 +8,7 @@ using YopoBackend.Modules.UnitCRUD.Models;
 using YopoBackend.Modules.AmenityCRUD.Models;
 using YopoBackend.Modules.TenantCRUD.Models;
 using YopoBackend.Modules.IntercomCRUD.Models;
+using YopoBackend.Modules.Messaging.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -114,6 +115,9 @@ namespace YopoBackend.Data
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomUserPin> IntercomUserPins { get; set; }
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog> IntercomAccessLogs { get; set; }
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessCode> IntercomAccessCodes { get; set; }
+
+        // Module: Messaging
+        public DbSet<Message> Messages { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -605,6 +609,20 @@ namespace YopoBackend.Data
                       .WithMany()
                       .HasForeignKey(e => e.CreatedBy)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure Message entity (Messaging Module)
+            modelBuilder.Entity<Message>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.SenderId);
+                entity.HasIndex(e => e.ReceiverId);
+                entity.HasIndex(e => new { e.ReceiverId, e.ReceiverType });
+                entity.Property(e => e.SenderType).HasMaxLength(50);
+                entity.Property(e => e.ReceiverType).HasMaxLength(50);
+                entity.Property(e => e.Content).HasColumnType("text");
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             });
 
         }

@@ -13,6 +13,7 @@ using YopoBackend.Constants;
 using YopoBackend.Middleware;
 using DotNetEnv;
 using Microsoft.AspNetCore.Rewrite;
+using YopoBackend.Hubs;
 
 // Load environment variables from .env file
 Env.Load();
@@ -22,6 +23,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSignalR();
 
 // Register core services
 builder.Services.AddScoped<IModuleService, ModuleService>();
@@ -60,7 +62,11 @@ builder.Services.AddScoped<YopoBackend.Modules.IntercomCRUD.Services.IIntercomSe
 builder.Services.AddScoped<YopoBackend.Modules.IntercomAccess.Services.IIntercomAccessService, YopoBackend.Modules.IntercomAccess.Services.IntercomAccessService>();
 
 // Module: CCTV (Module ID: 10)
+// Module: CCTV (Module ID: 10)
 builder.Services.AddScoped<YopoBackend.Modules.CCTVCRUD.Services.ICCTVService, YopoBackend.Modules.CCTVCRUD.Services.CCTVService>();
+
+// Module: Messaging
+builder.Services.AddScoped<YopoBackend.Modules.Messaging.Services.IMessageService, YopoBackend.Modules.Messaging.Services.MessageService>();
 
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
@@ -261,6 +267,7 @@ if (!app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<MessageHub>("/messageHub");
 
 // Ensure database is migrated and initialize default data
 using (var scope = app.Services.CreateScope())
