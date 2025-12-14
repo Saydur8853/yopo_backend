@@ -92,6 +92,22 @@ namespace YopoBackend.Modules.Messaging.Services
             return responseDto;
         }
 
+        public async Task<int> DeleteChatAsync(int userId, string userType, int withUserId, string withUserType)
+        {
+            var messages = await _context.Messages
+                .Where(m =>
+                    (m.SenderId == userId && m.SenderType == userType && m.ReceiverId == withUserId && m.ReceiverType == withUserType) ||
+                    (m.SenderId == withUserId && m.SenderType == withUserType && m.ReceiverId == userId && m.ReceiverType == userType))
+                .ToListAsync();
+
+            if (messages.Count == 0) return 0;
+
+            _context.Messages.RemoveRange(messages);
+            await _context.SaveChangesAsync();
+
+            return messages.Count;
+        }
+
         private MessageResponseDTO MapToDTO(Message message)
         {
             return new MessageResponseDTO

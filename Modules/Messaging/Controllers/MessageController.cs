@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Security.Claims;
 using YopoBackend.Modules.Messaging.DTOs;
 using YopoBackend.Modules.Messaging.Services;
@@ -79,6 +80,38 @@ namespace YopoBackend.Modules.Messaging.Controllers
             catch (UnauthorizedAccessException)
             {
                 return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("chat")]
+        public async Task<IActionResult> DeleteChat([FromQuery] int participantId, [FromQuery] string participantType)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "User";
+            string userType = userRole == "Tenant" ? "Tenant" : "User";
+
+            if (participantId <= 0)
+            {
+                return BadRequest(new { message = "participantId is required." });
+            }
+
+            var normalizedParticipantType = (participantType ?? string.Empty).Trim();
+            if (!string.Equals(normalizedParticipantType, "Tenant", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(normalizedParticipantType, "User", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "participantType must be 'Tenant' or 'User'." });
+            }
+
+            normalizedParticipantType = char.ToUpper(normalizedParticipantType[0]) + normalizedParticipantType.Substring(1).ToLower();
+
+            try
+            {
+                var deletedCount = await _messageService.DeleteChatAsync(userId, userType, participantId, normalizedParticipantType);
+                return Ok(new { message = "Chat deleted successfully.", deletedCount });
             }
             catch (Exception ex)
             {

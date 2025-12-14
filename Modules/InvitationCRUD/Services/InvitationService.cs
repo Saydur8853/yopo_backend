@@ -200,9 +200,27 @@ namespace YopoBackend.Modules.InvitationCRUD.Services
                 {
                     unitQuery = unitQuery.Where(u => u.FloorId == createDto.FloorId.Value);
                 }
-                var unitBelongs = await unitQuery.AnyAsync();
-                if (!unitBelongs)
+                var unit = await unitQuery
+                    .Select(u => new
+                    {
+                        u.UnitId,
+                        u.UnitNumber,
+                        u.TenantId,
+                        TenantName = u.Tenant != null ? u.Tenant.Name : null
+                    })
+                    .FirstOrDefaultAsync();
+                if (unit == null)
                     throw new ArgumentException("UnitId does not belong to the specified BuildingId/FloorId.");
+                if (unit.TenantId.HasValue)
+                {
+                    var tenantLabel = string.IsNullOrWhiteSpace(unit.TenantName)
+                        ? $"ID {unit.TenantId.Value}"
+                        : $"{unit.TenantName} (ID {unit.TenantId.Value})";
+                    var unitLabel = string.IsNullOrWhiteSpace(unit.UnitNumber)
+                        ? $"ID {unit.UnitId}"
+                        : unit.UnitNumber;
+                    throw new InvalidOperationException($"This unit {unitLabel} is already booked for tenant {tenantLabel}.");
+                }
             }
 
             var invitation = new Invitation

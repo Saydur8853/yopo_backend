@@ -218,12 +218,25 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
                 }
             }
 
-            var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
-            
-            return CreatedAtAction(
-                nameof(GetInvitation), 
-                new { id = invitation.Id }, 
-                invitation);
+            try
+            {
+                var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
+                
+                return CreatedAtAction(
+                    nameof(GetInvitation), 
+                    new { id = invitation.Id }, 
+                    invitation);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Business rule violation while creating invitation");
+                return Conflict(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Validation error while creating invitation");
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>
@@ -257,8 +270,21 @@ namespace YopoBackend.Modules.InvitationCRUD.Controllers
                 FloorId = dto.FloorId,
                 UnitId = dto.UnitId
             };
-            var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
-            return CreatedAtAction(nameof(GetInvitation), new { id = invitation.Id }, invitation);
+            try
+            {
+                var invitation = await _invitationService.CreateInvitationAsync(createDto, currentUserId);
+                return CreatedAtAction(nameof(GetInvitation), new { id = invitation.Id }, invitation);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Business rule violation while creating tenant invitation");
+                return Conflict(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Validation error while creating tenant invitation");
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>

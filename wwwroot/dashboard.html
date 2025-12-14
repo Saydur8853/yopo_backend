@@ -1138,7 +1138,52 @@
                     </button>
                 </div>
             </form>
-            
+
+            <!-- Tenant Invitation Form -->
+            <div style="margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid #e9ecef;">
+                <h4 style="margin-bottom: 0.75rem;">dY" Invite Tenant</h4>
+                <div id="tenant-invitation-message"></div>
+                <form id="tenant-invitation-form" class="invitation-form">
+                    <div class="form-group">
+                        <label for="tenant-invite-email">Tenant Email</label>
+                        <input type="email" id="tenant-invite-email" class="form-control" required placeholder="Enter tenant's email">
+                    </div>
+                    <div class="form-group">
+                        <label for="tenant-invite-building">Building</label>
+                        <select id="tenant-invite-building" class="form-control" required>
+                            <option value="">Select building</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tenant-invite-floor">Floor (optional)</label>
+                        <select id="tenant-invite-floor" class="form-control" disabled>
+                            <option value="">Select floor (optional)</option>
+                        </select>
+                        <small style="color:#666; font-size:0.8rem; display:block; margin-top:0.25rem;">Selecting a floor will filter the available units.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="tenant-invite-unit">Unit</label>
+                        <select id="tenant-invite-unit" class="form-control" required disabled>
+                            <option value="">Select unit</option>
+                        </select>
+                        <div id="tenant-unit-warning" class="message error" style="display:none; margin-top: 0.5rem;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="tenant-invite-days">Expires in Days</label>
+                        <select id="tenant-invite-days" class="form-control" required>
+                            <option value="1">1 Day</option>
+                            <option value="3">3 Days</option>
+                            <option value="7" selected>7 Days</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" id="tenant-invite-btn">
+                            dY" Invite Tenant
+                        </button>
+                    </div>
+                </form>
+            </div>
+
             <!-- Invitations List -->
             <div class="invitations-list-section">
                 <div class="list-header">
@@ -1380,6 +1425,8 @@
         let userData = null;
         let availableUserTypes = [];
         let isInviteLoading = false;
+        let tenantInvitationBuildings = [];
+        let isTenantInviteLoading = false;
 
         // Add error handling for browser extension compatibility
         window.addEventListener('error', function(e) {
@@ -1423,6 +1470,24 @@
             const invitationForm = document.getElementById('invitation-form');
             if (invitationForm) {
                 invitationForm.addEventListener('submit', handleInvitationSubmit);
+            }
+
+            // Tenant invitation form
+            const tenantInvitationForm = document.getElementById('tenant-invitation-form');
+            if (tenantInvitationForm) {
+                tenantInvitationForm.addEventListener('submit', handleTenantInvitationSubmit);
+            }
+            const tenantBuildingSelect = document.getElementById('tenant-invite-building');
+            if (tenantBuildingSelect) {
+                tenantBuildingSelect.addEventListener('change', handleTenantBuildingChange);
+            }
+            const tenantFloorSelect = document.getElementById('tenant-invite-floor');
+            if (tenantFloorSelect) {
+                tenantFloorSelect.addEventListener('change', handleTenantFloorChange);
+            }
+            const tenantUnitSelect = document.getElementById('tenant-invite-unit');
+            if (tenantUnitSelect) {
+                tenantUnitSelect.addEventListener('change', handleTenantUnitChange);
             }
             
             // User type form
@@ -2170,6 +2235,323 @@
             if (!container || !master) return;
             const boxes = Array.from(container.querySelectorAll('input.invite-building-checkbox'));
             master.checked = boxes.length > 0 && boxes.every(cb => cb.checked);
+        }
+
+        // Load buildings/floors/units for tenant invitation form
+        async function loadTenantInvitationBuildings() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/buildings?page=1&pageSize=1000`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load buildings for tenant invitation');
+                }
+
+                const data = await response.json();
+                const buildings = Array.isArray(data) ? data : (data && data.buildings) ? data.buildings : [];
+                tenantInvitationBuildings = buildings.map(b => ({
+                    ...b,
+                    floors: b.floors || [],
+                    units: b.units || []
+                }));
+
+                populateTenantBuildingOptions();
+            } catch (error) {
+                console.error('Error loading tenant invitation buildings', error);
+                tenantInvitationBuildings = [];
+                populateTenantBuildingOptions();
+                showTenantInvitationMessage(error.message || 'Unable to load buildings for tenant invite', 'error');
+            }
+        }
+
+        function populateTenantBuildingOptions() {
+            const buildingSelect = document.getElementById('tenant-invite-building');
+            if (!buildingSelect) return;
+
+            const defaultOption = '<option value="">Select building</option>';
+
+            if (!tenantInvitationBuildings || tenantInvitationBuildings.length === 0) {
+                buildingSelect.innerHTML = '<option value="">No buildings available</option>';
+                buildingSelect.disabled = true;
+                resetTenantFloorAndUnit();
+                return;
+            }
+
+            buildingSelect.innerHTML = [
+                defaultOption,
+                ...tenantInvitationBuildings.map(b => `<option value="${b.buildingId}">${b.name}</option>`)
+            ].join('');
+            buildingSelect.disabled = false;
+            // Re-sync floor/unit selectors based on current selection
+            handleTenantBuildingChange();
+        }
+
+        function handleTenantBuildingChange() {
+            const buildingSelect = document.getElementById('tenant-invite-building');
+            if (!buildingSelect) return;
+            const selected = parseInt(buildingSelect.value, 10);
+            if (Number.isNaN(selected)) {
+                resetTenantFloorAndUnit();
+                updateTenantUnitWarning(false);
+                return;
+            }
+
+            const building = tenantInvitationBuildings.find(b => b.buildingId === selected);
+            populateTenantFloorOptions(building);
+            populateTenantUnitOptions(building);
+            handleTenantUnitChange();
+        }
+
+        function handleTenantFloorChange() {
+            const buildingSelect = document.getElementById('tenant-invite-building');
+            const floorSelect = document.getElementById('tenant-invite-floor');
+            if (!buildingSelect || !floorSelect) return;
+
+            const buildingId = parseInt(buildingSelect.value, 10);
+            const floorValue = floorSelect.value;
+            const floorId = floorValue ? parseInt(floorValue, 10) : null;
+
+            const building = tenantInvitationBuildings.find(b => b.buildingId === buildingId);
+            populateTenantUnitOptions(building, floorId);
+            handleTenantUnitChange();
+        }
+
+        function populateTenantFloorOptions(building) {
+            const floorSelect = document.getElementById('tenant-invite-floor');
+            if (!floorSelect) return;
+
+            if (!building || !building.floors || building.floors.length === 0) {
+                floorSelect.innerHTML = '<option value="">No floors available</option>';
+                floorSelect.disabled = true;
+                return;
+            }
+
+            floorSelect.disabled = false;
+            floorSelect.innerHTML = [
+                '<option value="">Select floor (optional)</option>',
+                ...building.floors.map(f => `<option value="${f.floorId}">${f.name || f.number || 'Floor ' + f.floorId}</option>`)
+            ].join('');
+        }
+
+        function populateTenantUnitOptions(building, floorId = null) {
+            const unitSelect = document.getElementById('tenant-invite-unit');
+            if (!unitSelect) return;
+
+            updateTenantUnitWarning(false);
+            if (!building || !building.units || building.units.length === 0) {
+                unitSelect.innerHTML = '<option value="">No units available</option>';
+                unitSelect.disabled = true;
+                return;
+            }
+
+            let units = building.units;
+            if (floorId !== null && !Number.isNaN(floorId)) {
+                units = units.filter(u => u.floorId === floorId);
+            }
+
+            if (!units || units.length === 0) {
+                unitSelect.innerHTML = '<option value="">No units for selected floor</option>';
+                unitSelect.disabled = true;
+                return;
+            }
+
+            unitSelect.disabled = false;
+            unitSelect.innerHTML = [
+                '<option value="">Select unit</option>',
+                ...units.map(u => {
+                    const vacant = isUnitVacant(u);
+                    const label = `${u.unitNumber || 'Unit ' + u.unitId} : ${vacant ? 'Vacant' : 'Occupied'}`;
+                    return `<option value="${u.unitId}" data-occupied="${vacant ? 'false' : 'true'}">${label}</option>`;
+                })
+            ].join('');
+        }
+
+        function resetTenantFloorAndUnit() {
+            const floorSelect = document.getElementById('tenant-invite-floor');
+            const unitSelect = document.getElementById('tenant-invite-unit');
+            if (floorSelect) {
+                floorSelect.innerHTML = '<option value="">Select floor (optional)</option>';
+                floorSelect.disabled = true;
+            }
+            if (unitSelect) {
+                unitSelect.innerHTML = '<option value="">Select unit</option>';
+                unitSelect.disabled = true;
+            }
+            updateTenantUnitWarning(false);
+        }
+
+        function showTenantInvitationMessage(message, type = 'error') {
+            const messageContainer = document.getElementById('tenant-invitation-message');
+            if (!messageContainer) return;
+            messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => {
+                if (messageContainer.innerHTML.includes(message)) {
+                    messageContainer.innerHTML = '';
+                }
+            }, 5000);
+        }
+
+        function updateTenantUnitWarning(isOccupied) {
+            const warning = document.getElementById('tenant-unit-warning');
+            if (!warning) return;
+            if (isOccupied) {
+                warning.style.display = 'block';
+                warning.textContent = 'Selected unit is not vacant. Please choose a vacant unit.';
+            } else {
+                warning.style.display = 'none';
+                warning.textContent = '';
+            }
+        }
+
+        function handleTenantUnitChange() {
+            const unitSelect = document.getElementById('tenant-invite-unit');
+            if (!unitSelect) return;
+            const selectedOption = unitSelect.options[unitSelect.selectedIndex];
+            const isOccupied = selectedOption && selectedOption.getAttribute('data-occupied') === 'true';
+            updateTenantUnitWarning(isOccupied);
+        }
+
+        function isUnitVacant(unit) {
+            const status = (unit.status || '').toString().toLowerCase();
+            const hasTenant = unit.tenantId !== null && unit.tenantId !== undefined;
+            if (status.includes('vacant') || status.includes('available')) return !hasTenant;
+            if (status.includes('occupied') || status.includes('leased') || status.includes('rented')) return false;
+            return !hasTenant;
+        }
+
+        function setTenantInviteLoading(loading) {
+            isTenantInviteLoading = loading;
+            const btn = document.getElementById('tenant-invite-btn');
+            const emailInput = document.getElementById('tenant-invite-email');
+            const buildingSelect = document.getElementById('tenant-invite-building');
+            const floorSelect = document.getElementById('tenant-invite-floor');
+            const unitSelect = document.getElementById('tenant-invite-unit');
+            const daysSelect = document.getElementById('tenant-invite-days');
+
+            if (!btn || !emailInput || !buildingSelect || !floorSelect || !unitSelect || !daysSelect) return;
+
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span>Sending...';
+                emailInput.disabled = true;
+                buildingSelect.disabled = true;
+                floorSelect.disabled = true;
+                unitSelect.disabled = true;
+                daysSelect.disabled = true;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = 'dY" Invite Tenant';
+                emailInput.disabled = false;
+                buildingSelect.disabled = tenantInvitationBuildings.length === 0;
+                daysSelect.disabled = false;
+                handleTenantBuildingChange();
+                handleTenantUnitChange();
+            }
+        }
+
+        async function handleTenantInvitationSubmit(e) {
+            e.preventDefault();
+            if (isTenantInviteLoading) return;
+
+            const email = document.getElementById('tenant-invite-email').value.trim();
+            const buildingValue = document.getElementById('tenant-invite-building').value;
+            const floorValue = document.getElementById('tenant-invite-floor').value;
+            const unitValue = document.getElementById('tenant-invite-unit').value;
+            const daysValue = document.getElementById('tenant-invite-days').value;
+            const unitSelect = document.getElementById('tenant-invite-unit');
+
+            if (!email || !buildingValue || !unitValue || !daysValue) {
+                showTenantInvitationMessage('Please fill in email, building, unit, and expiry.', 'error');
+                return;
+            }
+
+            const buildingId = parseInt(buildingValue, 10);
+            const floorId = floorValue ? parseInt(floorValue, 10) : null;
+            const unitId = parseInt(unitValue, 10);
+            const expiryDays = parseInt(daysValue, 10);
+
+            if (Number.isNaN(buildingId) || Number.isNaN(unitId) || Number.isNaN(expiryDays)) {
+                showTenantInvitationMessage('Please choose valid building, unit, and expiry values.', 'error');
+                return;
+            }
+
+            const selectedOption = unitSelect ? unitSelect.options[unitSelect.selectedIndex] : null;
+            const isOccupiedSelection = selectedOption && selectedOption.getAttribute('data-occupied') === 'true';
+            if (isOccupiedSelection) {
+                updateTenantUnitWarning(true);
+                showTenantInvitationMessage('Selected unit is not vacant. Please choose a vacant unit.', 'error');
+                return;
+            }
+
+            const building = tenantInvitationBuildings.find(b => b.buildingId === buildingId);
+            if (!building) {
+                showTenantInvitationMessage('Selected building is unavailable.', 'error');
+                return;
+            }
+
+            const unit = (building.units || []).find(u => u.unitId === unitId);
+            if (!unit) {
+                showTenantInvitationMessage('Selected unit is unavailable for this building.', 'error');
+                return;
+            }
+
+            if (floorId && unit.floorId !== floorId) {
+                showTenantInvitationMessage('Selected unit does not belong to the chosen floor.', 'error');
+                return;
+            }
+
+            setTenantInviteLoading(true);
+
+            try {
+                const token = localStorage.getItem('authToken');
+                const requestBody = {
+                    emailAddress: email,
+                    buildingId,
+                    unitId,
+                    expiryDays
+                };
+                if (floorId) {
+                    requestBody.floorId = floorId;
+                }
+
+                const response = await fetch(`${API_BASE}/invitations/tenant`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    let errorMessage = 'Failed to send tenant invitation';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData || errorMessage;
+                    } catch (err) {
+                        const errorText = await response.text();
+                        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                showTenantInvitationMessage(`Tenant invitation sent to ${email}!`, 'success');
+                const form = document.getElementById('tenant-invitation-form');
+                if (form) form.reset();
+                resetTenantFloorAndUnit();
+                const daysSelect = document.getElementById('tenant-invite-days');
+                if (daysSelect) daysSelect.value = '7';
+                updateTenantUnitWarning(false);
+            } catch (error) {
+                console.error('Error sending tenant invitation:', error);
+                showTenantInvitationMessage(error.message || 'Failed to send tenant invitation', 'error');
+            } finally {
+                setTenantInviteLoading(false);
+            }
         }
 
         async function loadUserTypesForInvitation() {
@@ -3441,7 +3823,10 @@
                 
                 const result = await response.json();
                 const buildings = result.buildings || result; // Handle both paginated and direct array responses
+                
                 displayBuildingsList(buildings);
+                // Refresh tenant invitation options with full building list
+                loadTenantInvitationBuildings();
                 
             } catch (error) {
                 console.error('Error loading buildings:', error);
