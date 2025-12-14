@@ -23,7 +23,7 @@ namespace YopoBackend.Modules.Messaging.Controllers
         public async Task<ActionResult<MessageResponseDTO>> SendMessage([FromBody] SendMessageDTO messageDto)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "User";
+            var userRole = (User.FindFirst(ClaimTypes.Role)?.Value ?? "User").Trim();
 
             // Map role to SenderType if needed, or just use the role name
             // The MessageService expects a string for SenderType.
@@ -37,7 +37,7 @@ namespace YopoBackend.Modules.Messaging.Controllers
             // Let's stick to the requirement: "SenderType - 'Tenant' or 'User'"
             // If role is Tenant, SenderType = "Tenant". Else "User".
             
-            string senderType = userRole == "Tenant" ? "Tenant" : "User";
+            string senderType = string.Equals(userRole, "Tenant", StringComparison.OrdinalIgnoreCase) ? "Tenant" : "User";
 
             try
             {
@@ -54,8 +54,8 @@ namespace YopoBackend.Modules.Messaging.Controllers
         public async Task<ActionResult<IEnumerable<MessageResponseDTO>>> GetMessages()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "User";
-            string userType = userRole == "Tenant" ? "Tenant" : "User";
+            var userRole = (User.FindFirst(ClaimTypes.Role)?.Value ?? "User").Trim();
+            string userType = string.Equals(userRole, "Tenant", StringComparison.OrdinalIgnoreCase) ? "Tenant" : "User";
 
             var messages = await _messageService.GetMessagesAsync(userId, userType);
             return Ok(messages);
@@ -65,8 +65,8 @@ namespace YopoBackend.Modules.Messaging.Controllers
         public async Task<ActionResult<MessageResponseDTO>> UpdateMessage(int id, [FromBody] UpdateMessageDTO messageDto)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "User";
-            string userType = userRole == "Tenant" ? "Tenant" : "User";
+            var userRole = (User.FindFirst(ClaimTypes.Role)?.Value ?? "User").Trim();
+            string userType = string.Equals(userRole, "Tenant", StringComparison.OrdinalIgnoreCase) ? "Tenant" : "User";
 
             try
             {
@@ -91,8 +91,8 @@ namespace YopoBackend.Modules.Messaging.Controllers
         public async Task<IActionResult> DeleteChat([FromQuery] int participantId, [FromQuery] string participantType)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "User";
-            string userType = userRole == "Tenant" ? "Tenant" : "User";
+            var userRole = (User.FindFirst(ClaimTypes.Role)?.Value ?? "User").Trim();
+            string userType = string.Equals(userRole, "Tenant", StringComparison.OrdinalIgnoreCase) ? "Tenant" : "User";
 
             if (participantId <= 0)
             {

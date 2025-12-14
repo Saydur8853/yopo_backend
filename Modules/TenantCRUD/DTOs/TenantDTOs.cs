@@ -46,6 +46,8 @@ namespace YopoBackend.Modules.TenantCRUD.DTOs
     {
         public int TenantId { get; set; }
         public string TenantName { get; set; } = string.Empty;
+        public int? UserId { get; set; }
+        public string? UserName { get; set; }
         public int BuildingId { get; set; }
         public string? BuildingName { get; set; }
         public string? Type { get; set; }

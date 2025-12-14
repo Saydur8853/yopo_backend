@@ -27,6 +27,7 @@ namespace YopoBackend.Modules.TenantCRUD.Services
                 .Include(t => t.Building)
                 .Include(t => t.Floor)
                 .Include(t => t.Unit)
+                    .ThenInclude(u => u.Tenant)
                 .Include(t => t.CreatedByUser)
                 .AsQueryable();
 
@@ -67,6 +68,8 @@ namespace YopoBackend.Modules.TenantCRUD.Services
                 {
                     TenantId = t.TenantId,
                     TenantName = t.TenantName,
+                    UserId = t.Unit != null ? t.Unit.TenantId : null,
+                    UserName = t.Unit != null ? t.Unit.Tenant != null ? t.Unit.Tenant.Name : null : null,
                     BuildingId = t.BuildingId,
                     BuildingName = t.Building.Name,
                     Type = t.Type,
@@ -160,6 +163,8 @@ namespace YopoBackend.Modules.TenantCRUD.Services
                 FloorName = createdEntity.Floor?.Name,
                 UnitId = createdEntity.UnitId,
                 UnitNumber = createdEntity.Unit?.UnitNumber,
+                UserId = createdEntity.Unit?.TenantId,
+                UserName = createdEntity.Unit?.Tenant?.Name,
                 ContractStartDate = createdEntity.ContractStartDate,
                 ContractEndDate = createdEntity.ContractEndDate,
                 IsPaid = createdEntity.IsPaid,
@@ -248,6 +253,8 @@ namespace YopoBackend.Modules.TenantCRUD.Services
                 FloorName = updatedEntity.Floor?.Name,
                 UnitId = updatedEntity.UnitId,
                 UnitNumber = updatedEntity.Unit?.UnitNumber,
+                UserId = updatedEntity.Unit?.TenantId,
+                UserName = updatedEntity.Unit?.Tenant?.Name,
                 ContractStartDate = updatedEntity.ContractStartDate,
                 ContractEndDate = updatedEntity.ContractEndDate,
                 IsPaid = updatedEntity.IsPaid,
