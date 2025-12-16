@@ -6,8 +6,9 @@ namespace YopoBackend.Modules.Messaging.Services
     public interface IMessageService
     {
         Task<MessageResponseDTO> SendMessageAsync(int senderId, string senderType, SendMessageDTO messageDto);
-        Task<IEnumerable<MessageResponseDTO>> GetMessagesAsync(int userId, string userType);
+        Task<IEnumerable<MessageResponseDTO>> GetMessagesAsync(int userId, string userType, int? buildingId = null);
         Task<MessageResponseDTO> UpdateMessageAsync(int messageId, int userId, string userType, UpdateMessageDTO messageDto);
         Task<int> DeleteChatAsync(int userId, string userType, int withUserId, string withUserType);
+        Task<int> MarkConversationReadAsync(int userId, string userType, int withUserId, string withUserType, int? buildingId = null);
     }
 }

@@ -13,6 +13,8 @@ namespace YopoBackend.Modules.Messaging.DTOs
 
         [Required]
         public string Content { get; set; } = string.Empty;
+
+        public int? BuildingId { get; set; }
     }
 
     public class UpdateMessageDTO
@@ -32,6 +34,7 @@ namespace YopoBackend.Modules.Messaging.DTOs
         public bool IsRead { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public int? BuildingId { get; set; }
         
         // Optional: Include sender/receiver names if needed for UI
         public string? SenderName { get; set; }

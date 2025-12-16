@@ -22,6 +22,7 @@ namespace YopoBackend.Modules.Messaging.Services
         public async Task<MessageResponseDTO> SendMessageAsync(int senderId, string senderType, SendMessageDTO messageDto)
         {
             var resolvedReceiver = await ResolveTenantReceiverAsync(messageDto.ReceiverId, messageDto.ReceiverType);
+            var buildingId = await ResolveBuildingIdAsync(senderId, senderType, resolvedReceiver.id, resolvedReceiver.type, messageDto.BuildingId);
 
             var message = new Message
             {
@@ -31,7 +32,8 @@ namespace YopoBackend.Modules.Messaging.Services
                 ReceiverType = resolvedReceiver.type,
                 Content = messageDto.Content,
                 CreatedAt = DateTime.UtcNow,
-                IsRead = false
+                IsRead = false,
+                BuildingId = buildingId
             };
 
             _context.Messages.Add(message);
@@ -53,17 +55,31 @@ namespace YopoBackend.Modules.Messaging.Services
             return responseDto;
         }
 
-        public async Task<IEnumerable<MessageResponseDTO>> GetMessagesAsync(int userId, string userType)
+        public async Task<IEnumerable<MessageResponseDTO>> GetMessagesAsync(int userId, string userType, int? buildingId = null)
         {
             var tenantRecordIdsForUser = await GetTenantRecordIdsForUserAsync(userId);
+            var tenantIdsForBuilding = buildingId.HasValue ? await GetTenantIdsForBuildingAsync(buildingId.Value) : new List<int>();
 
-            var messages = await _context.Messages
+            var query = _context.Messages
                 .Where(m => m.SenderId > 0 && m.ReceiverId > 0) // skip malformed seed/test rows
                 .Where(m =>
-                    (m.SenderId == userId && m.SenderType == userType) || 
+                    (m.SenderId == userId && m.SenderType == userType) ||
                     (m.ReceiverId == userId && m.ReceiverType == userType) ||
                     // Legacy messages saved against tenant record IDs instead of tenant user IDs
-                    (tenantRecordIdsForUser.Contains(m.ReceiverId) && m.ReceiverType == "Tenant"))
+                    (tenantRecordIdsForUser.Contains(m.ReceiverId) && m.ReceiverType == "Tenant"));
+
+            if (buildingId.HasValue)
+            {
+                var bId = buildingId.Value;
+                // Prefer explicit building matches; fall back to tenant-building match for legacy rows without buildingId.
+                query = query.Where(m =>
+                    (m.BuildingId != null && m.BuildingId == bId) ||
+                    (m.BuildingId == null &&
+                        ((m.SenderType == "Tenant" && tenantIdsForBuilding.Contains(m.SenderId)) ||
+                         (m.ReceiverType == "Tenant" && tenantIdsForBuilding.Contains(m.ReceiverId)))));
+            }
+
+            var messages = await query
                 .OrderByDescending(m => m.CreatedAt)
                 .ToListAsync();
 
@@ -120,6 +136,33 @@ namespace YopoBackend.Modules.Messaging.Services
             return messages.Count;
         }
 
+        public async Task<int> MarkConversationReadAsync(int userId, string userType, int withUserId, string withUserType, int? buildingId = null)
+        {
+            var query = _context.Messages.Where(m =>
+                m.ReceiverId == userId &&
+                m.ReceiverType == userType &&
+                m.SenderId == withUserId &&
+                m.SenderType == withUserType &&
+                !m.IsRead);
+
+            if (buildingId.HasValue)
+            {
+                var bId = buildingId.Value;
+                query = query.Where(m => m.BuildingId == null || m.BuildingId == bId);
+            }
+
+            var messages = await query.ToListAsync();
+            if (!messages.Any()) return 0;
+
+            foreach (var msg in messages)
+            {
+                msg.IsRead = true;
+            }
+
+            await _context.SaveChangesAsync();
+            return messages.Count;
+        }
+
         private MessageResponseDTO MapToDTO(Message message, IDictionary<string, string>? nameLookup = null)
         {
             var senderKey = NameKey(message.SenderType, message.SenderId);
@@ -133,6 +176,7 @@ namespace YopoBackend.Modules.Messaging.Services
                 ReceiverId = message.ReceiverId,
                 ReceiverType = message.ReceiverType,
                 Content = message.Content,
+                BuildingId = message.BuildingId,
                 IsRead = message.IsRead,
                 CreatedAt = message.CreatedAt,
                 UpdatedAt = message.UpdatedAt,
@@ -233,6 +277,48 @@ namespace YopoBackend.Modules.Messaging.Services
             return (receiverId, "Tenant");
         }
 
+        private async Task<int?> ResolveBuildingIdAsync(int senderId, string senderType, int receiverId, string receiverType, int? buildingIdFromDto)
+        {
+            if (buildingIdFromDto.HasValue && buildingIdFromDto.Value > 0)
+            {
+                return buildingIdFromDto.Value;
+            }
+
+            if (string.Equals(receiverType, "Tenant", StringComparison.OrdinalIgnoreCase))
+            {
+                var building = await FindTenantBuildingByAnyIdAsync(receiverId);
+                if (building.HasValue) return building;
+            }
+
+            if (string.Equals(senderType, "Tenant", StringComparison.OrdinalIgnoreCase))
+            {
+                var building = await FindTenantBuildingByAnyIdAsync(senderId);
+                if (building.HasValue) return building;
+            }
+
+            return null;
+        }
+
+        private async Task<int?> FindTenantBuildingByAnyIdAsync(int tenantIdentifier)
+        {
+            // 1) Direct tenant record
+            var tenant = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.TenantId == tenantIdentifier);
+            if (tenant != null) return tenant.BuildingId;
+
+            // 2) Unit where TenantId is a user id
+            var unit = await _context.Units.AsNoTracking().FirstOrDefaultAsync(u => u.TenantId == tenantIdentifier);
+            if (unit != null) return unit.BuildingId;
+
+            // 3) Tenant record that references the same unit
+            if (unit?.UnitId != null)
+            {
+                var tenantForUnit = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.UnitId == unit.UnitId);
+                if (tenantForUnit != null) return tenantForUnit.BuildingId;
+            }
+
+            return null;
+        }
+
         private async Task<List<int>> GetTenantRecordIdsForUserAsync(int userId)
         {
             return await _context.Tenants
@@ -242,6 +328,21 @@ namespace YopoBackend.Modules.Messaging.Services
                     u => u.UnitId,
                     (t, u) => t.TenantId)
                 .ToListAsync();
+        }
+
+        private async Task<List<int>> GetTenantIdsForBuildingAsync(int buildingId)
+        {
+            var tenantIds = await _context.Tenants
+                .Where(t => t.BuildingId == buildingId)
+                .Select(t => t.TenantId)
+                .ToListAsync();
+
+            var tenantUserIds = await _context.Units
+                .Where(u => u.BuildingId == buildingId && u.TenantId != null)
+                .Select(u => u.TenantId!.Value)
+                .ToListAsync();
+
+            return tenantIds.Concat(tenantUserIds).Distinct().ToList();
         }
 
         private string NameKey(string type, int id) => $"{type}:{id}";

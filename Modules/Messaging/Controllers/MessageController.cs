@@ -51,13 +51,13 @@ namespace YopoBackend.Modules.Messaging.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MessageResponseDTO>>> GetMessages()
+        public async Task<ActionResult<IEnumerable<MessageResponseDTO>>> GetMessages([FromQuery] int? buildingId = null)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             var userRole = (User.FindFirst(ClaimTypes.Role)?.Value ?? "User").Trim();
             string userType = string.Equals(userRole, "Tenant", StringComparison.OrdinalIgnoreCase) ? "Tenant" : "User";
 
-            var messages = await _messageService.GetMessagesAsync(userId, userType);
+            var messages = await _messageService.GetMessagesAsync(userId, userType, buildingId);
             return Ok(messages);
         }
 
@@ -117,6 +117,31 @@ namespace YopoBackend.Modules.Messaging.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        [HttpPost("mark-read")]
+        public async Task<IActionResult> MarkConversationRead([FromQuery] int participantId, [FromQuery] string participantType, [FromQuery] int? buildingId = null)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userRole = (User.FindFirst(ClaimTypes.Role)?.Value ?? "User").Trim();
+            string userType = string.Equals(userRole, "Tenant", StringComparison.OrdinalIgnoreCase) ? "Tenant" : "User";
+
+            if (participantId <= 0)
+            {
+                return BadRequest(new { message = "participantId is required." });
+            }
+
+            var normalizedParticipantType = (participantType ?? string.Empty).Trim();
+            if (!string.Equals(normalizedParticipantType, "Tenant", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(normalizedParticipantType, "User", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "participantType must be 'Tenant' or 'User'." });
+            }
+
+            normalizedParticipantType = char.ToUpper(normalizedParticipantType[0]) + normalizedParticipantType.Substring(1).ToLower();
+
+            var updated = await _messageService.MarkConversationReadAsync(userId, userType, participantId, normalizedParticipantType, buildingId);
+            return Ok(new { updated });
         }
     }
 }
