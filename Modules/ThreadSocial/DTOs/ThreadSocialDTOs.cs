@@ -38,6 +38,8 @@ namespace YopoBackend.Modules.ThreadSocial.DTOs
         [Range(1, int.MaxValue)]
         public int PostId { get; set; }
 
+        public int? ParentCommentId { get; set; }
+
         [Required]
         public string Content { get; set; } = string.Empty;
     }
@@ -52,6 +54,7 @@ namespace YopoBackend.Modules.ThreadSocial.DTOs
     {
         public int Id { get; set; }
         public int PostId { get; set; }
+        public int? ParentCommentId { get; set; }
         public int AuthorId { get; set; }
         public string AuthorType { get; set; } = string.Empty;
         public string? AuthorName { get; set; }

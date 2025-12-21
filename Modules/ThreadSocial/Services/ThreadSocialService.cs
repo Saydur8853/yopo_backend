@@ -4,24 +4,24 @@ using YopoBackend.Data;
 using YopoBackend.Hubs;
 using YopoBackend.Modules.ThreadSocial.DTOs;
 using YopoBackend.Modules.ThreadSocial.Models;
+using YopoBackend.Services;
+using YopoBackend.Constants;
 using YopoBackend.Utils;
 
 namespace YopoBackend.Modules.ThreadSocial.Services
 {
-    public class ThreadSocialService : IThreadSocialService
+    public class ThreadSocialService : BaseAccessControlService, IThreadSocialService
     {
-        private readonly ApplicationDbContext _context;
         private readonly IHubContext<ThreadSocialHub> _hubContext;
 
-        public ThreadSocialService(ApplicationDbContext context, IHubContext<ThreadSocialHub> hubContext)
+        public ThreadSocialService(ApplicationDbContext context, IHubContext<ThreadSocialHub> hubContext) : base(context)
         {
-            _context = context;
             _hubContext = hubContext;
         }
 
         public async Task<ThreadPostResponseDTO> CreatePostAsync(int userId, string userRole, CreateThreadPostDTO dto)
         {
-            EnsureTenant(userRole);
+            EnsureTenantOrManager(userRole);
 
             var trimmedContent = NormalizeContent(dto.Content);
             var hasImage = !string.IsNullOrWhiteSpace(dto.ImageBase64);
@@ -45,23 +45,20 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 imageMimeType = validation.MimeType;
             }
 
-            var tenantBuildingId = await ResolveTenantBuildingIdAsync(userId);
-            var buildingId = dto.BuildingId ?? tenantBuildingId;
-
+            var buildingId = await ResolveAccessibleBuildingIdAsync(userId, userRole, dto.BuildingId);
             if (!buildingId.HasValue)
             {
-                throw new InvalidOperationException("Tenant is not assigned to a building.");
-            }
-
-            if (tenantBuildingId.HasValue && buildingId.Value != tenantBuildingId.Value)
-            {
-                throw new UnauthorizedAccessException("You do not have access to this building.");
+                if (IsTenantRole(userRole))
+                {
+                    throw new InvalidOperationException("Tenant is not assigned to a building.");
+                }
+                throw new InvalidOperationException("Building selection is required.");
             }
 
             var post = new ThreadPost
             {
                 AuthorId = userId,
-                AuthorType = "Tenant",
+                AuthorType = GetAuthorTypeForRole(userRole),
                 Content = trimmedContent,
                 Image = imageBytes,
                 ImageMimeType = imageMimeType,
@@ -86,20 +83,10 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
         public async Task<(List<ThreadPostResponseDTO> Posts, int TotalRecords)> GetPostsAsync(int userId, string userRole, int? buildingId, int? authorId, int page, int pageSize)
         {
-            EnsureTenant(userRole);
+            EnsureTenantOrManager(userRole);
 
-            var tenantBuildingId = await ResolveTenantBuildingIdAsync(userId);
-            var effectiveBuildingId = buildingId ?? tenantBuildingId;
-
-            if (effectiveBuildingId.HasValue && tenantBuildingId.HasValue && effectiveBuildingId.Value != tenantBuildingId.Value)
-            {
-                throw new UnauthorizedAccessException("You do not have access to this building.");
-            }
-
-            if (!effectiveBuildingId.HasValue)
-            {
-                return (new List<ThreadPostResponseDTO>(), 0);
-            }
+            var effectiveBuildingId = await ResolveAccessibleBuildingIdAsync(userId, userRole, buildingId);
+            if (!effectiveBuildingId.HasValue) return (new List<ThreadPostResponseDTO>(), 0);
 
             var query = _context.ThreadPosts
                 .AsNoTracking()
@@ -138,15 +125,12 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
         public async Task<ThreadPostResponseDTO> UpdatePostAsync(int postId, int userId, string userRole, UpdateThreadPostDTO dto)
         {
-            EnsureTenant(userRole);
+            EnsureTenantOrManager(userRole);
 
-            var post = await _context.ThreadPosts.FirstOrDefaultAsync(p => p.Id == postId);
-            if (post == null)
-            {
-                throw new KeyNotFoundException("Post not found.");
-            }
+            var post = await GetAccessiblePostAsync(postId, userId, userRole);
 
-            if (post.AuthorId != userId || !string.Equals(post.AuthorType, "Tenant", StringComparison.OrdinalIgnoreCase))
+            var authorType = GetAuthorTypeForRole(userRole);
+            if (post.AuthorId != userId || !string.Equals(post.AuthorType, authorType, StringComparison.OrdinalIgnoreCase))
             {
                 throw new UnauthorizedAccessException("You can only edit your own posts.");
             }
@@ -199,15 +183,12 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
         public async Task DeletePostAsync(int postId, int userId, string userRole)
         {
-            EnsureTenant(userRole);
+            EnsureTenantOrManager(userRole);
 
-            var post = await _context.ThreadPosts.FirstOrDefaultAsync(p => p.Id == postId);
-            if (post == null)
-            {
-                throw new KeyNotFoundException("Post not found.");
-            }
+            var post = await GetAccessiblePostAsync(postId, userId, userRole);
 
-            if (post.AuthorId != userId || !string.Equals(post.AuthorType, "Tenant", StringComparison.OrdinalIgnoreCase))
+            var authorType = GetAuthorTypeForRole(userRole);
+            if (post.AuthorId != userId || !string.Equals(post.AuthorType, authorType, StringComparison.OrdinalIgnoreCase))
             {
                 throw new UnauthorizedAccessException("You can only delete your own posts.");
             }
@@ -227,7 +208,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
         public async Task<ThreadCommentResponseDTO> CreateCommentAsync(int userId, string userRole, CreateThreadCommentDTO dto)
         {
-            EnsureTenant(userRole);
+            EnsureTenantOrManager(userRole);
 
             if (string.IsNullOrWhiteSpace(dto.Content))
             {
@@ -239,13 +220,26 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 throw new ArgumentException("PostId is required.");
             }
 
-            var post = await GetAccessiblePostAsync(dto.PostId, userId);
+            var post = await GetAccessiblePostAsync(dto.PostId, userId, userRole);
+
+            if (dto.ParentCommentId.HasValue)
+            {
+                var parent = await _context.ThreadComments
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == dto.ParentCommentId.Value);
+                if (parent == null || parent.PostId != dto.PostId)
+                {
+                    throw new ArgumentException("Invalid parent comment.");
+                }
+            }
+            var authorType = GetAuthorTypeForRole(userRole);
 
             var comment = new ThreadComment
             {
                 PostId = post.Id,
+                ParentCommentId = dto.ParentCommentId,
                 AuthorId = userId,
-                AuthorType = "Tenant",
+                AuthorType = authorType,
                 Content = dto.Content.Trim(),
                 CreatedAt = DateTime.UtcNow
             };
@@ -267,14 +261,14 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
         public async Task<(List<ThreadCommentResponseDTO> Comments, int TotalRecords)> GetCommentsAsync(int userId, string userRole, int postId, int? authorId, int page, int pageSize)
         {
-            EnsureTenant(userRole);
+            EnsureTenantOrManager(userRole);
 
             if (postId <= 0)
             {
                 throw new ArgumentException("postId is required.");
             }
 
-            await GetAccessiblePostAsync(postId, userId);
+            await GetAccessiblePostAsync(postId, userId, userRole);
 
             var query = _context.ThreadComments
                 .AsNoTracking()
@@ -310,7 +304,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
         public async Task<ThreadCommentResponseDTO> UpdateCommentAsync(int commentId, int userId, string userRole, UpdateThreadCommentDTO dto)
         {
-            EnsureTenant(userRole);
+            EnsureTenantOrManager(userRole);
 
             var comment = await _context.ThreadComments.FirstOrDefaultAsync(c => c.Id == commentId);
             if (comment == null)
@@ -318,7 +312,8 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 throw new KeyNotFoundException("Comment not found.");
             }
 
-            if (comment.AuthorId != userId || !string.Equals(comment.AuthorType, "Tenant", StringComparison.OrdinalIgnoreCase))
+            var authorType = GetAuthorTypeForRole(userRole);
+            if (comment.AuthorId != userId || !string.Equals(comment.AuthorType, authorType, StringComparison.OrdinalIgnoreCase))
             {
                 throw new UnauthorizedAccessException("You can only edit your own comments.");
             }
@@ -334,7 +329,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
             var response = await BuildCommentResponseAsync(comment);
 
-            var post = await GetAccessiblePostAsync(comment.PostId, userId);
+            var post = await GetAccessiblePostAsync(comment.PostId, userId, userRole);
             if (post.BuildingId.HasValue)
             {
                 await _hubContext.Clients
@@ -347,7 +342,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
         public async Task DeleteCommentAsync(int commentId, int userId, string userRole)
         {
-            EnsureTenant(userRole);
+            EnsureTenantOrManager(userRole);
 
             var comment = await _context.ThreadComments.FirstOrDefaultAsync(c => c.Id == commentId);
             if (comment == null)
@@ -355,12 +350,13 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 throw new KeyNotFoundException("Comment not found.");
             }
 
-            if (comment.AuthorId != userId || !string.Equals(comment.AuthorType, "Tenant", StringComparison.OrdinalIgnoreCase))
+            var authorType = GetAuthorTypeForRole(userRole);
+            if (comment.AuthorId != userId || !string.Equals(comment.AuthorType, authorType, StringComparison.OrdinalIgnoreCase))
             {
                 throw new UnauthorizedAccessException("You can only delete your own comments.");
             }
 
-            var post = await GetAccessiblePostAsync(comment.PostId, userId);
+            var post = await GetAccessiblePostAsync(comment.PostId, userId, userRole);
             var buildingId = post.BuildingId;
 
             _context.ThreadComments.Remove(comment);
@@ -382,7 +378,30 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             }
         }
 
-        private async Task<ThreadPost> GetAccessiblePostAsync(int postId, int userId)
+        private static void EnsureTenantOrManager(string userRole)
+        {
+            if (!IsTenantRole(userRole) && !IsPropertyManagerRole(userRole))
+            {
+                throw new UnauthorizedAccessException("Only tenants or property managers can access this resource.");
+            }
+        }
+
+        private static bool IsTenantRole(string userRole)
+        {
+            return string.Equals(userRole, UserTypeConstants.TENANT_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsPropertyManagerRole(string userRole)
+        {
+            return string.Equals(userRole, UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetAuthorTypeForRole(string userRole)
+        {
+            return IsTenantRole(userRole) ? "Tenant" : "User";
+        }
+
+        private async Task<ThreadPost> GetAccessiblePostAsync(int postId, int userId, string userRole)
         {
             var post = await _context.ThreadPosts.FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
@@ -390,10 +409,9 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 throw new KeyNotFoundException("Post not found.");
             }
 
-            var tenantBuildingId = await ResolveTenantBuildingIdAsync(userId);
-            if (post.BuildingId.HasValue && tenantBuildingId.HasValue && post.BuildingId.Value != tenantBuildingId.Value)
+            if (post.BuildingId.HasValue)
             {
-                throw new UnauthorizedAccessException("You do not have access to this post.");
+                await ResolveAccessibleBuildingIdAsync(userId, userRole, post.BuildingId.Value);
             }
 
             return post;
@@ -449,6 +467,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             {
                 Id = comment.Id,
                 PostId = comment.PostId,
+                ParentCommentId = comment.ParentCommentId,
                 AuthorId = comment.AuthorId,
                 AuthorType = comment.AuthorType,
                 AuthorName = authorName,
@@ -512,6 +531,74 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             }
 
             return null;
+        }
+
+        private async Task<int?> ResolveAccessibleBuildingIdAsync(int userId, string userRole, int? buildingId)
+        {
+            if (IsTenantRole(userRole))
+            {
+                var tenantBuildingId = await ResolveTenantBuildingIdAsync(userId);
+                if (!tenantBuildingId.HasValue)
+                {
+                    return null;
+                }
+
+                if (buildingId.HasValue && buildingId.Value != tenantBuildingId.Value)
+                {
+                    throw new UnauthorizedAccessException("You do not have access to this building.");
+                }
+
+                return tenantBuildingId.Value;
+            }
+
+            if (!IsPropertyManagerRole(userRole))
+            {
+                throw new UnauthorizedAccessException("Only tenants or property managers can access this resource.");
+            }
+
+            if (!buildingId.HasValue)
+            {
+                return null;
+            }
+
+            var hasAccess = await HasBuildingAccessAsync(userId, buildingId.Value);
+            if (!hasAccess)
+            {
+                throw new UnauthorizedAccessException("You do not have access to this building.");
+            }
+
+            return buildingId.Value;
+        }
+
+        private async Task<bool> HasBuildingAccessAsync(int userId, int buildingId)
+        {
+            var currentUser = await GetUserWithAccessControlAsync(userId);
+            if (currentUser == null)
+            {
+                return false;
+            }
+
+            var query = _context.Buildings.AsQueryable();
+            query = await ApplyAccessControlAsync(query, userId);
+
+            if (currentUser.UserTypeId != UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
+            {
+                var explicitBuildingIds = await _context.UserBuildingPermissions
+                    .Where(p => p.UserId == userId && p.IsActive)
+                    .Select(p => p.BuildingId)
+                    .ToListAsync();
+
+                if (explicitBuildingIds.Any())
+                {
+                    query = query.Where(b => explicitBuildingIds.Contains(b.BuildingId));
+                }
+                else if (currentUser.UserTypeId != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && currentUser.InviteById.HasValue)
+                {
+                    return false;
+                }
+            }
+
+            return await query.AnyAsync(b => b.BuildingId == buildingId);
         }
     }
 }

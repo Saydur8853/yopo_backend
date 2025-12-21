@@ -650,6 +650,7 @@ namespace YopoBackend.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.PostId);
                 entity.HasIndex(e => e.AuthorId);
+                entity.HasIndex(e => e.ParentCommentId);
                 entity.Property(e => e.AuthorType).HasMaxLength(50);
                 entity.Property(e => e.Content).HasColumnType("text");
                 entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -658,6 +659,11 @@ namespace YopoBackend.Data
                 entity.HasOne<ThreadPost>()
                     .WithMany()
                     .HasForeignKey(e => e.PostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne<ThreadComment>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ParentCommentId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

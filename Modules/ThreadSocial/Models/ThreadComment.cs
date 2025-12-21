@@ -12,6 +12,8 @@ namespace YopoBackend.Modules.ThreadSocial.Models
         [Required]
         public int PostId { get; set; }
 
+        public int? ParentCommentId { get; set; }
+
         [Required]
         public int AuthorId { get; set; }
 
