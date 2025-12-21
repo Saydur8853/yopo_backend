@@ -9,6 +9,7 @@ using YopoBackend.Modules.AmenityCRUD.Models;
 using YopoBackend.Modules.TenantCRUD.Models;
 using YopoBackend.Modules.IntercomCRUD.Models;
 using YopoBackend.Modules.Messaging.Models;
+using YopoBackend.Modules.ThreadSocial.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -118,6 +119,10 @@ namespace YopoBackend.Data
 
         // Module: Messaging
         public DbSet<Message> Messages { get; set; }
+
+        // Module: ThreadSocial
+        public DbSet<ThreadPost> ThreadPosts { get; set; }
+        public DbSet<ThreadComment> ThreadComments { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -623,6 +628,37 @@ namespace YopoBackend.Data
                 entity.Property(e => e.Content).HasColumnType("text");
                 entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            });
+
+            // Configure ThreadPost entity (ThreadSocial Module)
+            modelBuilder.Entity<ThreadPost>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.AuthorId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.Property(e => e.AuthorType).HasMaxLength(50);
+                entity.Property(e => e.Content).HasColumnType("text");
+                entity.Property(e => e.Image).HasColumnType("LONGBLOB");
+                entity.Property(e => e.ImageMimeType).HasMaxLength(100);
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            });
+
+            // Configure ThreadComment entity (ThreadSocial Module)
+            modelBuilder.Entity<ThreadComment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.PostId);
+                entity.HasIndex(e => e.AuthorId);
+                entity.Property(e => e.AuthorType).HasMaxLength(50);
+                entity.Property(e => e.Content).HasColumnType("text");
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+                entity.HasOne<ThreadPost>()
+                    .WithMany()
+                    .HasForeignKey(e => e.PostId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
         }
