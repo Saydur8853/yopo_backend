@@ -718,7 +718,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             }
             if (ut.Id == UserTypeConstants.TENANT_USER_TYPE_ID || name.Equals(UserTypeConstants.TENANT_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<int>(); // Tenant: none by default
+                return new List<int> { B, F, U, A, T }; // Tenant: building/floor/unit/amenity/tenant modules
             }
             // PM-created types (DataAccess=PM): baseline
             if (ut.DataAccessControl == UserTypeConstants.DATA_ACCESS_PM)

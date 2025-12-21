@@ -31,17 +31,36 @@ namespace YopoBackend.Modules.TenantCRUD.Services
                 .Include(t => t.CreatedByUser)
                 .AsQueryable();
 
-            // Apply access control (PM ecosystem / OWN / ALL)
-            query = await ApplyAccessControlAsync(query, currentUserId);
-
-            // If the user is a non-PM invited user with explicit building permissions, restrict to those buildings
-            var explicitBuildingIds = await _context.UserBuildingPermissions
-                .Where(p => p.UserId == currentUserId && p.IsActive)
-                .Select(p => p.BuildingId)
-                .ToListAsync();
-            if (explicitBuildingIds.Any())
+            var currentUser = await GetUserWithAccessControlAsync(currentUserId);
+            if (currentUser?.UserTypeId == UserTypeConstants.TENANT_USER_TYPE_ID)
             {
-                query = query.Where(t => explicitBuildingIds.Contains(t.BuildingId));
+                var tenantBuildingId = await ResolveTenantBuildingIdAsync(currentUserId);
+                if (!tenantBuildingId.HasValue)
+                {
+                    return (new List<TenantResponseDTO>(), 0);
+                }
+
+                if (buildingId.HasValue && buildingId.Value != tenantBuildingId.Value)
+                {
+                    return (new List<TenantResponseDTO>(), 0);
+                }
+
+                buildingId = tenantBuildingId;
+            }
+            else
+            {
+                // Apply access control (PM ecosystem / OWN / ALL)
+                query = await ApplyAccessControlAsync(query, currentUserId);
+
+                // If the user is a non-PM invited user with explicit building permissions, restrict to those buildings
+                var explicitBuildingIds = await _context.UserBuildingPermissions
+                    .Where(p => p.UserId == currentUserId && p.IsActive)
+                    .Select(p => p.BuildingId)
+                    .ToListAsync();
+                if (explicitBuildingIds.Any())
+                {
+                    query = query.Where(t => explicitBuildingIds.Contains(t.BuildingId));
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -90,6 +109,27 @@ namespace YopoBackend.Modules.TenantCRUD.Services
                 .ToListAsync();
 
             return (tenants, totalRecords);
+        }
+
+        private async Task<int?> ResolveTenantBuildingIdAsync(int tenantUserId)
+        {
+            var unit = await _context.Units
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.TenantId == tenantUserId);
+            if (unit != null)
+            {
+                return unit.BuildingId;
+            }
+
+            var tenant = await _context.Tenants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.TenantId == tenantUserId);
+            if (tenant != null)
+            {
+                return tenant.BuildingId;
+            }
+
+            return null;
         }
 
         public async Task<TenantResponseDTO> CreateTenantAsync(CreateTenantDTO dto, int currentUserId)
