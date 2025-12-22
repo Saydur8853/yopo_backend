@@ -297,9 +297,10 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
             var authorIds = comments.Select(c => c.AuthorId).Distinct().ToList();
             var nameLookup = await BuildUserNameLookupAsync(authorIds);
+            var authorInfoLookup = await BuildAuthorInfoLookupAsync(authorIds);
 
             var response = comments
-                .Select(c => MapCommentToResponse(c, nameLookup))
+                .Select(c => MapCommentToResponse(c, nameLookup, authorInfoLookup))
                 .ToList();
 
             return (response, totalRecords);
@@ -442,7 +443,8 @@ namespace YopoBackend.Modules.ThreadSocial.Services
         private async Task<ThreadCommentResponseDTO> BuildCommentResponseAsync(ThreadComment comment)
         {
             var nameLookup = await BuildUserNameLookupAsync(new List<int> { comment.AuthorId });
-            return MapCommentToResponse(comment, nameLookup);
+            var authorInfoLookup = await BuildAuthorInfoLookupAsync(new List<int> { comment.AuthorId });
+            return MapCommentToResponse(comment, nameLookup, authorInfoLookup);
         }
 
         private ThreadPostResponseDTO MapPostToResponse(
@@ -471,9 +473,13 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             };
         }
 
-        private ThreadCommentResponseDTO MapCommentToResponse(ThreadComment comment, IDictionary<int, string> nameLookup)
+        private ThreadCommentResponseDTO MapCommentToResponse(
+            ThreadComment comment,
+            IDictionary<int, string> nameLookup,
+            IDictionary<int, string?> authorInfoLookup)
         {
             var authorName = nameLookup.TryGetValue(comment.AuthorId, out var name) ? name : null;
+            var authorInfo = authorInfoLookup.TryGetValue(comment.AuthorId, out var info) ? info : null;
 
             return new ThreadCommentResponseDTO
             {
@@ -483,6 +489,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 AuthorId = comment.AuthorId,
                 AuthorType = comment.AuthorType,
                 AuthorName = authorName,
+                AuthorInfo = authorInfo,
                 Content = comment.Content,
                 CreatedAt = comment.CreatedAt,
                 UpdatedAt = comment.UpdatedAt
