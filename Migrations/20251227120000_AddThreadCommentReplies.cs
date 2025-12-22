@@ -1,10 +1,14 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using YopoBackend.Data;
 
 #nullable disable
 
 namespace YopoBackend.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20251227120000_AddThreadCommentReplies")]
     public partial class AddThreadCommentReplies : Migration
     {
         /// <inheritdoc />

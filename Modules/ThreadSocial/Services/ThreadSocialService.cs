@@ -7,6 +7,7 @@ using YopoBackend.Modules.ThreadSocial.Models;
 using YopoBackend.Services;
 using YopoBackend.Constants;
 using YopoBackend.Utils;
+using YopoBackend.Auth;
 
 namespace YopoBackend.Modules.ThreadSocial.Services
 {
@@ -388,12 +389,14 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
         private static bool IsTenantRole(string userRole)
         {
-            return string.Equals(userRole, UserTypeConstants.TENANT_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(userRole, Roles.Tenant, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(userRole, UserTypeConstants.TENANT_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsPropertyManagerRole(string userRole)
         {
-            return string.Equals(userRole, UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(userRole, Roles.PropertyManager, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(userRole, UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetAuthorTypeForRole(string userRole)
