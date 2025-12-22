@@ -117,8 +117,10 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             var nameLookup = await BuildUserNameLookupAsync(authorIds);
             var commentCounts = await BuildCommentCountsAsync(postIds);
 
+            var authorInfoLookup = await BuildAuthorInfoLookupAsync(authorIds);
+
             var response = posts
-                .Select(p => MapPostToResponse(p, nameLookup, commentCounts))
+                .Select(p => MapPostToResponse(p, nameLookup, commentCounts, authorInfoLookup))
                 .ToList();
 
             return (response, totalRecords);
@@ -433,7 +435,8 @@ namespace YopoBackend.Modules.ThreadSocial.Services
         private async Task<ThreadPostResponseDTO> BuildPostResponseAsync(ThreadPost post, int commentCount)
         {
             var nameLookup = await BuildUserNameLookupAsync(new List<int> { post.AuthorId });
-            return MapPostToResponse(post, nameLookup, new Dictionary<int, int> { { post.Id, commentCount } });
+            var authorInfoLookup = await BuildAuthorInfoLookupAsync(new List<int> { post.AuthorId });
+            return MapPostToResponse(post, nameLookup, new Dictionary<int, int> { { post.Id, commentCount } }, authorInfoLookup);
         }
 
         private async Task<ThreadCommentResponseDTO> BuildCommentResponseAsync(ThreadComment comment)
@@ -442,9 +445,14 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             return MapCommentToResponse(comment, nameLookup);
         }
 
-        private ThreadPostResponseDTO MapPostToResponse(ThreadPost post, IDictionary<int, string> nameLookup, IDictionary<int, int> commentCounts)
+        private ThreadPostResponseDTO MapPostToResponse(
+            ThreadPost post,
+            IDictionary<int, string> nameLookup,
+            IDictionary<int, int> commentCounts,
+            IDictionary<int, string?> authorInfoLookup)
         {
             var authorName = nameLookup.TryGetValue(post.AuthorId, out var name) ? name : null;
+            var authorInfo = authorInfoLookup.TryGetValue(post.AuthorId, out var info) ? info : null;
             var commentCount = commentCounts.TryGetValue(post.Id, out var count) ? count : 0;
 
             return new ThreadPostResponseDTO
@@ -453,6 +461,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 AuthorId = post.AuthorId,
                 AuthorType = post.AuthorType,
                 AuthorName = authorName,
+                AuthorInfo = authorInfo,
                 Content = post.Content,
                 ImageBase64 = ImageUtils.ConvertToBase64DataUrl(post.Image, post.ImageMimeType),
                 BuildingId = post.BuildingId,
@@ -495,6 +504,127 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 .ToListAsync();
 
             return users.ToDictionary(u => u.Id, u => u.Name ?? string.Empty);
+        }
+
+        private async Task<Dictionary<int, string?>> BuildAuthorInfoLookupAsync(IEnumerable<int> authorIds)
+        {
+            var ids = authorIds.Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<int, string?>();
+            }
+
+            var userTypes = await _context.Users
+                .AsNoTracking()
+                .Where(u => ids.Contains(u.Id))
+                .Select(u => new { u.Id, UserTypeName = u.UserType != null ? u.UserType.Name : null })
+                .ToListAsync();
+
+            var tenantIds = userTypes
+                .Where(u => string.Equals(u.UserTypeName, UserTypeConstants.TENANT_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
+                .Select(u => u.Id)
+                .ToList();
+
+            var tenantInfoLookup = await BuildTenantUnitInfoLookupAsync(tenantIds);
+            var infoLookup = new Dictionary<int, string?>();
+
+            foreach (var user in userTypes)
+            {
+                if (tenantInfoLookup.TryGetValue(user.Id, out var tenantInfo))
+                {
+                    infoLookup[user.Id] = tenantInfo;
+                    continue;
+                }
+
+                if (string.Equals(user.UserTypeName, UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
+                {
+                    infoLookup[user.Id] = "Property manager";
+                }
+            }
+
+            return infoLookup;
+        }
+
+        private async Task<Dictionary<int, string>> BuildTenantUnitInfoLookupAsync(IEnumerable<int> tenantIds)
+        {
+            var ids = tenantIds.Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<int, string>();
+            }
+
+            var rows = await _context.Tenants
+                .AsNoTracking()
+                .Where(t => ids.Contains(t.TenantId))
+                .Select(t => new
+                {
+                    t.TenantId,
+                    UnitNumber = t.Unit != null ? t.Unit.UnitNumber : null,
+                    FloorNumber = t.Floor != null ? (int?)t.Floor.Number : (t.Unit != null ? (int?)t.Unit.Floor.Number : null),
+                    FloorName = t.Floor != null ? t.Floor.Name : (t.Unit != null ? t.Unit.Floor.Name : null)
+                })
+                .ToListAsync();
+
+            var lookup = new Dictionary<int, string>();
+
+            foreach (var row in rows)
+            {
+                var unitNumber = row.UnitNumber?.Trim();
+                var floorLabel = FormatFloorLabel(row.FloorNumber, row.FloorName);
+
+                string? label = null;
+                if (!string.IsNullOrWhiteSpace(unitNumber) && !string.IsNullOrWhiteSpace(floorLabel))
+                {
+                    label = $"{unitNumber} unit | {floorLabel}";
+                }
+                else if (!string.IsNullOrWhiteSpace(unitNumber))
+                {
+                    label = $"{unitNumber} unit";
+                }
+                else if (!string.IsNullOrWhiteSpace(floorLabel))
+                {
+                    label = floorLabel;
+                }
+
+                if (!string.IsNullOrWhiteSpace(label))
+                {
+                    lookup[row.TenantId] = label;
+                }
+            }
+
+            return lookup;
+        }
+
+        private static string? FormatFloorLabel(int? floorNumber, string? floorName)
+        {
+            if (floorNumber.HasValue)
+            {
+                if (floorNumber.Value == 0)
+                {
+                    return "Ground floor";
+                }
+                return $"{ToOrdinal(floorNumber.Value)} floor";
+            }
+
+            return string.IsNullOrWhiteSpace(floorName) ? null : floorName.Trim();
+        }
+
+        private static string ToOrdinal(int number)
+        {
+            var abs = Math.Abs(number);
+            var lastTwo = abs % 100;
+            if (lastTwo >= 11 && lastTwo <= 13)
+            {
+                return $"{number}th";
+            }
+
+            return (abs % 10) switch
+            {
+                1 => $"{number}st",
+                2 => $"{number}nd",
+                3 => $"{number}rd",
+                _ => $"{number}th"
+            };
         }
 
         private async Task<Dictionary<int, int>> BuildCommentCountsAsync(IEnumerable<int> postIds)

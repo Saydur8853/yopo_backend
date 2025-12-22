@@ -24,6 +24,7 @@ namespace YopoBackend.Modules.ThreadSocial.DTOs
         public int AuthorId { get; set; }
         public string AuthorType { get; set; } = string.Empty;
         public string? AuthorName { get; set; }
+        public string? AuthorInfo { get; set; }
         public string? Content { get; set; }
         public string? ImageBase64 { get; set; }
         public int? BuildingId { get; set; }
