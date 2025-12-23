@@ -640,6 +640,7 @@ namespace YopoBackend.Data
                 entity.Property(e => e.Content).HasColumnType("text");
                 entity.Property(e => e.Image).HasColumnType("LONGBLOB");
                 entity.Property(e => e.ImageMimeType).HasMaxLength(100);
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
                 entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             });

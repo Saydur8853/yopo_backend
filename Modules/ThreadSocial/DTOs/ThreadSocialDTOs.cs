@@ -18,6 +18,11 @@ namespace YopoBackend.Modules.ThreadSocial.DTOs
         public string? ImageBase64 { get; set; }
     }
 
+    public class UpdateThreadPostStatusDTO
+    {
+        public bool IsActive { get; set; }
+    }
+
     public class ThreadPostResponseDTO
     {
         public int Id { get; set; }
@@ -28,6 +33,7 @@ namespace YopoBackend.Modules.ThreadSocial.DTOs
         public string? Content { get; set; }
         public string? ImageBase64 { get; set; }
         public int? BuildingId { get; set; }
+        public bool IsActive { get; set; }
         public int CommentCount { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

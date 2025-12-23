@@ -87,6 +87,31 @@ namespace YopoBackend.Modules.ThreadSocial.Controllers
             }
         }
 
+        [HttpPut("posts/{id}/status")]
+        public async Task<ActionResult<ThreadPostResponseDTO>> UpdatePostStatus(int id, [FromBody] UpdateThreadPostStatusDTO dto)
+        {
+            var userId = GetUserId();
+            var userRole = GetUserRole();
+
+            try
+            {
+                var post = await _threadSocialService.UpdatePostStatusAsync(id, userId, userRole, dto.IsActive);
+                return Ok(post);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpDelete("posts/{id}")]
         public async Task<IActionResult> DeletePost(int id)
         {

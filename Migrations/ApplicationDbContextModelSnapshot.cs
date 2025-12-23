@@ -904,6 +904,11 @@ namespace YopoBackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime");
 
@@ -1583,16 +1588,16 @@ namespace YopoBackend.Migrations
 
             modelBuilder.Entity("YopoBackend.Modules.ThreadSocial.Models.ThreadComment", b =>
                 {
+                    b.HasOne("YopoBackend.Modules.ThreadSocial.Models.ThreadComment", null)
+                        .WithMany()
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("YopoBackend.Modules.ThreadSocial.Models.ThreadPost", null)
                         .WithMany()
                         .HasForeignKey("PostId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("YopoBackend.Modules.ThreadSocial.Models.ThreadComment", null)
-                        .WithMany()
-                        .HasForeignKey("ParentCommentId")
-                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UnitCRUD.Models.Unit", b =>

@@ -64,6 +64,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 Image = imageBytes,
                 ImageMimeType = imageMimeType,
                 BuildingId = buildingId,
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -92,6 +93,11 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             var query = _context.ThreadPosts
                 .AsNoTracking()
                 .Where(p => p.BuildingId == effectiveBuildingId.Value);
+
+            if (IsTenantRole(userRole))
+            {
+                query = query.Where(p => p.IsActive || p.AuthorId == userId);
+            }
 
             if (authorId.HasValue && authorId.Value > 0)
             {
@@ -168,6 +174,41 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 throw new ArgumentException("Post must include text or an image.");
             }
 
+            post.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var commentCounts = await BuildCommentCountsAsync(new List<int> { post.Id });
+            var response = await BuildPostResponseAsync(post, commentCounts.TryGetValue(post.Id, out var count) ? count : 0);
+
+            if (post.BuildingId.HasValue)
+            {
+                await _hubContext.Clients
+                    .Group(ThreadSocialHub.GroupName(post.BuildingId.Value))
+                    .SendAsync("ThreadPostUpdated", response);
+            }
+
+            return response;
+        }
+
+        public async Task<ThreadPostResponseDTO> UpdatePostStatusAsync(int postId, int userId, string userRole, bool isActive)
+        {
+            if (!IsPropertyManagerRole(userRole))
+            {
+                throw new UnauthorizedAccessException("Only property managers can update post status.");
+            }
+
+            var post = await _context.ThreadPosts.FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null)
+            {
+                throw new KeyNotFoundException("Post not found.");
+            }
+
+            if (post.BuildingId.HasValue)
+            {
+                await ResolveAccessibleBuildingIdAsync(userId, userRole, post.BuildingId.Value);
+            }
+
+            post.IsActive = isActive;
             post.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -467,6 +508,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 Content = post.Content,
                 ImageBase64 = ImageUtils.ConvertToBase64DataUrl(post.Image, post.ImageMimeType),
                 BuildingId = post.BuildingId,
+                IsActive = post.IsActive,
                 CommentCount = commentCount,
                 CreatedAt = post.CreatedAt,
                 UpdatedAt = post.UpdatedAt
