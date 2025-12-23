@@ -126,6 +126,51 @@ namespace YopoBackend.Migrations
                     b.ToTable("Amenities");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.AnnouncementCRUD.Models.Announcement", b =>
+                {
+                    b.Property<int>("AnnouncementId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("AnnouncementId"));
+
+                    b.Property<DateTime?>("AnnouncementDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("AnnouncementTime")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Body")
+                        .HasColumnType("text");
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("AnnouncementId");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.ToTable("Announcements");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.BuildingCRUD.Models.Building", b =>
                 {
                     b.Property<int>("BuildingId")

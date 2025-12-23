@@ -14,6 +14,7 @@ using YopoBackend.Middleware;
 using DotNetEnv;
 using Microsoft.AspNetCore.Rewrite;
 using YopoBackend.Hubs;
+using YopoBackend.Modules.AnnouncementCRUD.Services;
 
 // Load environment variables from .env file
 Env.Load();
@@ -67,6 +68,9 @@ builder.Services.AddScoped<YopoBackend.Modules.CCTVCRUD.Services.ICCTVService, Y
 
 // Module: Messaging
 builder.Services.AddScoped<YopoBackend.Modules.Messaging.Services.IMessageService, YopoBackend.Modules.Messaging.Services.MessageService>();
+
+// Module: AnnouncementCRUD
+builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
 
 // Module: ThreadSocial
 builder.Services.AddScoped<YopoBackend.Modules.ThreadSocial.Services.IThreadSocialService, YopoBackend.Modules.ThreadSocial.Services.ThreadSocialService>();
@@ -272,6 +276,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<MessageHub>("/messageHub");
 app.MapHub<ThreadSocialHub>("/threadSocialHub");
+app.MapHub<AnnouncementHub>("/announcementHub");
 
 // Ensure database is migrated and initialize default data
 using (var scope = app.Services.CreateScope())

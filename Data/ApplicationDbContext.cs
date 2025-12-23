@@ -9,6 +9,7 @@ using YopoBackend.Modules.AmenityCRUD.Models;
 using YopoBackend.Modules.TenantCRUD.Models;
 using YopoBackend.Modules.IntercomCRUD.Models;
 using YopoBackend.Modules.Messaging.Models;
+using YopoBackend.Modules.AnnouncementCRUD.Models;
 using YopoBackend.Modules.ThreadSocial.Models;
 using YopoBackend.Models;
 
@@ -119,6 +120,9 @@ namespace YopoBackend.Data
 
         // Module: Messaging
         public DbSet<Message> Messages { get; set; }
+
+        // Module: AnnouncementCRUD
+        public DbSet<Announcement> Announcements { get; set; }
 
         // Module: ThreadSocial
         public DbSet<ThreadPost> ThreadPosts { get; set; }
@@ -626,6 +630,20 @@ namespace YopoBackend.Data
                 entity.Property(e => e.SenderType).HasMaxLength(50);
                 entity.Property(e => e.ReceiverType).HasMaxLength(50);
                 entity.Property(e => e.Content).HasColumnType("text");
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            });
+
+            // Configure Announcement entity (AnnouncementCRUD Module)
+            modelBuilder.Entity<Announcement>(entity =>
+            {
+                entity.HasKey(e => e.AnnouncementId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.CreatedBy);
+                entity.Property(e => e.Subject).HasMaxLength(200);
+                entity.Property(e => e.Body).HasColumnType("text");
+                entity.Property(e => e.AnnouncementTime).HasMaxLength(20);
+                entity.Property(e => e.AnnouncementDate).HasColumnType("datetime");
                 entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             });
