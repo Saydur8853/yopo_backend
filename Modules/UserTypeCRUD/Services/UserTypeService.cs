@@ -702,6 +702,7 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             var U = ModuleConstants.UNIT_MODULE_ID;
             var A = ModuleConstants.AMENITY_MODULE_ID;
             var T = ModuleConstants.TENANT_MODULE_ID;
+            var TK = ModuleConstants.TICKET_MODULE_ID;
             var I = ModuleConstants.INVITATION_MODULE_ID;
             var USER = ModuleConstants.USER_MODULE_ID;
             var UTYPE = ModuleConstants.USER_TYPE_MODULE_ID;
@@ -710,20 +711,20 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             // Defaults per requested flow
             if (ut.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID || name.Equals(UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<int> { UTYPE, B, F, U, A, T, I, USER }; // PM: includes UserType and UserCRUD module
+                return new List<int> { UTYPE, B, F, U, A, T, TK, I, USER }; // PM: includes UserType and UserCRUD module
             }
             if (ut.Id == UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_ID || name.Equals(UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<int> { B, F, U, T }; // FDO
+                return new List<int> { B, F, U, T, TK }; // FDO
             }
             if (ut.Id == UserTypeConstants.TENANT_USER_TYPE_ID || name.Equals(UserTypeConstants.TENANT_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<int> { B, F, U, A, T }; // Tenant: building/floor/unit/amenity/tenant modules
+                return new List<int> { B, F, U, A, T, TK }; // Tenant: building/floor/unit/amenity/tenant modules
             }
             // PM-created types (DataAccess=PM): baseline
             if (ut.DataAccessControl == UserTypeConstants.DATA_ACCESS_PM)
             {
-                return new List<int> { B, F, U, T };
+                return new List<int> { B, F, U, T, TK };
             }
             // Default for other custom types: none
             return new List<int>();

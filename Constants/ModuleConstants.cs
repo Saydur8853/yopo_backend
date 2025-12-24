@@ -56,6 +56,11 @@ namespace YopoBackend.Constants
         public const int TENANT_MODULE_ID = 8;
 
         /// <summary>
+        /// Module ID for the TicketCRUD module.
+        /// </summary>
+        public const int TICKET_MODULE_ID = 9;
+
+        /// <summary>
         /// Module name for the BuildingCRUD module.
         /// </summary>
         public const string BUILDING_MODULE_NAME = "BuildingCRUD";
@@ -201,6 +206,17 @@ namespace YopoBackend.Constants
                     Id = TENANT_MODULE_ID,
                     Name = "TenantCRUD",
                     Description = "Module for managing tenants and invitations with PM access control",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                TICKET_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = TICKET_MODULE_ID,
+                    Name = "TicketCRUD",
+                    Description = "Module for managing tenant service tickets and PM workflows",
                     Version = "1.0.0",
                     IsActive = true
                 }

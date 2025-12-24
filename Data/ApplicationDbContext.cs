@@ -11,6 +11,7 @@ using YopoBackend.Modules.IntercomCRUD.Models;
 using YopoBackend.Modules.Messaging.Models;
 using YopoBackend.Modules.AnnouncementCRUD.Models;
 using YopoBackend.Modules.ThreadSocial.Models;
+using YopoBackend.Modules.TicketCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -127,6 +128,9 @@ namespace YopoBackend.Data
         // Module: ThreadSocial
         public DbSet<ThreadPost> ThreadPosts { get; set; }
         public DbSet<ThreadComment> ThreadComments { get; set; }
+
+        // Module: TicketCRUD
+        public DbSet<Ticket> Tickets { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -684,6 +688,56 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.ParentCommentId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure Ticket entity (TicketCRUD Module)
+            modelBuilder.Entity<Ticket>(entity =>
+            {
+                entity.HasKey(e => e.TicketId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.UnitId);
+                entity.HasIndex(e => e.TenantUserId);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.Property(e => e.Title).HasMaxLength(200);
+                entity.Property(e => e.Description).HasColumnType("text");
+                entity.Property(e => e.Status).HasMaxLength(50);
+                entity.Property(e => e.ConcernLevel).HasMaxLength(50);
+                entity.Property(e => e.TimeFrame).HasMaxLength(100);
+                entity.Property(e => e.ServicePerson).HasMaxLength(200);
+                entity.Property(e => e.Feedback).HasMaxLength(1000);
+                entity.Property(e => e.RejectionReason).HasMaxLength(1000);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+                entity.Property(e => e.StatusUpdatedAt).HasColumnType("datetime");
+                entity.Property(e => e.DeletedAt).HasColumnType("datetime");
+
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Unit)
+                    .WithMany()
+                    .HasForeignKey(e => e.UnitId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.TenantUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.DeletedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.DeletedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
         }

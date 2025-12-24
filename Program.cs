@@ -15,6 +15,7 @@ using DotNetEnv;
 using Microsoft.AspNetCore.Rewrite;
 using YopoBackend.Hubs;
 using YopoBackend.Modules.AnnouncementCRUD.Services;
+using YopoBackend.Modules.TicketCRUD.Services;
 
 // Load environment variables from .env file
 Env.Load();
@@ -74,6 +75,9 @@ builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
 
 // Module: ThreadSocial
 builder.Services.AddScoped<YopoBackend.Modules.ThreadSocial.Services.IThreadSocialService, YopoBackend.Modules.ThreadSocial.Services.ThreadSocialService>();
+
+// Module: TicketCRUD
+builder.Services.AddScoped<ITicketService, TicketService>();
 
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
@@ -199,6 +203,7 @@ static string GetControllerDisplayOrder(string? controllerName)
         "modules" => "10-Modules",
         "usertypes" => "11-UserTypes",
         "accesslogs" => "12-Audit/Access Logs",
+        "tickets" => "14-Tickets",
         _ => controllerName ?? "Other"
     };
 }
