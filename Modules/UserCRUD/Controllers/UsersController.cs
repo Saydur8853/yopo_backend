@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using YopoBackend.Auth;
 using YopoBackend.Attributes;
 using YopoBackend.Constants;
 using YopoBackend.Data;
@@ -294,6 +295,69 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             }
         }
 
+        /// <summary>
+        /// Changes the current user's password using their existing password.
+        /// </summary>
+        /// <param name="changePasswordRequest">The change password request.</param>
+        /// <returns>Success status.</returns>
+        [HttpPost("change-password")]
+        [Authorize]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDTO changePasswordRequest)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+                return Unauthorized(new { message = "Invalid token." });
+
+            var userExists = await _context.Users.AnyAsync(u => u.Id == currentUserId);
+            if (!userExists)
+                return NotFound(new { message = "User not found." });
+
+            var result = await _userService.ChangePasswordAsync(currentUserId, changePasswordRequest);
+            if (!result)
+                return BadRequest(new { message = "Current password is incorrect." });
+
+            return Ok(new { message = "Password updated successfully." });
+        }
+
+        /// <summary>
+        /// Resets a user's password (Super Admin only).
+        /// </summary>
+        /// <param name="id">The user ID whose password will be reset.</param>
+        /// <param name="resetPasswordRequest">The reset password request.</param>
+        /// <returns>Success status.</returns>
+        [HttpPost("{id}/reset-password")]
+        [Authorize(Roles = Roles.SuperAdmin)]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ResetPassword(int id, [FromBody] ResetPasswordRequestDTO resetPasswordRequest)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+                return Unauthorized(new { message = "Invalid token." });
+
+            var userExists = await _context.Users.AnyAsync(u => u.Id == id);
+            if (!userExists)
+                return NotFound(new { message = "User not found." });
+
+            var result = await _userService.ResetPasswordAsync(id, resetPasswordRequest, currentUserId);
+            if (!result)
+                return BadRequest(new { message = "Password reset failed." });
+
+            return Ok(new { message = "Password reset successfully." });
+        }
 
 
 

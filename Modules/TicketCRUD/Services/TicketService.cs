@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using YopoBackend.Constants;
 using YopoBackend.Data;
+using YopoBackend.Hubs;
 using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Modules.TicketCRUD.DTOs;
 using YopoBackend.Modules.TicketCRUD.Models;
@@ -11,6 +13,8 @@ namespace YopoBackend.Modules.TicketCRUD.Services
 {
     public class TicketService : BaseAccessControlService, ITicketService
     {
+        private readonly IHubContext<TicketHub> _hubContext;
+
         private static readonly Dictionary<string, string> StatusMap = new(StringComparer.OrdinalIgnoreCase)
         {
             { TicketStatus.New, TicketStatus.New },
@@ -32,8 +36,9 @@ namespace YopoBackend.Modules.TicketCRUD.Services
             { TicketConcernLevel.Urgent, TicketConcernLevel.Urgent }
         };
 
-        public TicketService(ApplicationDbContext context) : base(context)
+        public TicketService(ApplicationDbContext context, IHubContext<TicketHub> hubContext) : base(context)
         {
+            _hubContext = hubContext;
         }
 
         public async Task<(List<TicketResponseDTO> tickets, int totalRecords)> GetTicketsAsync(
@@ -195,7 +200,9 @@ namespace YopoBackend.Modules.TicketCRUD.Services
                 .Include(t => t.CreatedByUser)
                 .FirstAsync(t => t.TicketId == ticket.TicketId);
 
-            return MapToResponse(created);
+            var response = MapToResponse(created);
+            await NotifyTicketCreatedAsync(response);
+            return response;
         }
 
         public async Task<TicketMutationResult> UpdateTicketAsync(int ticketId, UpdateTicketDTO dto, int currentUserId)
@@ -227,6 +234,9 @@ namespace YopoBackend.Modules.TicketCRUD.Services
                 }
             }
 
+            var statusChanged = false;
+            var previousStatus = ticket.Status;
+
             if (dto.Title != null) ticket.Title = dto.Title;
             if (dto.Description != null) ticket.Description = dto.Description;
             if (dto.UnitId.HasValue)
@@ -246,6 +256,7 @@ namespace YopoBackend.Modules.TicketCRUD.Services
             {
                 ticket.Status = normalizedStatus;
                 ticket.StatusUpdatedAt = DateTime.UtcNow;
+                statusChanged = !string.Equals(previousStatus, ticket.Status, StringComparison.OrdinalIgnoreCase);
             }
 
             if (dto.TimeFrame != null) ticket.TimeFrame = dto.TimeFrame;
@@ -264,7 +275,13 @@ namespace YopoBackend.Modules.TicketCRUD.Services
                 .Include(t => t.CreatedByUser)
                 .FirstAsync(t => t.TicketId == ticket.TicketId);
 
-            return new TicketMutationResult { Ticket = MapToResponse(updated) };
+            var response = MapToResponse(updated);
+            await NotifyTicketUpdatedAsync(response);
+            if (statusChanged)
+            {
+                await NotifyTicketStatusChangedAsync(response);
+            }
+            return new TicketMutationResult { Ticket = response };
         }
 
         public async Task<TicketMutationResult> DeleteTicketAsync(int ticketId, int currentUserId)
@@ -290,7 +307,16 @@ namespace YopoBackend.Modules.TicketCRUD.Services
 
             await _context.SaveChangesAsync();
 
-            return new TicketMutationResult { Ticket = MapToResponse(ticket) };
+            var deleted = await _context.Set<Ticket>()
+                .Include(t => t.Building)
+                .Include(t => t.Unit)
+                .Include(t => t.TenantUser)
+                .Include(t => t.CreatedByUser)
+                .FirstAsync(t => t.TicketId == ticket.TicketId);
+
+            var response = MapToResponse(deleted);
+            await NotifyTicketDeletedAsync(response);
+            return new TicketMutationResult { Ticket = response };
         }
 
         private async Task<IQueryable<Ticket>> ApplyTicketAccessControlAsync(IQueryable<Ticket> query, int currentUserId)
@@ -424,6 +450,148 @@ namespace YopoBackend.Modules.TicketCRUD.Services
                 IsDeleted = ticket.IsDeleted,
                 IsLocked = isLocked
             };
+        }
+
+        private async Task NotifyTicketCreatedAsync(TicketResponseDTO response)
+        {
+            if (response.BuildingId <= 0)
+            {
+                return;
+            }
+
+            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId);
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            var tasks = recipientIds
+                .Select(userId => _hubContext.Clients.Group(TicketHub.UserGroup(userId))
+                    .SendAsync("TicketCreated", response));
+
+            await Task.WhenAll(tasks);
+        }
+
+        private async Task NotifyTicketStatusChangedAsync(TicketResponseDTO response)
+        {
+            if (response.BuildingId <= 0)
+            {
+                return;
+            }
+
+            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId);
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            var payload = new TicketStatusChangedDTO
+            {
+                TicketId = response.TicketId,
+                BuildingId = response.BuildingId,
+                Status = response.Status,
+                StatusUpdatedAt = response.StatusUpdatedAt
+            };
+
+            var tasks = recipientIds
+                .Select(userId => _hubContext.Clients.Group(TicketHub.UserGroup(userId))
+                    .SendAsync("TicketStatusChanged", payload));
+
+            await Task.WhenAll(tasks);
+        }
+
+        private async Task NotifyTicketUpdatedAsync(TicketResponseDTO response)
+        {
+            if (response.BuildingId <= 0)
+            {
+                return;
+            }
+
+            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId);
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            var tasks = recipientIds
+                .Select(userId => _hubContext.Clients.Group(TicketHub.UserGroup(userId))
+                    .SendAsync("TicketUpdated", response));
+
+            await Task.WhenAll(tasks);
+        }
+
+        private async Task NotifyTicketDeletedAsync(TicketResponseDTO response)
+        {
+            if (response.BuildingId <= 0 || response.TicketId <= 0)
+            {
+                return;
+            }
+
+            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId);
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            var tasks = recipientIds
+                .Select(userId => _hubContext.Clients.Group(TicketHub.UserGroup(userId))
+                    .SendAsync("TicketDeleted", response));
+
+            await Task.WhenAll(tasks);
+        }
+
+        private async Task<List<int>> GetTicketNotificationUserIdsAsync(int buildingId)
+        {
+            var building = await _context.Buildings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.BuildingId == buildingId);
+            if (building == null)
+            {
+                return new List<int>();
+            }
+
+            var pmId = building.CustomerId;
+
+            var ecosystemUsers = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.IsActive && (u.Id == pmId || u.InviteById == pmId || u.CreatedBy == pmId))
+                .Select(u => new { u.Id, u.UserTypeId })
+                .ToListAsync();
+
+            var nonTenantIds = ecosystemUsers
+                .Where(u => u.UserTypeId != UserTypeConstants.TENANT_USER_TYPE_ID)
+                .Select(u => u.Id)
+                .Distinct()
+                .ToList();
+
+            if (nonTenantIds.Count == 0)
+            {
+                return new List<int>();
+            }
+
+            var permissions = await _context.UserBuildingPermissions
+                .Where(p => nonTenantIds.Contains(p.UserId) && p.IsActive)
+                .Select(p => new { p.UserId, p.BuildingId })
+                .ToListAsync();
+
+            var usersWithAnyPermissions = permissions
+                .Select(p => p.UserId)
+                .Distinct()
+                .ToList();
+
+            var allowedByBuilding = permissions
+                .Where(p => p.BuildingId == buildingId)
+                .Select(p => p.UserId)
+                .Distinct()
+                .ToList();
+
+            var withoutPermissions = nonTenantIds
+                .Except(usersWithAnyPermissions);
+
+            return withoutPermissions
+                .Concat(allowedByBuilding)
+                .Distinct()
+                .ToList();
         }
     }
 }

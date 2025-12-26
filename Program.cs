@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Rewrite;
 using YopoBackend.Hubs;
 using YopoBackend.Modules.AnnouncementCRUD.Services;
 using YopoBackend.Modules.TicketCRUD.Services;
+using YopoBackend.Modules.TermsConditionsCRUD.Services;
 
 // Load environment variables from .env file
 Env.Load();
@@ -78,6 +79,9 @@ builder.Services.AddScoped<YopoBackend.Modules.ThreadSocial.Services.IThreadSoci
 
 // Module: TicketCRUD
 builder.Services.AddScoped<ITicketService, TicketService>();
+
+// Module: TermsConditionsCRUD
+builder.Services.AddScoped<ITermsAndConditionsService, TermsAndConditionsService>();
 
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
@@ -282,6 +286,7 @@ app.MapControllers();
 app.MapHub<MessageHub>("/messageHub");
 app.MapHub<ThreadSocialHub>("/threadSocialHub");
 app.MapHub<AnnouncementHub>("/announcementHub");
+app.MapHub<TicketHub>("/ticketHub");
 
 // Ensure database is migrated and initialize default data
 using (var scope = app.Services.CreateScope())

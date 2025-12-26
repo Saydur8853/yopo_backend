@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using YopoBackend.Modules.TermsConditionsCRUD.Models;
 using YopoBackend.Modules.UserTypeCRUD.Services;
 using YopoBackend.Services;
 
@@ -29,6 +30,9 @@ namespace YopoBackend.Extensions
                 // Initialize default user types (Super Admin gets all module access automatically)
                 var userTypeService = services.GetRequiredService<IUserTypeService>();
                 await userTypeService.InitializeDefaultUserTypesAsync();
+
+                var context = services.GetRequiredService<YopoBackend.Data.ApplicationDbContext>();
+                await EnsureDefaultTermsAndConditionsAsync(context);
 
                 // Initialize sample buildings for demonstration - DISABLED
                 // var buildingService = services.GetRequiredService<IBuildingService>();
@@ -79,6 +83,7 @@ namespace YopoBackend.Extensions
 
                 // Show which user types were initialized
                 var context = services.GetRequiredService<YopoBackend.Data.ApplicationDbContext>();
+                await EnsureDefaultTermsAndConditionsAsync(context);
                 var userTypes = await context.UserTypes
                     .Include(ut => ut.ModulePermissions)
                     .ToListAsync();
@@ -103,6 +108,29 @@ namespace YopoBackend.Extensions
             }
 
             return app;
+        }
+
+        private static async Task EnsureDefaultTermsAndConditionsAsync(YopoBackend.Data.ApplicationDbContext context)
+        {
+            var exists = await context.TermsAndConditions
+                .AsNoTracking()
+                .AnyAsync(t => t.UsedPlace == "LoginPage");
+
+            if (exists)
+            {
+                return;
+            }
+
+            var entry = new TermsAndCondition
+            {
+                Title = string.Empty,
+                Description = string.Empty,
+                UsedPlace = "LoginPage",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            context.TermsAndConditions.Add(entry);
+            await context.SaveChangesAsync();
         }
     }
 }

@@ -12,6 +12,7 @@ using YopoBackend.Modules.Messaging.Models;
 using YopoBackend.Modules.AnnouncementCRUD.Models;
 using YopoBackend.Modules.ThreadSocial.Models;
 using YopoBackend.Modules.TicketCRUD.Models;
+using YopoBackend.Modules.TermsConditionsCRUD.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -131,6 +132,9 @@ namespace YopoBackend.Data
 
         // Module: TicketCRUD
         public DbSet<Ticket> Tickets { get; set; }
+
+        // Module: TermsConditionsCRUD
+        public DbSet<TermsAndCondition> TermsAndConditions { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -738,6 +742,20 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.DeletedBy)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure TermsAndCondition entity (TermsConditionsCRUD Module)
+            modelBuilder.Entity<TermsAndCondition>(entity =>
+            {
+                entity.HasKey(e => e.TermsAndConditionId);
+                entity.HasIndex(e => e.Title);
+                entity.Property(e => e.Title).HasMaxLength(200);
+                entity.Property(e => e.UsedPlace).HasMaxLength(200);
+                entity.Property(e => e.Description).HasColumnType("text");
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             });
 
         }

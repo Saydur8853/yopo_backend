@@ -28,6 +28,14 @@ namespace YopoBackend.Modules.TicketCRUD.DTOs
         public bool IsLocked { get; set; }
     }
 
+    public class TicketStatusChangedDTO
+    {
+        public int TicketId { get; set; }
+        public int BuildingId { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime? StatusUpdatedAt { get; set; }
+    }
+
     public class CreateTicketDTO
     {
         [Required]
