@@ -21,34 +21,24 @@ namespace YopoBackend.Modules.TermsConditionsCRUD.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(List<TermsAndConditionResponseDTO>), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(403)]
         public async Task<ActionResult<List<TermsAndConditionResponseDTO>>> GetAll()
         {
-            var authResult = EnsureSuperAdmin();
-            if (authResult != null)
-            {
-                return authResult;
-            }
-
             var items = await _termsService.GetAllAsync();
             return Ok(items);
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(TermsAndConditionResponseDTO), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         public async Task<ActionResult<TermsAndConditionResponseDTO>> GetById(int id)
         {
-            var authResult = EnsureSuperAdmin();
-            if (authResult != null)
-            {
-                return authResult;
-            }
-
             var item = await _termsService.GetByIdAsync(id);
             if (item == null)
             {

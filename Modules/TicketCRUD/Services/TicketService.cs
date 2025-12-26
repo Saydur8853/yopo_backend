@@ -428,6 +428,7 @@ namespace YopoBackend.Modules.TicketCRUD.Services
             return new TicketResponseDTO
             {
                 TicketId = ticket.TicketId,
+                TicketCode = $"#T-{ticket.TicketId}",
                 Title = ticket.Title,
                 Description = ticket.Description,
                 Status = ticket.Status,
@@ -459,7 +460,7 @@ namespace YopoBackend.Modules.TicketCRUD.Services
                 return;
             }
 
-            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId);
+            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId, response.TenantUserId);
             if (recipientIds.Count == 0)
             {
                 return;
@@ -479,7 +480,7 @@ namespace YopoBackend.Modules.TicketCRUD.Services
                 return;
             }
 
-            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId);
+            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId, response.TenantUserId);
             if (recipientIds.Count == 0)
             {
                 return;
@@ -507,7 +508,7 @@ namespace YopoBackend.Modules.TicketCRUD.Services
                 return;
             }
 
-            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId);
+            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId, response.TenantUserId);
             if (recipientIds.Count == 0)
             {
                 return;
@@ -527,7 +528,7 @@ namespace YopoBackend.Modules.TicketCRUD.Services
                 return;
             }
 
-            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId);
+            var recipientIds = await GetTicketNotificationUserIdsAsync(response.BuildingId, response.TenantUserId);
             if (recipientIds.Count == 0)
             {
                 return;
@@ -540,7 +541,7 @@ namespace YopoBackend.Modules.TicketCRUD.Services
             await Task.WhenAll(tasks);
         }
 
-        private async Task<List<int>> GetTicketNotificationUserIdsAsync(int buildingId)
+        private async Task<List<int>> GetTicketNotificationUserIdsAsync(int buildingId, int? tenantUserId)
         {
             var building = await _context.Buildings
                 .AsNoTracking()
@@ -588,10 +589,17 @@ namespace YopoBackend.Modules.TicketCRUD.Services
             var withoutPermissions = nonTenantIds
                 .Except(usersWithAnyPermissions);
 
-            return withoutPermissions
+            var recipients = withoutPermissions
                 .Concat(allowedByBuilding)
                 .Distinct()
                 .ToList();
+
+            if (tenantUserId.HasValue && tenantUserId.Value > 0)
+            {
+                recipients.Add(tenantUserId.Value);
+            }
+
+            return recipients.Distinct().ToList();
         }
     }
 }
