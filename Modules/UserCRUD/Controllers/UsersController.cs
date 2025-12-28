@@ -28,6 +28,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         private readonly IUserService _userService;
         private readonly IJwtService _jwtService;
         private readonly ApplicationDbContext _context;
+        private readonly IFirebaseAuthService _firebaseAuthService;
 
         /// <summary>
         /// Initializes a new instance of the UsersController class.
@@ -35,11 +36,12 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         /// <param name="userService">The user service.</param>
         /// <param name="jwtService">The JWT service for token management.</param>
         /// <param name="context">The database context.</param>
-        public UsersController(IUserService userService, IJwtService jwtService, ApplicationDbContext context)
+        public UsersController(IUserService userService, IJwtService jwtService, ApplicationDbContext context, IFirebaseAuthService firebaseAuthService)
         {
             _userService = userService;
             _jwtService = jwtService;
             _context = context;
+            _firebaseAuthService = firebaseAuthService;
         }
 
         // ==== AUTHENTICATION ENDPOINTS ====
@@ -292,6 +294,45 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Failed to update profile: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Authenticates or registers a user with a Firebase ID token.
+        /// </summary>
+        /// <param name="socialRequest">The social login request containing the Firebase ID token.</param>
+        /// <returns>An authentication response with JWT token if successful.</returns>
+        [HttpPost("social-login")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthenticationResponseDTO), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
+        public async Task<IActionResult> SocialLogin([FromBody] SocialLoginRequestDTO socialRequest)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var socialUser = await _firebaseAuthService.VerifyIdTokenAsync(socialRequest.IdToken);
+            if (socialUser == null || string.IsNullOrWhiteSpace(socialUser.Email))
+                return Unauthorized(new { message = "Invalid social token." });
+
+            try
+            {
+                var result = await _userService.SocialLoginAsync(socialUser);
+                if (result == null)
+                    return Unauthorized(new { message = "Social login failed or account is inactive." });
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new
+                {
+                    message = ex.Message,
+                    canRegister = false,
+                    requiresInvitation = true
+                });
             }
         }
 

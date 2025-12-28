@@ -24,6 +24,13 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// <returns>An authentication response with JWT token if successful.</returns>
         Task<AuthenticationResponseDTO?> RegisterAsync(RegisterUserRequestDTO registerRequest);
 
+        /// <summary>
+        /// Authenticates or registers a user via social login.
+        /// </summary>
+        /// <param name="socialUser">Verified social user info.</param>
+        /// <returns>An authentication response with JWT token if successful.</returns>
+        Task<AuthenticationResponseDTO?> SocialLoginAsync(SocialUserInfoDTO socialUser);
+
 
         // CRUD operations
 

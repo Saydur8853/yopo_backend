@@ -31,6 +31,7 @@ builder.Services.AddSignalR();
 // Register core services
 builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
 
 // Register module services
 // Module: UserTypeCRUD (Module ID: 1 - defined in ModuleConstants.USER_TYPE_MODULE_ID)

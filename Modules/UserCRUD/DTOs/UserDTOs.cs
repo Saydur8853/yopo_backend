@@ -78,6 +78,54 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
     }
 
     /// <summary>
+    /// DTO for social login request (Firebase ID token).
+    /// </summary>
+    public class SocialLoginRequestDTO
+    {
+        /// <summary>
+        /// Firebase ID token from the client.
+        /// </summary>
+        [Required(ErrorMessage = "IdToken is required")]
+        public string IdToken { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO containing verified social user info.
+    /// </summary>
+    public class SocialUserInfoDTO
+    {
+        /// <summary>
+        /// Gets or sets the email address of the user.
+        /// </summary>
+        public string Email { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the display name of the user.
+        /// </summary>
+        public string? Name { get; set; }
+
+        /// <summary>
+        /// Gets or sets the profile photo URL.
+        /// </summary>
+        public string? PictureUrl { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the user's email is verified by the provider.
+        /// </summary>
+        public bool EmailVerified { get; set; }
+
+        /// <summary>
+        /// Gets or sets the provider (e.g., google.com).
+        /// </summary>
+        public string? Provider { get; set; }
+
+        /// <summary>
+        /// Gets or sets the phone number, if provided by the auth provider.
+        /// </summary>
+        public string? PhoneNumber { get; set; }
+    }
+
+    /// <summary>
     /// DTO for creating a new user.
     /// </summary>
     public class CreateUserRequestDTO

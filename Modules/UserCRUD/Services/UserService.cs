@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
+using System.Security.Cryptography;
 using BCrypt.Net;
 using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
@@ -73,91 +75,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     return null; // Invalid password
                 }
 
-                // Pre-load buildings for users who have Building module access.
-                // For Property Managers: load own buildings.
-                // For PM-invited users (DataAccessControl = PM): load inviter PM's buildings.
-                List<UserBuildingDto>? userBuildings = null;
-                
-                // Determine if user has Building module access via module permissions
-                bool hasBuildingModule = user.UserType?.ModulePermissions
-                    ?.Any(utmp => utmp.IsActive && utmp.Module.IsActive && utmp.Module.Id == ModuleConstants.BUILDING_MODULE_ID) == true;
-
-                if (hasBuildingModule)
-                {
-                    // Check explicit building permissions first
-                    var explicitBuildingIds = await _context.UserBuildingPermissions
-                        .Where(p => p.UserId == user.Id && p.IsActive)
-                        .Select(p => p.BuildingId)
-                        .ToListAsync();
-
-                    if (explicitBuildingIds.Any())
-                    {
-                        userBuildings = await _context.Buildings
-                            .Include(b => b.Customer)
-                            .Where(b => explicitBuildingIds.Contains(b.BuildingId) && b.IsActive)
-                            .Select(b => new UserBuildingDto
-                            {
-                                BuildingId = b.BuildingId,
-                                BuildingName = b.Name,
-                                BuildingAddress = b.Address,
-                                CustomerName = b.Customer.CustomerName,
-                                CompanyName = b.Customer.CompanyName,
-                                CompanyAddress = b.Customer.CompanyAddress,
-                                UserId = b.CustomerId
-                            })
-                            .ToListAsync();
-                    }
-                    else
-                    {
-                        // If invited non-PM with no explicit permissions, return empty
-                        if (user.UserTypeId != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && user.InviteById.HasValue)
-                        {
-                            userBuildings = new List<UserBuildingDto>();
-                        }
-                        else
-                        {
-                            int? pmId = null;
-                            if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
-                            {
-                                pmId = user.Id;
-                            }
-                            else
-                            {
-                                pmId = await FindPropertyManagerForUserAsync(user.Id);
-                            }
-
-                            if (pmId.HasValue)
-                            {
-                                userBuildings = await _context.Buildings
-                                    .Include(b => b.Customer)
-                                    .Where(b => b.CustomerId == pmId.Value && b.IsActive)
-                                    .Select(b => new UserBuildingDto
-                                    {
-                                        BuildingId = b.BuildingId,
-                                        BuildingName = b.Name,
-                                        BuildingAddress = b.Address,
-                                        CustomerName = b.Customer.CustomerName,
-                                        CompanyName = b.Customer.CompanyName,
-                                        CompanyAddress = b.Customer.CompanyAddress,
-                                        UserId = b.CustomerId
-                                    })
-                                    .ToListAsync();
-                            }
-                        }
-                    }
-                }
-
-                // Generate JWT token with IP and device info if available
-                var (token, expiresAt) = await _jwtService.GenerateTokenAsync(user, null, null);
-
                 Console.WriteLine($"Successful login for user: {user.Email}");
-                return new AuthenticationResponseDTO
-                {
-                    Token = token,
-                    ExpiresAt = expiresAt,
-                    User = MapToUserResponse(user, userBuildings),
-                    Message = "Login successful"
-                };
+                return await CreateAuthResponseAsync(user, "Login successful");
             }
             catch (Exception ex)
             {
@@ -439,6 +358,114 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 Console.WriteLine($"Registration error: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Authenticates or registers a user via social login.
+        /// </summary>
+        /// <param name="socialUser">Verified social user info.</param>
+        /// <returns>An authentication response with JWT token if successful.</returns>
+        public async Task<AuthenticationResponseDTO?> SocialLoginAsync(SocialUserInfoDTO socialUser)
+        {
+            if (string.IsNullOrWhiteSpace(socialUser.Email))
+            {
+                return null;
+            }
+
+            var email = socialUser.Email.ToLower();
+            var user = await _context.Users
+                .Include(u => u.UserType)
+                    .ThenInclude(ut => ut!.ModulePermissions)
+                        .ThenInclude(mp => mp.Module)
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+            if (user != null)
+            {
+                if (!user.IsActive)
+                {
+                    return null;
+                }
+
+                var updated = false;
+
+                if (socialUser.EmailVerified && !user.IsEmailVerified)
+                {
+                    user.IsEmailVerified = true;
+                    updated = true;
+                }
+
+                if (string.IsNullOrWhiteSpace(user.PhoneNumber) && !string.IsNullOrWhiteSpace(socialUser.PhoneNumber))
+                {
+                    user.PhoneNumber = socialUser.PhoneNumber;
+                    updated = true;
+                }
+
+                if (user.ProfilePhoto == null && !string.IsNullOrWhiteSpace(socialUser.PictureUrl))
+                {
+                    var profileBase64 = await TryGetProfilePhotoBase64Async(socialUser.PictureUrl);
+                    if (!string.IsNullOrWhiteSpace(profileBase64))
+                    {
+                        var validation = ImageUtils.ValidateBase64Image(profileBase64);
+                        if (validation.IsValid)
+                        {
+                            user.ProfilePhoto = validation.ImageBytes;
+                            user.ProfilePhotoMimeType = validation.MimeType;
+                            updated = true;
+                        }
+                    }
+                }
+
+                if (updated)
+                {
+                    user.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+
+                return await CreateAuthResponseAsync(user, "Login successful");
+            }
+
+            var displayName = string.IsNullOrWhiteSpace(socialUser.Name)
+                ? email.Split('@')[0]
+                : socialUser.Name;
+
+            var registerRequest = new RegisterUserRequestDTO
+            {
+                Email = email,
+                Password = GenerateSocialPassword(),
+                Name = displayName,
+                PhoneNumber = socialUser.PhoneNumber
+            };
+
+            if (!string.IsNullOrWhiteSpace(socialUser.PictureUrl))
+            {
+                registerRequest.ProfilePhotoBase64 = await TryGetProfilePhotoBase64Async(socialUser.PictureUrl);
+            }
+
+            var registerResult = await RegisterAsync(registerRequest);
+            if (registerResult == null)
+            {
+                return null;
+            }
+
+            var newUser = await _context.Users
+                .Include(u => u.UserType)
+                    .ThenInclude(ut => ut!.ModulePermissions)
+                        .ThenInclude(mp => mp.Module)
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+            if (newUser == null || !newUser.IsActive)
+            {
+                return null;
+            }
+
+            if (socialUser.EmailVerified && !newUser.IsEmailVerified)
+            {
+                newUser.IsEmailVerified = true;
+                newUser.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+
+            return await CreateAuthResponseAsync(newUser, "Registration successful");
         }
 
         // CRUD operations with access control
@@ -1221,6 +1248,186 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 InviteByName = user.InviteByName,
                 ProfilePhotoBase64 = ImageUtils.ConvertToBase64DataUrl(user.ProfilePhoto, user.ProfilePhotoMimeType)
             };
+        }
+
+        private async Task<AuthenticationResponseDTO?> CreateAuthResponseAsync(User user, string message)
+        {
+            var userWithDetails = await EnsureUserDetailsAsync(user);
+            if (userWithDetails == null)
+            {
+                return null;
+            }
+
+            var userBuildings = await GetUserBuildingsAsync(userWithDetails);
+            var (token, expiresAt) = await _jwtService.GenerateTokenAsync(userWithDetails, null, null);
+
+            return new AuthenticationResponseDTO
+            {
+                Token = token,
+                ExpiresAt = expiresAt,
+                User = MapToUserResponse(userWithDetails, userBuildings),
+                Message = message
+            };
+        }
+
+        private async Task<User?> EnsureUserDetailsAsync(User user)
+        {
+            if (user.UserType?.ModulePermissions != null)
+            {
+                return user;
+            }
+
+            return await _context.Users
+                .Include(u => u.UserType)
+                    .ThenInclude(ut => ut!.ModulePermissions)
+                        .ThenInclude(mp => mp.Module)
+                .FirstOrDefaultAsync(u => u.Id == user.Id);
+        }
+
+        private async Task<List<UserBuildingDto>?> GetUserBuildingsAsync(User user)
+        {
+            List<UserBuildingDto>? userBuildings = null;
+
+            bool hasBuildingModule = user.UserType?.ModulePermissions
+                ?.Any(utmp => utmp.IsActive && utmp.Module.IsActive && utmp.Module.Id == ModuleConstants.BUILDING_MODULE_ID) == true;
+
+            if (!hasBuildingModule)
+            {
+                return userBuildings;
+            }
+
+            var explicitBuildingIds = await _context.UserBuildingPermissions
+                .Where(p => p.UserId == user.Id && p.IsActive)
+                .Select(p => p.BuildingId)
+                .ToListAsync();
+
+            if (explicitBuildingIds.Any())
+            {
+                userBuildings = await _context.Buildings
+                    .Include(b => b.Customer)
+                    .Where(b => explicitBuildingIds.Contains(b.BuildingId) && b.IsActive)
+                    .Select(b => new UserBuildingDto
+                    {
+                        BuildingId = b.BuildingId,
+                        BuildingName = b.Name,
+                        BuildingAddress = b.Address,
+                        CustomerName = b.Customer.CustomerName,
+                        CompanyName = b.Customer.CompanyName,
+                        CompanyAddress = b.Customer.CompanyAddress,
+                        UserId = b.CustomerId
+                    })
+                    .ToListAsync();
+            }
+            else
+            {
+                if (user.UserTypeId != UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID && user.InviteById.HasValue)
+                {
+                    userBuildings = new List<UserBuildingDto>();
+                }
+                else
+                {
+                    int? pmId = null;
+                    if (user.UserTypeId == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+                    {
+                        pmId = user.Id;
+                    }
+                    else
+                    {
+                        pmId = await FindPropertyManagerForUserAsync(user.Id);
+                    }
+
+                    if (pmId.HasValue)
+                    {
+                        userBuildings = await _context.Buildings
+                            .Include(b => b.Customer)
+                            .Where(b => b.CustomerId == pmId.Value && b.IsActive)
+                            .Select(b => new UserBuildingDto
+                            {
+                                BuildingId = b.BuildingId,
+                                BuildingName = b.Name,
+                                BuildingAddress = b.Address,
+                                CustomerName = b.Customer.CustomerName,
+                                CompanyName = b.Customer.CompanyName,
+                                CompanyAddress = b.Customer.CompanyAddress,
+                                UserId = b.CustomerId
+                            })
+                            .ToListAsync();
+                    }
+                }
+            }
+
+            return userBuildings;
+        }
+
+        private string GenerateSocialPassword()
+        {
+            const string lower = "abcdefghijklmnopqrstuvwxyz";
+            const string upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const string digits = "0123456789";
+            const string symbols = "!@#$%^&*";
+            const string all = lower + upper + digits + symbols;
+            var chars = new List<char>
+            {
+                lower[RandomNumberGenerator.GetInt32(lower.Length)],
+                upper[RandomNumberGenerator.GetInt32(upper.Length)],
+                digits[RandomNumberGenerator.GetInt32(digits.Length)],
+                symbols[RandomNumberGenerator.GetInt32(symbols.Length)]
+            };
+
+            for (int i = chars.Count; i < 16; i++)
+            {
+                chars.Add(all[RandomNumberGenerator.GetInt32(all.Length)]);
+            }
+
+            for (int i = chars.Count - 1; i > 0; i--)
+            {
+                int j = RandomNumberGenerator.GetInt32(i + 1);
+                (chars[i], chars[j]) = (chars[j], chars[i]);
+            }
+
+            return new string(chars.ToArray());
+        }
+
+        private async Task<string?> TryGetProfilePhotoBase64Async(string? pictureUrl)
+        {
+            if (string.IsNullOrWhiteSpace(pictureUrl))
+            {
+                return null;
+            }
+
+            try
+            {
+                using var http = new HttpClient
+                {
+                    Timeout = TimeSpan.FromSeconds(10)
+                };
+
+                using var response = await http.GetAsync(pictureUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                if (bytes.Length == 0 || bytes.Length > ImageUtils.MAX_IMAGE_SIZE_BYTES)
+                {
+                    return null;
+                }
+
+                var mimeType = ImageUtils.GetImageMimeType(bytes) ?? response.Content.Headers.ContentType?.MediaType;
+                if (string.IsNullOrWhiteSpace(mimeType) || !ImageUtils.SupportedMimeTypes.Contains(mimeType))
+                {
+                    return null;
+                }
+
+                var base64 = Convert.ToBase64String(bytes);
+                return $"data:{mimeType};base64,{base64}";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to download social profile photo: {ex.Message}");
+                return null;
+            }
         }
     }
 }
