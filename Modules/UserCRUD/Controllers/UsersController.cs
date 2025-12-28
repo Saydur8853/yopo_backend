@@ -368,6 +368,64 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         }
 
         /// <summary>
+        /// Sends a password reset email containing a code and reset link.
+        /// </summary>
+        /// <param name="forgotPasswordRequest">The forgot password request.</param>
+        /// <returns>Success status.</returns>
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDTO forgotPasswordRequest)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _userService.RequestPasswordResetAsync(forgotPasswordRequest.Email);
+            if (!result.Success)
+            {
+                if (result.UserNotFound)
+                    return NotFound(new { message = result.Message });
+
+                return StatusCode(500, new { message = result.Message });
+            }
+
+            return Ok(new { message = result.Message });
+        }
+
+        /// <summary>
+        /// Resets a password using a verification code or reset token.
+        /// </summary>
+        /// <param name="resetPasswordRequest">The reset password request.</param>
+        /// <returns>Success status.</returns>
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ResetPasswordByToken([FromBody] ResetPasswordWithTokenRequestDTO resetPasswordRequest)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (string.IsNullOrWhiteSpace(resetPasswordRequest.Code) && string.IsNullOrWhiteSpace(resetPasswordRequest.Token))
+                return BadRequest(new { message = "Reset code or token is required." });
+
+            var result = await _userService.ResetPasswordWithTokenAsync(resetPasswordRequest);
+            if (!result.Success)
+            {
+                if (result.UserNotFound)
+                    return NotFound(new { message = result.Message });
+
+                return BadRequest(new { message = result.Message });
+            }
+
+            return Ok(new { message = result.Message });
+        }
+
+        /// <summary>
         /// Resets a user's password (Super Admin only).
         /// </summary>
         /// <param name="id">The user ID whose password will be reset.</param>

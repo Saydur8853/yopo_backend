@@ -161,5 +161,19 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// <param name="excludeUserId">Optional user ID to exclude from the check (for updates).</param>
         /// <returns>True if the email is already registered; otherwise, false.</returns>
         Task<bool> IsEmailRegisteredAsync(string emailAddress, int? excludeUserId = null);
+
+        /// <summary>
+        /// Sends a password reset email containing a code and reset link.
+        /// </summary>
+        /// <param name="email">The user email.</param>
+        /// <returns>Result with status and message.</returns>
+        Task<(bool Success, string Message, bool UserNotFound)> RequestPasswordResetAsync(string email);
+
+        /// <summary>
+        /// Resets a password using a verification code or reset token.
+        /// </summary>
+        /// <param name="request">The reset password request.</param>
+        /// <returns>Result with status and message.</returns>
+        Task<(bool Success, string Message, bool UserNotFound)> ResetPasswordWithTokenAsync(ResetPasswordWithTokenRequestDTO request);
     }
 }

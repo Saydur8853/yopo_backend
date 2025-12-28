@@ -57,6 +57,56 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
 
     }
 
+    /// <summary>
+    /// DTO for forgot password request.
+    /// </summary>
+    public class ForgotPasswordRequestDTO
+    {
+        /// <summary>
+        /// Gets or sets the email address of the user.
+        /// </summary>
+        [Required(ErrorMessage = "Email address is required")]
+        [EmailAddress(ErrorMessage = "Invalid email address format")]
+        [MaxLength(255, ErrorMessage = "Email address cannot exceed 255 characters")]
+        public string Email { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO for resetting password with a code or reset token.
+    /// </summary>
+    public class ResetPasswordWithTokenRequestDTO
+    {
+        /// <summary>
+        /// Gets or sets the email address of the user.
+        /// </summary>
+        [Required(ErrorMessage = "Email address is required")]
+        [EmailAddress(ErrorMessage = "Invalid email address format")]
+        [MaxLength(255, ErrorMessage = "Email address cannot exceed 255 characters")]
+        public string Email { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the 6-digit verification code.
+        /// </summary>
+        [MaxLength(6, ErrorMessage = "Verification code must be 6 digits")]
+        public string? Code { get; set; }
+
+        /// <summary>
+        /// Gets or sets the reset token from the email link.
+        /// </summary>
+        public string? Token { get; set; }
+
+        /// <summary>
+        /// Gets or sets the new password of the user.
+        /// Must contain at least 8 characters with uppercase, lowercase, number and special character.
+        /// </summary>
+        [Required(ErrorMessage = "New password is required")]
+        [MinLength(8, ErrorMessage = "New password must be at least 8 characters long")]
+        [MaxLength(100, ErrorMessage = "New password cannot exceed 100 characters")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$", 
+            ErrorMessage = "New password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")]
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
 
     /// <summary>
     /// DTO for user login request.

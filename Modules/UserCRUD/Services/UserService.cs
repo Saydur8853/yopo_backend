@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Text;
 using BCrypt.Net;
 using YopoBackend.Data;
 using YopoBackend.Modules.UserCRUD.DTOs;
@@ -20,6 +22,12 @@ namespace YopoBackend.Modules.UserCRUD.Services
     {
         private readonly IJwtService _jwtService;
         private readonly ICustomerService _customerService;
+        private readonly IEmailService _emailService;
+        private readonly string _frontendBaseUrl;
+        private readonly TimeSpan _resetCodeLifetime;
+        private readonly TimeSpan _resetLinkLifetime;
+        private const string PasswordResetCodeType = "PasswordResetCode";
+        private const string PasswordResetLinkType = "PasswordResetLink";
 
         /// <summary>
         /// Initializes a new instance of the UserService class.
@@ -27,10 +35,19 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// <param name="context">The database context.</param>
         /// <param name="jwtService">The JWT service for token generation.</param>
         /// <param name="customerService">The customer service for managing customer records.</param>
-        public UserService(ApplicationDbContext context, IJwtService jwtService, ICustomerService customerService) : base(context)
+        public UserService(
+            ApplicationDbContext context,
+            IJwtService jwtService,
+            ICustomerService customerService,
+            IEmailService emailService,
+            IConfiguration configuration) : base(context)
         {
             _jwtService = jwtService;
             _customerService = customerService;
+            _emailService = emailService;
+            _frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:4200";
+            _resetCodeLifetime = TimeSpan.FromMinutes(ParseMinutes(configuration["PasswordReset:CodeMinutes"], 10));
+            _resetLinkLifetime = TimeSpan.FromMinutes(ParseMinutes(configuration["PasswordReset:LinkMinutes"], 30));
         }
 
         // Authentication methods
@@ -1359,6 +1376,86 @@ namespace YopoBackend.Modules.UserCRUD.Services
             return userBuildings;
         }
 
+        private static int ParseMinutes(string? value, int fallback)
+        {
+            return int.TryParse(value, out var minutes) && minutes > 0 ? minutes : fallback;
+        }
+
+        private static string GenerateResetCode()
+        {
+            var code = RandomNumberGenerator.GetInt32(0, 1_000_000);
+            return code.ToString("D6");
+        }
+
+        private static string GenerateResetToken()
+        {
+            var bytes = new byte[32];
+            RandomNumberGenerator.Fill(bytes);
+            return Convert.ToBase64String(bytes)
+                .Replace("+", "-")
+                .Replace("/", "_")
+                .TrimEnd('=');
+        }
+
+        private static string HashToken(string value)
+        {
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(value));
+            return Convert.ToHexString(hash);
+        }
+
+        private static bool TimingSafeEquals(string left, string right)
+        {
+            if (left.Length != right.Length) return false;
+            var diff = 0;
+            for (var i = 0; i < left.Length; i++)
+            {
+                diff |= left[i] ^ right[i];
+            }
+            return diff == 0;
+        }
+
+        private string BuildResetLink(string email, string token)
+        {
+            var baseUrl = _frontendBaseUrl.TrimEnd('/');
+            var query = $"token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(email)}";
+            return $"{baseUrl}/forgot-password?{query}";
+        }
+
+        private static (string Subject, string Body) BuildResetEmail(string name, string code, string resetLink)
+        {
+            var safeName = string.IsNullOrWhiteSpace(name) ? "there" : name;
+            var subject = "Reset your Yopo password";
+            var body = $@"
+<p>Hi {safeName},</p>
+<p>We received a request to reset your password.</p>
+<p><strong>Verification code:</strong> {code}</p>
+<p>Or click this link to reset your password:</p>
+<p><a href=""{resetLink}"">{resetLink}</a></p>
+<p>If you did not request this, you can safely ignore this email.</p>";
+            return (subject, body);
+        }
+
+        private async Task RevokeExistingResetTokensAsync(int userId)
+        {
+            var tokens = await _context.UserTokens
+                .Where(t =>
+                    t.UserId == userId &&
+                    (t.TokenType == PasswordResetCodeType || t.TokenType == PasswordResetLinkType) &&
+                    t.IsActive &&
+                    !t.IsRevoked)
+                .ToListAsync();
+
+            if (!tokens.Any()) return;
+
+            foreach (var token in tokens)
+            {
+                token.IsActive = false;
+                token.IsRevoked = true;
+                token.RevokedAt = DateTime.UtcNow;
+            }
+        }
+
         private string GenerateSocialPassword()
         {
             const string lower = "abcdefghijklmnopqrstuvwxyz";
@@ -1427,6 +1524,122 @@ namespace YopoBackend.Modules.UserCRUD.Services
             {
                 Console.WriteLine($"Failed to download social profile photo: {ex.Message}");
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Sends a password reset email containing a code and reset link.
+        /// </summary>
+        public async Task<(bool Success, string Message, bool UserNotFound)> RequestPasswordResetAsync(string email)
+        {
+            try
+            {
+                var normalizedEmail = email.Trim().ToLower();
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+                if (user == null || !user.IsActive)
+                {
+                    return (false, "User not found.", true);
+                }
+
+                var code = GenerateResetCode();
+                var token = GenerateResetToken();
+                var codeHash = HashToken(code);
+                var tokenHash = HashToken(token);
+
+                await RevokeExistingResetTokensAsync(user.Id);
+
+                var now = DateTime.UtcNow;
+                _context.UserTokens.Add(new UserToken
+                {
+                    UserId = user.Id,
+                    TokenValue = codeHash,
+                    TokenType = PasswordResetCodeType,
+                    ExpiresAt = now.Add(_resetCodeLifetime),
+                    IsActive = true,
+                    IsRevoked = false,
+                    CreatedBy = user.Id,
+                    CreatedAt = now
+                });
+
+                _context.UserTokens.Add(new UserToken
+                {
+                    UserId = user.Id,
+                    TokenValue = tokenHash,
+                    TokenType = PasswordResetLinkType,
+                    ExpiresAt = now.Add(_resetLinkLifetime),
+                    IsActive = true,
+                    IsRevoked = false,
+                    CreatedBy = user.Id,
+                    CreatedAt = now
+                });
+
+                await _context.SaveChangesAsync();
+
+                var resetLink = BuildResetLink(user.Email, token);
+                var (subject, body) = BuildResetEmail(user.Name, code, resetLink);
+
+                await _emailService.SendAsync(user.Email, subject, body);
+
+                return (true, "We sent a 6-digit code and a reset link to your email.", false);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Forgot password error: {ex.Message}");
+                return (false, "Unable to send reset email. Please try again.", false);
+            }
+        }
+
+        /// <summary>
+        /// Resets a password using a verification code or reset token.
+        /// </summary>
+        public async Task<(bool Success, string Message, bool UserNotFound)> ResetPasswordWithTokenAsync(ResetPasswordWithTokenRequestDTO request)
+        {
+            try
+            {
+                var normalizedEmail = request.Email.Trim().ToLower();
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+                if (user == null || !user.IsActive)
+                {
+                    return (false, "User not found.", true);
+                }
+
+                var now = DateTime.UtcNow;
+                var isCodeFlow = !string.IsNullOrWhiteSpace(request.Code);
+                var isTokenFlow = !string.IsNullOrWhiteSpace(request.Token);
+
+                if (!isCodeFlow && !isTokenFlow)
+                {
+                    return (false, "Reset code or token is required.", false);
+                }
+
+                var tokenType = isCodeFlow ? PasswordResetCodeType : PasswordResetLinkType;
+                var tokenValue = isCodeFlow ? request.Code!.Trim() : request.Token!.Trim();
+                var tokenHash = HashToken(tokenValue);
+
+                var storedToken = await _context.UserTokens.FirstOrDefaultAsync(t =>
+                    t.UserId == user.Id &&
+                    t.TokenType == tokenType &&
+                    t.IsActive &&
+                    !t.IsRevoked &&
+                    t.ExpiresAt > now);
+
+                if (storedToken == null || !TimingSafeEquals(storedToken.TokenValue, tokenHash))
+                {
+                    return (false, "Invalid or expired reset details.", false);
+                }
+
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                user.UpdatedAt = DateTime.UtcNow;
+
+                await RevokeExistingResetTokensAsync(user.Id);
+                await _context.SaveChangesAsync();
+
+                return (true, "Password reset successfully.", false);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Reset password by token error: {ex.Message}");
+                return (false, "Unable to reset password. Please try again.", false);
             }
         }
     }
