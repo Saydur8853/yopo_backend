@@ -366,3 +366,6 @@ FodyWeavers.xsd
 .env.development
 .env.test
 .env.production
+
+# Firebase service account
+yopo-1a2a6-firebase-adminsdk-fbsvc-f0e0a2832d.json
