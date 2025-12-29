@@ -268,6 +268,9 @@ if (enableSwagger)
         c.RoutePrefix = "swagger"; // Set Swagger UI at /swagger path
         c.DocumentTitle = "Yopo Backend API Documentation";
         c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+        c.DefaultModelsExpandDepth(-1);
+        c.InjectStylesheet("/swagger-custom.css");
+        c.InjectJavascript("/swagger-custom.js");
     });
     logger.LogInformation("Swagger middleware configured successfully.");
 }
