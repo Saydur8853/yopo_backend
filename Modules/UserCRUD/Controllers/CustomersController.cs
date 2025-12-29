@@ -18,6 +18,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
     [Produces("application/json")]
     [Authorize]
     [RequireModule(ModuleConstants.USER_MODULE_ID)]
+    [Tags("19-Customers")]
     public class CustomersController : ControllerBase
     {
         private readonly ICustomerService _customerService;

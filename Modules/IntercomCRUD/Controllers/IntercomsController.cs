@@ -12,7 +12,7 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
     [Route("api/[controller]")]
     [Produces("application/json")]
     [Authorize]
-    [Tags("09-Intercoms")]
+    [Tags("08-Intercoms")]
     public class IntercomsController : ControllerBase
     {
         private readonly IIntercomService _service;

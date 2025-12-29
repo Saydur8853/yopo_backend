@@ -14,7 +14,7 @@ namespace YopoBackend.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Tags("01-Modules")]
+    [Tags("16-Modules")]
     public class ModulesController : ControllerBase
     {
         private readonly IModuleService _moduleService;

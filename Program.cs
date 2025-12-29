@@ -17,6 +17,7 @@ using YopoBackend.Hubs;
 using YopoBackend.Modules.AnnouncementCRUD.Services;
 using YopoBackend.Modules.TicketCRUD.Services;
 using YopoBackend.Modules.TermsConditionsCRUD.Services;
+using YopoBackend.Swagger;
 
 // Load environment variables from .env file
 Env.Load();
@@ -188,6 +189,8 @@ builder.Services.AddSwaggerGen(c =>
     {
         c.IncludeXmlComments(xmlPath);
     }
+
+    c.OperationFilter<AccessCodesExamplesOperationFilter>();
 });
 
 // Helper function to define controller display order
@@ -196,6 +199,7 @@ static string GetControllerDisplayOrder(string? controllerName)
     return controllerName?.ToLower() switch
     {
         "users" => "01-Users",
+        "customers" => "19-Customers",
         "invitations" => "02-Invitations",
         "buildings" => "03-Buildings",
         "floors" => "04-Floors",
@@ -204,12 +208,16 @@ static string GetControllerDisplayOrder(string? controllerName)
         "tenants" => "07-Tenants",
         "intercoms" => "08-Intercoms",
         "intercomaccess" => "09-Intercom Access",
-        "cctv" => "10-CCTV",
         "accesscodes" => "09-Intercom Access",
-        "modules" => "10-Modules",
-        "usertypes" => "11-UserTypes",
-        "accesslogs" => "12-Audit/Access Logs",
+        "accesslogs" => "10-Audit/Access Logs",
+        "cctv" => "11-CCTV",
+        "message" => "12-Messaging",
+        "announcements" => "13-Announcements",
         "tickets" => "14-Tickets",
+        "termsandconditions" => "15-TermsAndConditions",
+        "modules" => "16-Modules",
+        "threadsocial" => "17-ThreadSocial",
+        "usertypes" => "18-UserTypes",
         _ => controllerName ?? "Other"
     };
 }
@@ -259,6 +267,7 @@ if (enableSwagger)
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Yopo Backend API V1");
         c.RoutePrefix = "swagger"; // Set Swagger UI at /swagger path
         c.DocumentTitle = "Yopo Backend API Documentation";
+        c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
     });
     logger.LogInformation("Swagger middleware configured successfully.");
 }

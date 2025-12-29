@@ -11,7 +11,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
     [Route("api/intercoms/{intercomId:int}/access")]
     [Produces("application/json")]
     [Authorize]
-    [Tags("10-Intercom Access")] // next after 09-Intercoms
+    [Tags("09-Intercom Access")] // next after 08-Intercoms
     public class IntercomAccessController : ControllerBase
     {
         private readonly IIntercomAccessService _service;
@@ -27,6 +27,14 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
             return currentUserId;
         }
 
+        /// <summary>
+        /// Set or rotate the master PIN for an intercom.
+        /// </summary>
+        /// <remarks>
+        /// Use this to establish the master PIN that can open the intercom and authorize admin resets.
+        /// </remarks>
+        /// <param name="intercomId">Target intercom ID.</param>
+        /// <param name="dto">Master PIN payload.</param>
         [HttpPost("master-pin")] // SuperAdmin only
         [Authorize(Roles = Roles.SuperAdmin)]
         public async Task<IActionResult> SetMasterPin(int intercomId, [FromBody] SetMasterPinDTO dto)
@@ -38,6 +46,14 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         }
 
 
+        /// <summary>
+        /// Verify a PIN for an intercom and return an allow or deny decision.
+        /// </summary>
+        /// <remarks>
+        /// Use this endpoint from an intercom device to validate a user, master, or access code PIN.
+        /// </remarks>
+        /// <param name="intercomId">Target intercom ID.</param>
+        /// <param name="dto">PIN payload to verify.</param>
         [AllowAnonymous]
         [HttpPost("verify")] // endpoint a device can call to verify a pin
         public async Task<IActionResult> VerifyPin(int intercomId, [FromBody] VerifyPinDTO dto)

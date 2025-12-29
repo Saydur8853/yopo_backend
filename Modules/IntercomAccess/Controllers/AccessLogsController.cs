@@ -9,7 +9,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
     [Route("api/access-logs")]
     [Produces("application/json")]
     [Authorize]
-    [Tags("Audit/Access Logs")]
+    [Tags("10-Audit/Access Logs")]
     public class AccessLogsController : ControllerBase
     {
         private readonly IIntercomAccessService _service;

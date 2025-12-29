@@ -11,7 +11,7 @@ namespace YopoBackend.Modules.CCTVCRUD.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    [Tags("10-CCTV")]
+    [Tags("11-CCTV")]
     public class CCTVController : ControllerBase
     {
         private readonly ICCTVService _cctvService;

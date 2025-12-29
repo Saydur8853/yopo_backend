@@ -11,7 +11,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
     [Route("api/access-codes")]
     [Produces("application/json")]
     [Authorize]
-    [Tags("10-Intercom Access")]
+    [Tags("09-Intercom Access")]
     public class AccessCodesController : ControllerBase
     {
         private readonly IIntercomAccessService _service;
@@ -27,7 +27,16 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
             return currentUserId;
         }
 
-        // GET: list access codes, optionally filtered by building and/or intercom
+        /// <summary>
+        /// List access codes for a building or intercom.
+        /// </summary>
+        /// <remarks>
+        /// Use this to manage existing QR or PIN codes and review their status or expiry.
+        /// </remarks>
+        /// <param name="buildingId">Optional building filter.</param>
+        /// <param name="intercomId">Optional intercom filter.</param>
+        /// <param name="page">Page number.</param>
+        /// <param name="pageSize">Page size.</param>
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] int? buildingId = null, [FromQuery] int? intercomId = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
@@ -36,7 +45,13 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
             return Ok(response);
         }
 
-        // POST: create an access code (QR or PIN). If IntercomId is omitted, the code applies to all intercoms in the building
+        /// <summary>
+        /// Create a new access code for a building or intercom.
+        /// </summary>
+        /// <remarks>
+        /// Use this to issue guest or staff access. If <c>intercomId</c> is omitted, the code applies to all intercoms in the building.
+        /// </remarks>
+        /// <param name="dto">Access code payload.</param>
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateAccessCodeDTO dto)
         {

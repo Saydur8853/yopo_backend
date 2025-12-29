@@ -10,7 +10,7 @@ namespace YopoBackend.Modules.AmenityCRUD.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Tags("07-Amenities")]
+    [Tags("06-Amenities")]
     public class AmenitiesController : ControllerBase
     {
         private readonly IAmenityService _amenityService;

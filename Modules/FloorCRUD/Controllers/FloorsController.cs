@@ -14,7 +14,7 @@ namespace YopoBackend.Modules.FloorCRUD.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Tags("05-Floors")]
+    [Tags("04-Floors")]
     public class FloorsController : ControllerBase
     {
         private readonly IFloorService _floorService;

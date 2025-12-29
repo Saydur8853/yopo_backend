@@ -12,7 +12,7 @@ namespace YopoBackend.Modules.BuildingCRUD.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Tags("04-Buildings")]
+    [Tags("03-Buildings")]
     public class BuildingsController : ControllerBase
     {
         private readonly IBuildingService _buildingService;

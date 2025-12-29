@@ -9,7 +9,7 @@ namespace YopoBackend.Modules.TenantCRUD.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Tags("08-Tenants")]
+    [Tags("07-Tenants")]
     [Microsoft.AspNetCore.Authorization.Authorize]
     [YopoBackend.Attributes.RequireModule(YopoBackend.Constants.ModuleConstants.TENANT_MODULE_ID)]
     public class TenantsController : ControllerBase

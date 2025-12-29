@@ -10,7 +10,7 @@ namespace YopoBackend.Modules.UnitCRUD.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Tags("06-Units")]
+    [Tags("05-Units")]
     public class UnitsController : ControllerBase
     {
         private readonly IUnitService _unitService;

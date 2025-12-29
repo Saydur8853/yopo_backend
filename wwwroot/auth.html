@@ -3,8 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yopo - Login & Register</title>
+    <title>Yopo - Auth</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Space+Grotesk:wght@400;600;700&display=swap');
+
+        :root {
+            --ink: #1f2933;
+            --muted: #5f6b75;
+            --accent: #e07a5f;
+            --accent-dark: #c8644b;
+            --card: #fff7ef;
+            --shadow: 0 20px 50px rgba(31, 41, 51, 0.18);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,1027 +23,126 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: "Space Grotesk", "Segoe UI", sans-serif;
+            color: var(--ink);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #333;
+            padding: 2.5rem 1.5rem;
+            background:
+                radial-gradient(900px 600px at 10% 15%, rgba(239, 196, 165, 0.9) 0%, rgba(239, 196, 165, 0) 60%),
+                radial-gradient(800px 520px at 90% 20%, rgba(176, 227, 199, 0.85) 0%, rgba(176, 227, 199, 0) 55%),
+                linear-gradient(180deg, #f8f4ef 0%, #e8eef4 100%);
         }
 
-        .auth-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            overflow: hidden;
+        .auth-shell {
             width: 100%;
-            max-width: 450px;
+            max-width: 760px;
+            background: var(--card);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 3rem;
             position: relative;
+            overflow: hidden;
         }
 
-        .auth-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-
-        .auth-header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .auth-header p {
-            opacity: 0.9;
-            font-size: 1rem;
-        }
-
-        .auth-tabs {
-            display: flex;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .auth-tab {
-            flex: 1;
-            padding: 1rem;
-            text-align: center;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.3s ease;
-        }
-
-        .auth-tab.active {
-            background: white;
-            color: #667eea;
-            border-bottom: 3px solid #667eea;
+        .auth-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(224, 122, 95, 0.15), rgba(224, 122, 95, 0));
+            pointer-events: none;
         }
 
         .auth-content {
-            padding: 2rem;
-        }
-
-        .auth-form {
-            display: none;
-        }
-
-        .auth-form.active {
-            display: block;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #555;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: #fff;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .form-control.error {
-            border-color: #dc3545;
-            background: #fdf2f2;
-        }
-
-        .form-row {
+            position: relative;
+            z-index: 1;
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            gap: 1.75rem;
+        }
+
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        h1 {
+            font-family: "Fraunces", "Times New Roman", serif;
+            font-size: clamp(2rem, 2.8vw, 2.8rem);
+            line-height: 1.1;
+        }
+
+        p {
+            font-size: 1.05rem;
+            color: var(--muted);
+            max-width: 48ch;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
         }
 
         .btn {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.85rem 1.6rem;
+            border-radius: 999px;
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
             text-decoration: none;
-            display: inline-block;
-            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--accent);
             color: white;
+            box-shadow: 0 12px 20px rgba(224, 122, 95, 0.35);
         }
 
         .btn-primary:hover {
+            background: var(--accent-dark);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
 
-        .btn-primary:active {
-            transform: translateY(0);
+        .btn-secondary {
+            background: transparent;
+            color: var(--ink);
+            border: 1px solid rgba(31, 41, 51, 0.2);
         }
 
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
+        .note {
+            border-left: 3px solid var(--accent);
+            padding-left: 1rem;
+            color: var(--muted);
         }
 
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 0.875rem 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-            display: none;
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 0.875rem 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-            display: none;
-        }
-
-        .password-requirements {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-            background: #f8f9fa;
-            border-radius: 4px;
-        }
-
-        .password-requirements ul {
-            margin: 0.5rem 0 0 1rem;
-        }
-
-        .password-requirements li {
-            margin-bottom: 0.25rem;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s linear infinite;
-            margin-right: 0.5rem;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .divider {
-            text-align: center;
-            margin: 1.5rem 0;
-            position: relative;
-            color: #666;
-        }
-
-        .divider::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #e9ecef;
-            z-index: 1;
-        }
-
-        .divider span {
-            background: white;
-            padding: 0 1rem;
-            position: relative;
-            z-index: 2;
-        }
-
-        .auth-links {
-            text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #e9ecef;
-        }
-
-        .auth-links a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .auth-links a:hover {
-            text-decoration: underline;
-        }
-
-        /* Profile Photo Upload Styles */
-        .photo-upload-section {
-            margin-bottom: 1.5rem;
-        }
-
-        .photo-upload-area {
-            border: 2px dashed #667eea;
-            border-radius: 8px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #f8f9ff;
-            position: relative;
-        }
-
-        .photo-upload-area:hover {
-            border-color: #5a67d8;
-            background: #f0f4ff;
-        }
-
-        .photo-upload-area.dragover {
-            border-color: #4c51bf;
-            background: #e6efff;
-            transform: scale(1.02);
-        }
-
-        .photo-upload-area.error {
-            border-color: #dc3545;
-            background: #fdf2f2;
-        }
-
-        .photo-upload-area.error .upload-icon {
-            color: #dc3545;
-        }
-
-        .photo-upload-area.error .upload-text {
-            color: #dc3545;
-        }
-
-        .upload-icon {
-            font-size: 2.5rem;
-            color: #667eea;
-            margin-bottom: 0.5rem;
-        }
-
-        .upload-text {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.25rem;
-        }
-
-        .upload-hint {
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .photo-requirements {
-            font-size: 0.75rem;
-            color: #666;
-            margin-top: 0.5rem;
-            text-align: left;
-        }
-
-        .photo-preview {
-            margin-top: 1rem;
-            text-align: center;
-        }
-
-        .preview-image {
-            max-width: 120px;
-            max-height: 120px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            margin-bottom: 0.5rem;
-        }
-
-        .preview-actions {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .btn-small {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.8rem;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .btn-remove {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-remove:hover {
-            background: #c82333;
-        }
-
-        #photoInput {
-            display: none;
-        }
-
-        .current-photo-display {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .photo-placeholder {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.8rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        @media (max-width: 480px) {
-            .auth-container {
-                margin: 1rem;
-                border-radius: 12px;
+        @media (max-width: 600px) {
+            .auth-shell {
+                padding: 2.2rem 1.8rem;
             }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .photo-upload-area {
-                padding: 1rem;
-            }
-            
-            .upload-icon {
-                font-size: 2rem;
+
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
             }
         }
     </style>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-header">
-            <h1>🚀 Yopo</h1>
-            <p>Welcome back! Please sign in to your account</p>
-        </div>
-
-        <div class="auth-tabs">
-            <button class="auth-tab active" onclick="showForm('login')">Login</button>
-            <button class="auth-tab" onclick="showForm('register')">Register</button>
-        </div>
-
+    <main class="auth-shell">
         <div class="auth-content">
-            <div id="error-message" class="error-message"></div>
-            <div id="success-message" class="success-message"></div>
-
-            <!-- Login Form -->
-            <form id="login-form" class="auth-form active">
-                <div class="form-group">
-                    <label for="login-email">Email Address</label>
-                    <input type="email" id="login-email" class="form-control" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="login-password">Password</label>
-                    <input type="password" id="login-password" class="form-control" required autocomplete="current-password">
-                </div>
-
-                <button type="submit" class="btn btn-primary" id="login-btn">
-                    Sign In
-                </button>
-            </form>
-
-            <!-- Registration Form -->
-            <form id="register-form" class="auth-form">
-                <div class="form-group">
-                    <label for="register-name">Full Name</label>
-                    <input type="text" id="register-name" class="form-control" required maxlength="200" placeholder="Enter your full name">
-                </div>
-
-                <div class="form-group">
-                    <label for="register-email">Email Address</label>
-                    <input type="email" id="register-email" class="form-control" required maxlength="255">
-                </div>
-
-                <div class="form-group">
-                    <label for="register-phone">Phone Number (Optional)</label>
-                    <input type="tel" id="register-phone" class="form-control" maxlength="20">
-                </div>
-
-                <div class="form-group">
-                    <label for="register-address">Address (Optional)</label>
-                    <input type="text" id="register-address" class="form-control" maxlength="500" placeholder="Enter your address">
-                </div>
-
-                <!-- Profile Photo Upload Section -->
-                <div class="form-group photo-upload-section">
-                    <label>Profile Photo (Optional)</label>
-                    <div class="photo-upload-area" onclick="triggerPhotoInput()" 
-                         ondragover="handleDragOver(event)" 
-                         ondragleave="handleDragLeave(event)" 
-                         ondrop="handlePhotoDrop(event)">
-                        <div class="upload-icon">📸</div>
-                        <div class="upload-text">Click to upload or drag & drop</div>
-                        <div class="upload-hint">Please select a profile photo (Optional)</div>
-                        <div class="photo-requirements">
-                            • JPEG, PNG, GIF, BMP, WebP supported<br>
-                            • Max 5MB file size<br>
-                            • Square images work best
-                        </div>
-                    </div>
-                    
-                    <input type="file" id="photoInput" accept="image/jpeg,image/png,image/gif,image/bmp,image/webp" onchange="handlePhotoSelect(event)">
-                    
-                    <div id="photoPreview" class="photo-preview" style="display: none;">
-                        <img id="previewImage" class="preview-image" alt="Photo preview">
-                        <div class="preview-actions">
-                            <button type="button" class="btn-small btn-remove" onclick="clearPhotoPreview()">
-                                ✗ Remove
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="register-password">Password</label>
-                    <input type="password" id="register-password" class="form-control" required maxlength="100" autocomplete="new-password">
-                    <div class="password-requirements">
-                        <strong>Password must contain:</strong>
-                        <ul>
-                            <li>At least 8 characters</li>
-                            <li>One uppercase letter</li>
-                            <li>One lowercase letter</li>
-                            <li>One number</li>
-                            <li>One special character</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="register-confirm-password">Confirm Password</label>
-                    <input type="password" id="register-confirm-password" class="form-control" required maxlength="100" autocomplete="new-password">
-                </div>
-
-                <button type="submit" class="btn btn-primary" id="register-btn">
-                    Create Account
-                </button>
-            </form>
-
-
-            <div class="auth-links">
-                <a href="/swagger/index.html">API Documentation</a>
+            <span class="eyebrow">Yopo Backend</span>
+            <h1>Yopo Backend</h1>
+            <div class="actions">
+                <a class="btn btn-primary" href="/swagger/index.html">Open API Docs</a>
             </div>
         </div>
-    </div>
-
-    <script src="/js/config.js"></script>
-    <script>
-        // API Configuration - use environment-aware config with fallback
-        const API_BASE = window.AppConfig ? window.AppConfig.getApiBase() : '/api';
-        
-        // Global state
-        let isLoading = false;
-        let selectedPhotoFile = null;
-        let selectedPhotoBase64 = null;
-
-        // Add error handling for browser extension compatibility
-        window.addEventListener('error', function(e) {
-            // Suppress certain errors that are commonly caused by browser extensions
-            if (e.message && (
-                e.message.includes('runtime.lastError') ||
-                e.message.includes('Extension context invalidated') ||
-                e.message.includes('message port closed')
-            )) {
-                console.log('Suppressed extension-related error:', e.message);
-                e.preventDefault();
-                return false;
-            }
-        });
-        
-        // Handle unhandled promise rejections
-        window.addEventListener('unhandledrejection', function(e) {
-            if (e.reason && e.reason.message && (
-                e.reason.message.includes('runtime.lastError') ||
-                e.reason.message.includes('Extension context invalidated') ||
-                e.reason.message.includes('message port closed')
-            )) {
-                console.log('Suppressed extension-related promise rejection:', e.reason.message);
-                e.preventDefault();
-                return false;
-            }
-        });
-
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            setupFormHandlers();
-            
-            // Photo field is optional, no need for initial error styling
-            // document.querySelector('.photo-upload-area').classList.add('error');
-            
-            // Check if user is already logged in and validate token
-            checkExistingAuthentication();
-            
-            // Check for any messages from redirects
-            const authMessage = sessionStorage.getItem('authMessage');
-            if (authMessage) {
-                showMessage(authMessage, 'error');
-                sessionStorage.removeItem('authMessage');
-            }
-        });
-        
-        // Check existing authentication with proper validation
-        async function checkExistingAuthentication() {
-            try {
-                const token = localStorage.getItem('authToken');
-                const expiry = localStorage.getItem('tokenExpiry');
-                
-                if (!token || !expiry) {
-                    console.log('No token or expiry found');
-                    return;
-                }
-                
-                // Check if token is expired
-                if (new Date() >= new Date(expiry)) {
-                    console.log('Token expired, clearing auth data');
-                    clearAuthData();
-                    return;
-                }
-                
-                console.log('Valid token found, verifying with server...');
-                
-                // Verify token with server
-                const response = await fetch(`${API_BASE}/users/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                if (response.ok) {
-                    console.log('Token verified successfully, redirecting to dashboard');
-                    showMessage('You are already logged in! Redirecting...', 'success');
-                    
-                    // Set a flag to prevent redirect loops
-                    sessionStorage.setItem('authVerified', 'true');
-                    
-                    // Redirect to dashboard after a short delay
-                    setTimeout(() => {
-                        const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
-                        sessionStorage.removeItem('redirectUrl');
-                        window.location.href = redirectUrl;
-                    }, 1500);
-                } else {
-                    console.log('Token verification failed, clearing auth data');
-                    clearAuthData();
-                    if (response.status === 401) {
-                        showMessage('Your session has expired. Please log in again.', 'error');
-                    } else {
-                        showMessage('Authentication verification failed. Please log in again.', 'error');
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking existing authentication:', error);
-                // Don't clear auth data on network errors, just show the login form
-                console.log('Network error during auth check, showing login form');
-            }
-        }
-        
-        // Clear authentication data
-        function clearAuthData() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('tokenExpiry');
-            localStorage.removeItem('userData');
-            sessionStorage.removeItem('authVerified');
-        }
-
-        // Setup form event handlers
-        function setupFormHandlers() {
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('register-form').addEventListener('submit', handleRegister);
-            
-        // Real-time password confirmation validation
-            const confirmPassword = document.getElementById('register-confirm-password');
-            confirmPassword.addEventListener('input', validatePasswordMatch);
-            
-            // Real-time email validation for registration eligibility - removed
-            // const registerEmail = document.getElementById('register-email');
-            // registerEmail.addEventListener('blur', checkRegistrationEligibility);
-        }
-
-        // Form switching
-        function showForm(formType) {
-            // Update tabs
-            document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            // Update forms
-            document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
-            document.getElementById(`${formType}-form`).classList.add('active');
-            
-            // Update header text
-            const headerP = document.querySelector('.auth-header p');
-            if (formType === 'login') {
-                headerP.textContent = 'Welcome back! Please sign in to your account';
-            } else {
-                headerP.textContent = 'Create a new account to get started';
-            }
-            
-            // Clear messages
-            hideMessages();
-            
-            // Clear photo preview and error styling when switching forms
-            if (formType === 'login') {
-                clearPhotoPreview();
-                document.querySelector('.photo-upload-area').classList.remove('error');
-            } else if (formType === 'register') {
-                // Photo field is optional, no need for error styling
-                // if (!selectedPhotoBase64) {
-                //     document.querySelector('.photo-upload-area').classList.add('error');
-                // }
-            }
-        }
-
-        // Message handling
-        function showMessage(message, type = 'error') {
-            hideMessages();
-            const messageEl = document.getElementById(`${type}-message`);
-            messageEl.textContent = message;
-            messageEl.style.display = 'block';
-            
-            // Auto-hide after 10 seconds
-            setTimeout(() => {
-                messageEl.style.display = 'none';
-            }, 10000);
-        }
-
-        function hideMessages() {
-            document.getElementById('error-message').style.display = 'none';
-            document.getElementById('success-message').style.display = 'none';
-        }
-
-        // Loading state management
-        function setLoading(formType, loading) {
-            isLoading = loading;
-            const btn = document.getElementById(`${formType}-btn`);
-            
-            if (loading) {
-                btn.disabled = true;
-                btn.innerHTML = `<span class="spinner"></span>Loading...`;
-            } else {
-                btn.disabled = false;
-                btn.innerHTML = formType === 'login' ? 'Sign In' : 'Create Account';
-            }
-        }
-
-
-        // Password validation
-        function validatePasswordMatch() {
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('register-confirm-password');
-            
-            if (confirmPassword.value && password !== confirmPassword.value) {
-                confirmPassword.classList.add('error');
-            } else {
-                confirmPassword.classList.remove('error');
-            }
-        }
-
-        function validatePassword(password) {
-            const minLength = password.length >= 8;
-            const hasUpper = /[A-Z]/.test(password);
-            const hasLower = /[a-z]/.test(password);
-            const hasNumber = /\d/.test(password);
-            const hasSpecial = /[^A-Za-z0-9]/.test(password);
-            
-            return minLength && hasUpper && hasLower && hasNumber && hasSpecial;
-        }
-
-        // Login handler
-        async function handleLogin(e) {
-            e.preventDefault();
-            
-            if (isLoading) return;
-            
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-            
-            if (!email || !password) {
-                showMessage('Please fill in all fields');
-                return;
-            }
-            
-            setLoading('login', true);
-            
-            try {
-                const response = await fetch(`${API_BASE}/users/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.message || 'Login failed');
-                }
-                
-                // Store authentication data
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('tokenExpiry', data.expiresAt);
-                localStorage.setItem('userData', JSON.stringify(data.user));
-                
-                showMessage('Login successful! Redirecting...', 'success');
-                
-                // Redirect to dashboard
-                setTimeout(() => {
-                    const redirectUrl = sessionStorage.getItem('redirectUrl') || '/dashboard.html';
-                    sessionStorage.removeItem('redirectUrl');
-                    window.location.href = redirectUrl;
-                }, 1500);
-                
-            } catch (error) {
-                showMessage(error.message);
-            } finally {
-                setLoading('login', false);
-            }
-        }
-
-        // Registration handler
-        async function handleRegister(e) {
-            e.preventDefault();
-            
-            if (isLoading) return;
-            
-            const name = document.getElementById('register-name').value.trim();
-            const email = document.getElementById('register-email').value.trim();
-            const phone = document.getElementById('register-phone').value.trim();
-            const address = document.getElementById('register-address').value.trim();
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('register-confirm-password').value;
-            
-            // Validation
-            if (!name || !email || !password || !confirmPassword) {
-                showMessage('Please fill in all required fields');
-                return;
-            }
-            
-            // Profile photo is optional, no validation needed
-            // if (!selectedPhotoBase64) {
-            //     showMessage('Please select a profile photo');
-            //     // Add error styling to upload area
-            //     document.querySelector('.photo-upload-area').classList.add('error');
-            //     return;
-            // }
-            
-            if (password !== confirmPassword) {
-                showMessage('Passwords do not match');
-                return;
-            }
-            
-            if (!validatePassword(password)) {
-                showMessage('Password does not meet requirements');
-                return;
-            }
-            
-            setLoading('register', true);
-            
-            try {
-                // Prepare registration data
-                const registrationData = {
-                    name: name,
-                    email: email,
-                    phoneNumber: phone || null,
-                    address: address || null,
-                    password: password
-                };
-                
-                // Add profile photo if selected
-                if (selectedPhotoBase64) {
-                    registrationData.profilePhotoBase64 = selectedPhotoBase64;
-                }
-                
-                const response = await fetch(`${API_BASE}/users/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(registrationData)
-                });
-                
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    // Handle invitation required error specially
-                    if (response.status === 403 && data.requiresInvitation) {
-                        showMessage(data.message + ' Please contact your system administrator for an invitation.', 'error');
-                        document.getElementById('register-btn').disabled = true;
-                        return;
-                    }
-                    throw new Error(data.message || 'Registration failed');
-                }
-                
-                // Store authentication data
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('tokenExpiry', data.expiresAt);
-                localStorage.setItem('userData', JSON.stringify(data.user));
-                
-                showMessage('Registration successful! Redirecting...', 'success');
-                
-                // Redirect to dashboard
-                setTimeout(() => {
-                    window.location.href = '/dashboard.html';
-                }, 1500);
-                
-            } catch (error) {
-                showMessage(error.message);
-            } finally {
-                setLoading('register', false);
-            }
-        }
-
-        // Utility functions
-        function isAuthenticated() {
-            const token = localStorage.getItem('authToken');
-            const expiry = localStorage.getItem('tokenExpiry');
-            
-            if (!token || !expiry) return false;
-            
-            return new Date() < new Date(expiry);
-        }
-
-        function logout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('tokenExpiry');
-            localStorage.removeItem('userData');
-            window.location.href = '/auth.html';
-        }
-
-        // Photo upload handling functions
-        function triggerPhotoInput() {
-            document.getElementById('photoInput').click();
-        }
-
-        function handleDragOver(event) {
-            event.preventDefault();
-            event.currentTarget.classList.add('dragover');
-        }
-
-        function handleDragLeave(event) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('dragover');
-        }
-
-        function handlePhotoDrop(event) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('dragover');
-            
-            const files = event.dataTransfer.files;
-            if (files.length > 0) {
-                processPhotoFile(files[0]);
-            }
-        }
-
-        function handlePhotoSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                processPhotoFile(file);
-            }
-        }
-
-        function processPhotoFile(file) {
-            // Validate file type
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
-            if (!allowedTypes.includes(file.type)) {
-                showMessage('Please select a valid image file (JPEG, PNG, GIF, BMP, or WebP)');
-                return;
-            }
-
-            // Validate file size (5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                showMessage('File size must be less than 5MB. Please choose a smaller image.');
-                return;
-            }
-
-            selectedPhotoFile = file;
-            
-            // Remove error styling if present
-            document.querySelector('.photo-upload-area').classList.remove('error');
-            hideMessages();
-            
-            // Convert to base64 and show preview
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                selectedPhotoBase64 = e.target.result;
-                showPhotoPreview(e.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function showPhotoPreview(base64Data) {
-            const previewContainer = document.getElementById('photoPreview');
-            const previewImage = document.getElementById('previewImage');
-            
-            previewImage.src = base64Data;
-            previewContainer.style.display = 'block';
-            
-            // Hide upload area
-            document.querySelector('.photo-upload-area').style.display = 'none';
-        }
-
-        function clearPhotoPreview() {
-            selectedPhotoFile = null;
-            selectedPhotoBase64 = null;
-            
-            document.getElementById('photoPreview').style.display = 'none';
-            document.querySelector('.photo-upload-area').style.display = 'block';
-            document.getElementById('photoInput').value = '';
-            
-            // Photo is optional, no need for error styling
-            // document.querySelector('.photo-upload-area').classList.add('error');
-        }
-
-        function getInitials(fullName) {
-            if (!fullName) return 'U';
-            const names = fullName.trim().split(' ');
-            const first = names[0] ? names[0].charAt(0).toUpperCase() : '';
-            const last = names[1] ? names[1].charAt(0).toUpperCase() : '';
-            return first + last || first || 'U';
-        }
-
-        // Check registration eligibility
-        async function checkRegistrationEligibility(e) {
-            const email = e.target.value.trim();
-            
-            if (!email || !email.includes('@')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE}/users/check-registration-eligibility?email=${encodeURIComponent(email)}`);
-                const data = await response.json();
-                
-                if (data.canRegister) {
-                    if (data.isFirstUser) {
-                        showMessage('🎉 ' + data.message, 'success');
-                        document.querySelector('.auth-header p').textContent = '🚀 You will become the Super Administrator!';
-                        document.querySelector('.auth-header').style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
-                    } else {
-                        showMessage('✅ ' + data.message, 'success');
-                        document.querySelector('.auth-header p').textContent = 'You have been invited to join!';
-                    }
-                    document.getElementById('register-btn').disabled = false;
-                    document.getElementById('register-btn').style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
-                } else {
-                    showMessage('⚠️ ' + data.message, 'error');
-                    document.getElementById('register-btn').disabled = true;
-                    document.getElementById('register-btn').style.background = '#dc3545';
-                    document.querySelector('.auth-header p').textContent = 'Registration requires invitation';
-                    document.querySelector('.auth-header').style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
-                }
-            } catch (error) {
-                console.error('Error checking registration eligibility:', error);
-            }
-        }
-    </script>
+    </main>
 </body>
 </html>
