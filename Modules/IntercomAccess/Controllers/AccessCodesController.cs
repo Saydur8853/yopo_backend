@@ -49,7 +49,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         /// Create a new access code for a building or intercom.
         /// </summary>
         /// <remarks>
-        /// Use this to issue guest or staff access. If <c>intercomId</c> is omitted, the code applies to all intercoms in the building.
+        /// Use this to give access to guests or staff. If the intercomId is not provided, the code will work for all intercoms in the building.
         /// </remarks>
         /// <param name="dto">Access code payload.</param>
         [HttpPost]
