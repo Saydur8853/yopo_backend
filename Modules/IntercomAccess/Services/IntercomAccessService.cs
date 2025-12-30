@@ -172,6 +172,7 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             // Try AccessCodes first (intercom-specific or building-wide), active and not expired
             var codeCandidates = await _context.Set<IntercomAccessCode>()
                 .Where(c => c.IsActive && (c.ExpiresAt == null || c.ExpiresAt > now)
+                            && (c.ValidFrom == null || c.ValidFrom <= now)
                             && (c.IntercomId == intercomId || (c.IntercomId == null && c.BuildingId == intercom.BuildingId)))
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
@@ -180,6 +181,11 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             {
                 if (BCrypt.Net.BCrypt.Verify(pin, c.CodeHash))
                 {
+                    if (c.IsSingleUse)
+                    {
+                        c.IsActive = false;
+                    }
+
                     _context.Add(new IntercomAccessLog {
                         IntercomId = intercomId,
                         UserId = c.CreatedBy, // attribute to creator for auditing, if desired
@@ -303,6 +309,8 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                     IntercomId = c.IntercomId,
                     TenantId = c.TenantId,
                     Code = c.CodePlain ?? c.CodeHash, // fallback to hash for legacy records
+                    IsSingleUse = c.IsSingleUse,
+                    ValidFrom = c.ValidFrom,
                     ExpiresAt = c.ExpiresAt,
                     IsActive = c.IsActive,
                     CreatedAt = c.CreatedAt
@@ -337,6 +345,9 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             if (dto.ExpiresAt.HasValue && dto.ExpiresAt.Value <= DateTime.UtcNow)
                 return (false, "Expiry must be in the future.", null);
 
+            if (dto.ValidFrom.HasValue && dto.ExpiresAt.HasValue && dto.ExpiresAt.Value <= dto.ValidFrom.Value)
+                return (false, "Expiry must be after valid-from.", null);
+
             int? tenantIdToUse = null;
             if (dto.TenantId.HasValue)
             {
@@ -358,6 +369,8 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 CodeType = type,
                 CodeHash = hash,
                 CodePlain = dto.Code, // store raw PIN so it can be shown via API
+                IsSingleUse = dto.IsSingleUse,
+                ValidFrom = dto.ValidFrom,
                 ExpiresAt = dto.ExpiresAt,
                 IsActive = true,
                 CreatedBy = currentUserId,
@@ -373,6 +386,8 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 IntercomId = entity.IntercomId,
                 TenantId = entity.TenantId,
                 Code = entity.CodePlain ?? entity.CodeHash, // should be plain for new records, hash fallback otherwise
+                IsSingleUse = entity.IsSingleUse,
+                ValidFrom = entity.ValidFrom,
                 ExpiresAt = entity.ExpiresAt,
                 IsActive = entity.IsActive,
                 CreatedAt = entity.CreatedAt
@@ -402,11 +417,26 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             if (dto.ExpiresAt.HasValue && dto.ExpiresAt.Value <= DateTime.UtcNow)
                 return (false, "Expiry must be in the future.", null);
 
+            var effectiveValidFrom = dto.ValidFrom ?? entity.ValidFrom;
+            var effectiveExpiresAt = dto.ExpiresAt.HasValue ? dto.ExpiresAt : entity.ExpiresAt;
+            if (effectiveValidFrom.HasValue && effectiveExpiresAt.HasValue && effectiveExpiresAt.Value <= effectiveValidFrom.Value)
+                return (false, "Expiry must be after valid-from.", null);
+
             // Update mutable fields only when explicitly provided
             if (!string.IsNullOrWhiteSpace(dto.Code))
             {
                 entity.CodeHash = BCrypt.Net.BCrypt.HashPassword(dto.Code);
                 entity.CodePlain = dto.Code;
+            }
+
+            if (dto.IsSingleUse.HasValue)
+            {
+                entity.IsSingleUse = dto.IsSingleUse.Value;
+            }
+
+            if (dto.ValidFrom.HasValue)
+            {
+                entity.ValidFrom = dto.ValidFrom;
             }
 
             if (dto.ExpiresAt.HasValue)
@@ -423,6 +453,8 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 IntercomId = entity.IntercomId,
                 TenantId = entity.TenantId,
                 Code = entity.CodePlain ?? entity.CodeHash,
+                IsSingleUse = entity.IsSingleUse,
+                ValidFrom = entity.ValidFrom,
                 ExpiresAt = entity.ExpiresAt,
                 IsActive = entity.IsActive,
                 CreatedAt = entity.CreatedAt

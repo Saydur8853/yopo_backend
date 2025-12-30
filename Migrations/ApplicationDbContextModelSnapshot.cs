@@ -330,6 +330,10 @@ namespace YopoBackend.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("ExpiresAt");
 
+                    b.Property<DateTime?>("ValidFrom")
+                        .HasColumnType("datetime")
+                        .HasColumnName("ValidFrom");
+
                     b.Property<int?>("IntercomId")
                         .HasColumnType("int")
                         .HasColumnName("IntercomId");
@@ -337,6 +341,10 @@ namespace YopoBackend.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IsActive");
+
+                    b.Property<bool>("IsSingleUse")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IsSingleUse");
 
                     b.Property<int?>("TenantId")
                         .HasColumnType("int")

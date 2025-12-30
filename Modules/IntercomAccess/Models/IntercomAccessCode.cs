@@ -42,6 +42,12 @@ namespace YopoBackend.Modules.IntercomAccess.Models
         [Column("ExpiresAt")]
         public DateTime? ExpiresAt { get; set; }
 
+        [Column("ValidFrom")]
+        public DateTime? ValidFrom { get; set; }
+
+        [Column("IsSingleUse")]
+        public bool IsSingleUse { get; set; } = false;
+
         [Column("IsActive")]
         public bool IsActive { get; set; } = true;
 

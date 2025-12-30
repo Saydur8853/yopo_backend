@@ -73,6 +73,12 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         [MaxLength(200)]
         public string Code { get; set; } = string.Empty; // raw secret to be hashed server-side
 
+        // true => one-time use; false => reusable while active
+        public bool IsSingleUse { get; set; } = false;
+
+        // null => active immediately
+        public DateTime? ValidFrom { get; set; }
+
         // null => infinite (no expiry)
         public DateTime? ExpiresAt { get; set; }
     }
@@ -85,6 +91,12 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         [MaxLength(200)]
         public string? Code { get; set; }
 
+        // null => leave unchanged
+        public bool? IsSingleUse { get; set; }
+
+        // null => leave unchanged
+        public DateTime? ValidFrom { get; set; }
+
         // null => infinite (no expiry); if null, leave unchanged
         public DateTime? ExpiresAt { get; set; }
     }
@@ -96,6 +108,8 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public int? IntercomId { get; set; }
         public int? TenantId { get; set; }
         public string? Code { get; set; } // raw PIN if available (may be null for older records)
+        public bool IsSingleUse { get; set; }
+        public DateTime? ValidFrom { get; set; }
         public DateTime? ExpiresAt { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
