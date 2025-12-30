@@ -29,6 +29,21 @@ namespace YopoBackend.Modules.IntercomAccess.Services
         private string GetUserRole() => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
         private bool IsSuperAdmin() => string.Equals(GetUserRole(), Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
 
+        private async Task<int?> ResolveTenantBuildingIdAsync(int tenantUserId)
+        {
+            var unit = await _context.Units
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.TenantId == tenantUserId);
+            if (unit != null) return unit.BuildingId;
+
+            var tenant = await _context.Tenants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.TenantId == tenantUserId);
+            if (tenant != null) return tenant.BuildingId;
+
+            return null;
+        }
+
         private async Task<bool> CanViewIntercomAsync(int intercomId)
         {
             if (IsSuperAdmin()) return true;
@@ -325,20 +340,45 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             // Currently only PIN-type access codes are supported.
             var type = "PIN";
 
+            var role = GetUserRole();
+            int buildingIdToUse;
+
+            if (string.Equals(role, Roles.Tenant, StringComparison.OrdinalIgnoreCase))
+            {
+                var tenantBuildingId = await ResolveTenantBuildingIdAsync(currentUserId);
+                if (!tenantBuildingId.HasValue)
+                    return (false, "Tenant building not found.", null);
+
+                if (dto.BuildingId.HasValue && dto.BuildingId.Value != tenantBuildingId.Value)
+                    return (false, "Not allowed for this building.", null);
+
+                buildingIdToUse = tenantBuildingId.Value;
+            }
+            else
+            {
+                if (!dto.BuildingId.HasValue)
+                    return (false, "BuildingId is required.", null);
+
+                buildingIdToUse = dto.BuildingId.Value;
+            }
+
             // Validate building exists
-            var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == dto.BuildingId);
-            if (building == null) return (false, $"Building {dto.BuildingId} not found.", null);
+            var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == buildingIdToUse);
+            if (building == null) return (false, $"Building {buildingIdToUse} not found.", null);
 
             // Authz
-            if (!await HasBuildingAccessAsync(dto.BuildingId))
-                return (false, "Not allowed for this building.", null);
+            if (!string.Equals(role, Roles.Tenant, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!await HasBuildingAccessAsync(buildingIdToUse))
+                    return (false, "Not allowed for this building.", null);
+            }
 
             int? intercomIdToUse = dto.IntercomId;
             if (dto.IntercomId.HasValue)
             {
                 var intercom = await _context.Intercoms.AsNoTracking().FirstOrDefaultAsync(i => i.IntercomId == dto.IntercomId.Value);
                 if (intercom == null) return (false, $"Intercom {dto.IntercomId.Value} not found.", null);
-                if (intercom.BuildingId != dto.BuildingId) return (false, "Intercom does not belong to the specified building.", null);
+                if (intercom.BuildingId != buildingIdToUse) return (false, "Intercom does not belong to the specified building.", null);
             }
 
             // ExpiresAt can be null for infinity; if provided, must be in the future
@@ -354,7 +394,7 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 var tenant = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.TenantId == dto.TenantId.Value);
                 if (tenant == null)
                     return (false, $"Tenant {dto.TenantId.Value} not found.", null);
-                if (tenant.BuildingId != dto.BuildingId)
+                if (tenant.BuildingId != buildingIdToUse)
                     return (false, "Tenant does not belong to the specified building.", null);
 
                 tenantIdToUse = tenant.TenantId;
@@ -363,7 +403,7 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             var hash = BCrypt.Net.BCrypt.HashPassword(dto.Code);
             var entity = new IntercomAccessCode
             {
-                BuildingId = dto.BuildingId,
+                BuildingId = buildingIdToUse,
                 IntercomId = intercomIdToUse,
                 TenantId = tenantIdToUse,
                 CodeType = type,

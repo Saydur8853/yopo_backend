@@ -50,6 +50,16 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         /// </summary>
         /// <remarks>
         /// Use this to give access to guests or staff. If the intercomId is not provided, the code will work for all intercoms in the building.
+        ///
+        /// Example (tenant, scheduled window):
+        /// ```json
+        /// { "code": "123456", "intercomId": 17, "isSingleUse": true, "validFrom": "2025-12-30T16:00:00Z", "expiresAt": "2025-12-30T17:00:00Z" }
+        /// ```
+        ///
+        /// Example (full payload):
+        /// ```json
+        /// { "buildingId": 0, "intercomId": 0, "tenantId": 0, "code": "string", "isSingleUse": true, "validFrom": "2025-12-30T04:47:07.928Z", "expiresAt": "2025-12-30T04:47:07.928Z" }
+        /// ```
         /// </remarks>
         /// <param name="dto">Access code payload.</param>
         [HttpPost]

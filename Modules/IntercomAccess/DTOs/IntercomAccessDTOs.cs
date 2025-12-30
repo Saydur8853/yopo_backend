@@ -60,8 +60,8 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
     // New DTOs for intercom access codes (currently PIN-only)
     public class CreateAccessCodeDTO
     {
-        [Required]
-        public int BuildingId { get; set; }
+        // Required for non-tenant users; auto-resolved for tenants
+        public int? BuildingId { get; set; }
 
         public int? IntercomId { get; set; } // optional; if null, applies to all intercoms in building
 
