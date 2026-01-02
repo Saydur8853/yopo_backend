@@ -76,6 +76,69 @@ namespace YopoBackend.Swagger
                     ["expiresAt"] = new OpenApiString("2025-12-30T17:00:00Z")
                 };
             }
+
+            if (string.Equals(context.ApiDescription.HttpMethod, "PATCH", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(relativePath, "api/access-codes/{id}/deactivate", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!operation.Responses.TryGetValue("200", out var response))
+                {
+                    return;
+                }
+
+                if (!response.Content.TryGetValue("application/json", out var mediaType))
+                {
+                    mediaType = new OpenApiMediaType();
+                    response.Content["application/json"] = mediaType;
+                }
+
+                mediaType.Examples = new Dictionary<string, OpenApiExample>
+                {
+                    ["Deactivated"] = new OpenApiExample
+                    {
+                        Summary = "Toggle off",
+                        Value = new OpenApiObject
+                        {
+                            ["success"] = new OpenApiBoolean(true),
+                            ["message"] = new OpenApiString("Deactivated."),
+                            ["data"] = new OpenApiObject
+                            {
+                                ["id"] = new OpenApiInteger(123),
+                                ["buildingId"] = new OpenApiInteger(5),
+                                ["intercomId"] = new OpenApiInteger(17),
+                                ["tenantId"] = new OpenApiInteger(42),
+                                ["code"] = new OpenApiString("123456"),
+                                ["isSingleUse"] = new OpenApiBoolean(false),
+                                ["validFrom"] = new OpenApiString("2025-12-30T16:00:00Z"),
+                                ["expiresAt"] = new OpenApiString("2025-12-30T17:00:00Z"),
+                                ["isActive"] = new OpenApiBoolean(false),
+                                ["createdAt"] = new OpenApiString("2025-12-01T10:15:00Z")
+                            }
+                        }
+                    },
+                    ["Activated"] = new OpenApiExample
+                    {
+                        Summary = "Toggle on",
+                        Value = new OpenApiObject
+                        {
+                            ["success"] = new OpenApiBoolean(true),
+                            ["message"] = new OpenApiString("Activated."),
+                            ["data"] = new OpenApiObject
+                            {
+                                ["id"] = new OpenApiInteger(123),
+                                ["buildingId"] = new OpenApiInteger(5),
+                                ["intercomId"] = new OpenApiInteger(17),
+                                ["tenantId"] = new OpenApiInteger(42),
+                                ["code"] = new OpenApiString("123456"),
+                                ["isSingleUse"] = new OpenApiBoolean(false),
+                                ["validFrom"] = new OpenApiString("2025-12-30T16:00:00Z"),
+                                ["expiresAt"] = new OpenApiString("2025-12-30T17:00:00Z"),
+                                ["isActive"] = new OpenApiBoolean(true),
+                                ["createdAt"] = new OpenApiString("2025-12-01T10:15:00Z")
+                            }
+                        }
+                    }
+                };
+            }
         }
     }
 }

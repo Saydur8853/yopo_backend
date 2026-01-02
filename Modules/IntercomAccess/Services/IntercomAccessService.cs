@@ -503,28 +503,44 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             return (true, "Access code updated.", result);
         }
 
-        public async Task<(bool Success, string Message)> DeactivateAccessCodeAsync(int id, int currentUserId)
+        public async Task<(bool Success, string Message, AccessCodeDTO? Code)> DeactivateAccessCodeAsync(int id, int currentUserId)
         {
             var entity = await _context.Set<IntercomAccessCode>().FirstOrDefaultAsync(c => c.Id == id);
-            if (entity == null) return (false, "Not found.");
+            if (entity == null) return (false, "Not found.", null);
 
             var role = GetUserRole();
             if (string.Equals(role, Roles.Tenant, StringComparison.OrdinalIgnoreCase))
             {
                 // Tenants may only deactivate codes they created themselves
                 if (entity.CreatedBy != currentUserId)
-                    return (false, "Not allowed.");
+                    return (false, "Not allowed.", null);
             }
             else
             {
                 // Other roles (PM/FD/SuperAdmin) require building access
-                if (!await HasBuildingAccessAsync(entity.BuildingId)) return (false, "Not allowed.");
+                if (!await HasBuildingAccessAsync(entity.BuildingId)) return (false, "Not allowed.", null);
             }
 
-            if (!entity.IsActive) return (true, "Already inactive.");
-            entity.IsActive = false;
+            // Toggle active status
+            entity.IsActive = !entity.IsActive;
             await _context.SaveChangesAsync();
-            return (true, "Deactivated.");
+
+            var result = new AccessCodeDTO
+            {
+                Id = entity.Id,
+                BuildingId = entity.BuildingId,
+                IntercomId = entity.IntercomId,
+                TenantId = entity.TenantId,
+                Code = entity.CodePlain ?? entity.CodeHash,
+                IsSingleUse = entity.IsSingleUse,
+                ValidFrom = entity.ValidFrom,
+                ExpiresAt = entity.ExpiresAt,
+                IsActive = entity.IsActive,
+                CreatedAt = entity.CreatedAt
+            };
+
+            var message = entity.IsActive ? "Activated." : "Deactivated.";
+            return (true, message, result);
         }
 
         public async Task<(bool Success, string Message)> DeleteAccessCodeAsync(int id, int currentUserId)

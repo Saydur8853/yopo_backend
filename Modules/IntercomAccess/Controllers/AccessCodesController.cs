@@ -105,7 +105,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         }
 
         /// <summary>
-        /// Deactivates an access code (soft delete).
+        /// Toggles an access code's active status.
         /// </summary>
         /// <remarks>
         /// Role behavior:
@@ -114,13 +114,13 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         /// - <b>SuperAdmin</b>: may deactivate any code.
         /// </remarks>
         /// <param name="id">Access code ID.</param>
-        /// <returns>Operation result (success flag and message).</returns>
+        /// <returns>Operation result (success flag, message, and updated code).</returns>
         [HttpPatch("{id:int}/deactivate")]
         public async Task<IActionResult> Deactivate(int id)
         {
             var res = await _service.DeactivateAccessCodeAsync(id, GetCurrentUserId());
-            if (!res.Success) return BadRequest(new { success = false, message = res.Message });
-            return Ok(new { success = true, message = res.Message });
+            if (!res.Success) return BadRequest(new { success = false, message = res.Message, data = (object?)null });
+            return Ok(new { success = true, message = res.Message, data = res.Code });
         }
 
         /// <summary>
