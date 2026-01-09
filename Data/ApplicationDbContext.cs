@@ -129,6 +129,7 @@ namespace YopoBackend.Data
         // Module: ThreadSocial
         public DbSet<ThreadPost> ThreadPosts { get; set; }
         public DbSet<ThreadComment> ThreadComments { get; set; }
+        public DbSet<ThreadPostReaction> ThreadPostReactions { get; set; }
 
         // Module: TicketCRUD
         public DbSet<Ticket> Tickets { get; set; }
@@ -691,6 +692,24 @@ namespace YopoBackend.Data
                 entity.HasOne<ThreadComment>()
                     .WithMany()
                     .HasForeignKey(e => e.ParentCommentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure ThreadPostReaction entity (ThreadSocial Module)
+            modelBuilder.Entity<ThreadPostReaction>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.PostId);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => new { e.PostId, e.UserId, e.UserType }).IsUnique();
+                entity.Property(e => e.UserType).HasMaxLength(50);
+                entity.Property(e => e.IsLike).HasColumnType("tinyint(1)");
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+                entity.HasOne<ThreadPost>()
+                    .WithMany()
+                    .HasForeignKey(e => e.PostId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

@@ -23,6 +23,11 @@ namespace YopoBackend.Modules.ThreadSocial.DTOs
         public bool IsActive { get; set; }
     }
 
+    public class UpdateThreadPostReactionDTO
+    {
+        public string? Reaction { get; set; }
+    }
+
     public class ThreadPostResponseDTO
     {
         public int Id { get; set; }
@@ -35,6 +40,9 @@ namespace YopoBackend.Modules.ThreadSocial.DTOs
         public int? BuildingId { get; set; }
         public bool IsActive { get; set; }
         public int CommentCount { get; set; }
+        public int LikeCount { get; set; }
+        public int DislikeCount { get; set; }
+        public string? CurrentUserReaction { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

@@ -41,14 +41,19 @@ namespace YopoBackend.Modules.ThreadSocial.Controllers
         }
 
         [HttpGet("posts")]
-        public async Task<ActionResult<PaginatedResponse<ThreadPostResponseDTO>>> GetPosts([FromQuery] int? buildingId = null, [FromQuery] int? authorId = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PaginatedResponse<ThreadPostResponseDTO>>> GetPosts(
+            [FromQuery] int? buildingId = null,
+            [FromQuery] int? authorId = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             var userId = GetUserId();
             var userRole = GetUserRole();
 
             try
             {
-                var (posts, totalRecords) = await _threadSocialService.GetPostsAsync(userId, userRole, buildingId, authorId, page, pageSize);
+                var (posts, totalRecords) = await _threadSocialService.GetPostsAsync(userId, userRole, buildingId, authorId, search, page, pageSize);
                 var response = new PaginatedResponse<ThreadPostResponseDTO>(posts, totalRecords, page, pageSize);
                 return Ok(response);
             }
@@ -96,6 +101,31 @@ namespace YopoBackend.Modules.ThreadSocial.Controllers
             try
             {
                 var post = await _threadSocialService.UpdatePostStatusAsync(id, userId, userRole, dto.IsActive);
+                return Ok(post);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("posts/{id}/reaction")]
+        public async Task<ActionResult<ThreadPostResponseDTO>> UpdatePostReaction(int id, [FromBody] UpdateThreadPostReactionDTO dto)
+        {
+            var userId = GetUserId();
+            var userRole = GetUserRole();
+
+            try
+            {
+                var post = await _threadSocialService.UpdatePostReactionAsync(id, userId, userRole, dto.Reaction);
                 return Ok(post);
             }
             catch (KeyNotFoundException)

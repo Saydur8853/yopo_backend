@@ -25,9 +25,17 @@ Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new YopoBackend.Utils.UtcDateTimeConverter());
+    });
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.Converters.Add(new YopoBackend.Utils.UtcDateTimeConverter());
+    });
 
 // Register core services
 builder.Services.AddScoped<IModuleService, ModuleService>();

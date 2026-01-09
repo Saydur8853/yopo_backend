@@ -71,7 +71,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             _context.ThreadPosts.Add(post);
             await _context.SaveChangesAsync();
 
-            var response = await BuildPostResponseAsync(post, 0);
+            var response = await BuildPostResponseAsync(post, 0, userId, userRole);
 
             if (buildingId.HasValue)
             {
@@ -83,7 +83,14 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             return response;
         }
 
-        public async Task<(List<ThreadPostResponseDTO> Posts, int TotalRecords)> GetPostsAsync(int userId, string userRole, int? buildingId, int? authorId, int page, int pageSize)
+        public async Task<(List<ThreadPostResponseDTO> Posts, int TotalRecords)> GetPostsAsync(
+            int userId,
+            string userRole,
+            int? buildingId,
+            int? authorId,
+            string? search,
+            int page,
+            int pageSize)
         {
             EnsureTenantOrManager(userRole);
 
@@ -102,6 +109,16 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             if (authorId.HasValue && authorId.Value > 0)
             {
                 query = query.Where(p => p.AuthorId == authorId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                var pattern = $"%{term}%";
+
+                query = query.Where(p =>
+                    (p.Content != null && EF.Functions.Like(p.Content, pattern)) ||
+                    _context.Users.Any(u => u.Id == p.AuthorId && u.Name != null && EF.Functions.Like(u.Name, pattern)));
             }
 
             var totalRecords = await query.CountAsync();
@@ -125,8 +142,11 @@ namespace YopoBackend.Modules.ThreadSocial.Services
 
             var authorInfoLookup = await BuildAuthorInfoLookupAsync(authorIds);
 
+            var reactionCounts = await BuildReactionCountsAsync(postIds);
+            var userReactions = await BuildUserReactionsLookupAsync(userId, userRole, postIds);
+
             var response = posts
-                .Select(p => MapPostToResponse(p, nameLookup, commentCounts, authorInfoLookup))
+                .Select(p => MapPostToResponse(p, nameLookup, commentCounts, authorInfoLookup, reactionCounts, userReactions))
                 .ToList();
 
             return (response, totalRecords);
@@ -178,7 +198,7 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             await _context.SaveChangesAsync();
 
             var commentCounts = await BuildCommentCountsAsync(new List<int> { post.Id });
-            var response = await BuildPostResponseAsync(post, commentCounts.TryGetValue(post.Id, out var count) ? count : 0);
+            var response = await BuildPostResponseAsync(post, commentCounts.TryGetValue(post.Id, out var count) ? count : 0, userId, userRole);
 
             if (post.BuildingId.HasValue)
             {
@@ -213,13 +233,68 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             await _context.SaveChangesAsync();
 
             var commentCounts = await BuildCommentCountsAsync(new List<int> { post.Id });
-            var response = await BuildPostResponseAsync(post, commentCounts.TryGetValue(post.Id, out var count) ? count : 0);
+            var response = await BuildPostResponseAsync(post, commentCounts.TryGetValue(post.Id, out var count) ? count : 0, userId, userRole);
 
             if (post.BuildingId.HasValue)
             {
                 await _hubContext.Clients
                     .Group(ThreadSocialHub.GroupName(post.BuildingId.Value))
                     .SendAsync("ThreadPostUpdated", response);
+            }
+
+            return response;
+        }
+
+        public async Task<ThreadPostResponseDTO> UpdatePostReactionAsync(int postId, int userId, string userRole, string? reaction)
+        {
+            EnsureTenantOrManager(userRole);
+
+            var post = await GetAccessiblePostAsync(postId, userId, userRole);
+            var normalized = NormalizeReaction(reaction);
+            var userType = GetAuthorTypeForRole(userRole);
+
+            var existing = await _context.ThreadPostReactions
+                .FirstOrDefaultAsync(r => r.PostId == postId && r.UserId == userId && r.UserType == userType);
+
+            if (normalized == null)
+            {
+                if (existing != null)
+                {
+                    _context.ThreadPostReactions.Remove(existing);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                var isLike = string.Equals(normalized, "Like", StringComparison.OrdinalIgnoreCase);
+                if (existing == null)
+                {
+                    _context.ThreadPostReactions.Add(new ThreadPostReaction
+                    {
+                        PostId = postId,
+                        UserId = userId,
+                        UserType = userType,
+                        IsLike = isLike,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else if (existing.IsLike != isLike)
+                {
+                    existing.IsLike = isLike;
+                    existing.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+            }
+
+            var commentCounts = await BuildCommentCountsAsync(new List<int> { post.Id });
+            var response = await BuildPostResponseAsync(post, commentCounts.TryGetValue(post.Id, out var count) ? count : 0, userId, userRole);
+
+            if (post.BuildingId.HasValue)
+            {
+                await _hubContext.Clients
+                    .Group(ThreadSocialHub.GroupName(post.BuildingId.Value))
+                    .SendAsync("ThreadPostReactionUpdated", response);
             }
 
             return response;
@@ -474,11 +549,45 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             return content.Trim();
         }
 
-        private async Task<ThreadPostResponseDTO> BuildPostResponseAsync(ThreadPost post, int commentCount)
+        private static string? NormalizeReaction(string? reaction)
+        {
+            if (string.IsNullOrWhiteSpace(reaction))
+            {
+                return null;
+            }
+
+            var trimmed = reaction.Trim();
+            if (string.Equals(trimmed, "none", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            if (string.Equals(trimmed, "like", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Like";
+            }
+
+            if (string.Equals(trimmed, "dislike", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Dislike";
+            }
+
+            throw new ArgumentException("Reaction must be Like, Dislike, or None.");
+        }
+
+        private async Task<ThreadPostResponseDTO> BuildPostResponseAsync(ThreadPost post, int commentCount, int currentUserId, string currentUserRole)
         {
             var nameLookup = await BuildUserNameLookupAsync(new List<int> { post.AuthorId });
             var authorInfoLookup = await BuildAuthorInfoLookupAsync(new List<int> { post.AuthorId });
-            return MapPostToResponse(post, nameLookup, new Dictionary<int, int> { { post.Id, commentCount } }, authorInfoLookup);
+            var reactionCounts = await BuildReactionCountsAsync(new List<int> { post.Id });
+            var userReactions = await BuildUserReactionsLookupAsync(currentUserId, currentUserRole, new List<int> { post.Id });
+            return MapPostToResponse(
+                post,
+                nameLookup,
+                new Dictionary<int, int> { { post.Id, commentCount } },
+                authorInfoLookup,
+                reactionCounts,
+                userReactions);
         }
 
         private async Task<ThreadCommentResponseDTO> BuildCommentResponseAsync(ThreadComment comment)
@@ -492,11 +601,15 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             ThreadPost post,
             IDictionary<int, string> nameLookup,
             IDictionary<int, int> commentCounts,
-            IDictionary<int, string?> authorInfoLookup)
+            IDictionary<int, string?> authorInfoLookup,
+            IDictionary<int, (int Likes, int Dislikes)> reactionCounts,
+            IDictionary<int, string?> userReactions)
         {
             var authorName = nameLookup.TryGetValue(post.AuthorId, out var name) ? name : null;
             var authorInfo = authorInfoLookup.TryGetValue(post.AuthorId, out var info) ? info : null;
             var commentCount = commentCounts.TryGetValue(post.Id, out var count) ? count : 0;
+            var reactions = reactionCounts.TryGetValue(post.Id, out var counts) ? counts : (Likes: 0, Dislikes: 0);
+            var currentReaction = userReactions.TryGetValue(post.Id, out var reaction) ? reaction : null;
 
             return new ThreadPostResponseDTO
             {
@@ -510,6 +623,9 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 BuildingId = post.BuildingId,
                 IsActive = post.IsActive,
                 CommentCount = commentCount,
+                LikeCount = reactions.Likes,
+                DislikeCount = reactions.Dislikes,
+                CurrentUserReaction = currentReaction,
                 CreatedAt = post.CreatedAt,
                 UpdatedAt = post.UpdatedAt
             };
@@ -692,6 +808,57 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 .ToListAsync();
 
             return counts.ToDictionary(c => c.PostId, c => c.Count);
+        }
+
+        private async Task<Dictionary<int, (int Likes, int Dislikes)>> BuildReactionCountsAsync(IEnumerable<int> postIds)
+        {
+            var ids = postIds.Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<int, (int Likes, int Dislikes)>();
+            }
+
+            var rows = await _context.ThreadPostReactions
+                .AsNoTracking()
+                .Where(r => ids.Contains(r.PostId))
+                .GroupBy(r => new { r.PostId, r.IsLike })
+                .Select(g => new { g.Key.PostId, g.Key.IsLike, Count = g.Count() })
+                .ToListAsync();
+
+            var lookup = ids.ToDictionary(id => id, _ => (Likes: 0, Dislikes: 0));
+
+            foreach (var row in rows)
+            {
+                var current = lookup[row.PostId];
+                lookup[row.PostId] = row.IsLike
+                    ? (current.Likes + row.Count, current.Dislikes)
+                    : (current.Likes, current.Dislikes + row.Count);
+            }
+
+            return lookup;
+        }
+
+        private async Task<Dictionary<int, string?>> BuildUserReactionsLookupAsync(int userId, string userRole, IEnumerable<int> postIds)
+        {
+            if (userId <= 0)
+            {
+                return new Dictionary<int, string?>();
+            }
+
+            var ids = postIds.Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<int, string?>();
+            }
+
+            var userType = GetAuthorTypeForRole(userRole);
+            var rows = await _context.ThreadPostReactions
+                .AsNoTracking()
+                .Where(r => ids.Contains(r.PostId) && r.UserId == userId && r.UserType == userType)
+                .Select(r => new { r.PostId, r.IsLike })
+                .ToListAsync();
+
+            return rows.ToDictionary(r => r.PostId, r => (string?)(r.IsLike ? "Like" : "Dislike"));
         }
 
         private async Task<int?> ResolveTenantBuildingIdAsync(int tenantUserId)
