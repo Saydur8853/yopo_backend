@@ -13,10 +13,13 @@ namespace YopoBackend.Modules.AnnouncementCRUD.Services
     public class AnnouncementService : BaseAccessControlService, IAnnouncementService
     {
         private readonly IHubContext<AnnouncementHub> _hubContext;
+        private readonly IFcmNotificationService _fcmNotificationService;
 
-        public AnnouncementService(ApplicationDbContext context, IHubContext<AnnouncementHub> hubContext) : base(context)
+        public AnnouncementService(ApplicationDbContext context, IHubContext<AnnouncementHub> hubContext, IFcmNotificationService fcmNotificationService)
+            : base(context)
         {
             _hubContext = hubContext;
+            _fcmNotificationService = fcmNotificationService;
         }
 
         public async Task<AnnouncementListResponseDTO> GetAnnouncementsAsync(int currentUserId, int page = 1, int pageSize = 10, int? buildingId = null)
@@ -148,6 +151,8 @@ namespace YopoBackend.Modules.AnnouncementCRUD.Services
 
             await _hubContext.Clients.Group(BuildingGroup(announcement.BuildingId))
                 .SendAsync("AnnouncementCreated", response);
+
+            await _fcmNotificationService.SendAnnouncementAsync(response);
 
             return response;
         }
