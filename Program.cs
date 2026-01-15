@@ -41,7 +41,7 @@ builder.Services.AddSignalR()
 builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
-builder.Services.AddSingleton<IFcmNotificationService, FcmNotificationService>();
+builder.Services.AddScoped<IFcmNotificationService, FcmNotificationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 // Register module services
