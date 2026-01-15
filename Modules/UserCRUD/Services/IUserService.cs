@@ -28,8 +28,9 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// Authenticates or registers a user via social login.
         /// </summary>
         /// <param name="socialUser">Verified social user info.</param>
+        /// <param name="fcmToken">Optional FCM device token from the client.</param>
         /// <returns>An authentication response with JWT token if successful.</returns>
-        Task<AuthenticationResponseDTO?> SocialLoginAsync(SocialUserInfoDTO socialUser);
+        Task<AuthenticationResponseDTO?> SocialLoginAsync(SocialUserInfoDTO socialUser, string? fcmToken);
 
 
         // CRUD operations

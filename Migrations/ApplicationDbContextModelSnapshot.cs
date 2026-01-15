@@ -330,10 +330,6 @@ namespace YopoBackend.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("ExpiresAt");
 
-                    b.Property<DateTime?>("ValidFrom")
-                        .HasColumnType("datetime")
-                        .HasColumnName("ValidFrom");
-
                     b.Property<int?>("IntercomId")
                         .HasColumnType("int")
                         .HasColumnName("IntercomId");
@@ -349,6 +345,10 @@ namespace YopoBackend.Migrations
                     b.Property<int?>("TenantId")
                         .HasColumnType("int")
                         .HasColumnName("TenantId");
+
+                    b.Property<DateTime?>("ValidFrom")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ValidFrom");
 
                     b.HasKey("Id");
 
@@ -1016,6 +1016,48 @@ namespace YopoBackend.Migrations
                     b.ToTable("ThreadPosts");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.ThreadSocial.Models.ThreadPostReaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsLike")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PostId", "UserId", "UserType")
+                        .IsUnique();
+
+                    b.ToTable("ThreadPostReactions");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.TicketCRUD.Models.Ticket", b =>
                 {
                     b.Property<int>("TicketId")
@@ -1393,6 +1435,43 @@ namespace YopoBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("UserBuildingPermissions");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.UserFcmToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("varchar(512)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserFcmTokens");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.UserToken", b =>
@@ -1789,6 +1868,15 @@ namespace YopoBackend.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.ThreadSocial.Models.ThreadPostReaction", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.ThreadSocial.Models.ThreadPost", null)
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.TicketCRUD.Models.Ticket", b =>
                 {
                     b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
@@ -1885,6 +1973,17 @@ namespace YopoBackend.Migrations
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.UserBuildingPermission", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.UserCRUD.Models.UserFcmToken", b =>
                 {
                     b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "User")
                         .WithMany()

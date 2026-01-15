@@ -55,6 +55,12 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// </summary>
         public string? ProfilePhotoBase64 { get; set; }
 
+        /// <summary>
+        /// Gets or sets the FCM device token for push notifications.
+        /// </summary>
+        [MaxLength(512, ErrorMessage = "FCM token cannot exceed 512 characters")]
+        public string? FcmToken { get; set; }
+
     }
 
     /// <summary>
@@ -125,6 +131,12 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// </summary>
         [Required(ErrorMessage = "Password is required")]
         public string Password { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the FCM device token for push notifications.
+        /// </summary>
+        [MaxLength(512, ErrorMessage = "FCM token cannot exceed 512 characters")]
+        public string? FcmToken { get; set; }
     }
 
     /// <summary>
@@ -137,6 +149,12 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// </summary>
         [Required(ErrorMessage = "IdToken is required")]
         public string IdToken { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the FCM device token for push notifications.
+        /// </summary>
+        [MaxLength(512, ErrorMessage = "FCM token cannot exceed 512 characters")]
+        public string? FcmToken { get; set; }
     }
 
     /// <summary>

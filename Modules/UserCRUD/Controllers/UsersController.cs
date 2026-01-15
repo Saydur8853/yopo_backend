@@ -319,7 +319,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
 
             try
             {
-                var result = await _userService.SocialLoginAsync(socialUser);
+                var result = await _userService.SocialLoginAsync(socialUser, socialRequest.FcmToken);
                 if (result == null)
                     return Unauthorized(new { message = "Social login failed or account is inactive." });
 

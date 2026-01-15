@@ -64,6 +64,11 @@ namespace YopoBackend.Data
         public DbSet<UserToken> UserTokens { get; set; }
 
         /// <summary>
+        /// Gets or sets the UserFcmTokens DbSet for managing FCM device tokens.
+        /// </summary>
+        public DbSet<UserFcmToken> UserFcmTokens { get; set; }
+
+        /// <summary>
         /// Gets or sets the UserBuildingPermissions DbSet for per-user building access control.
         /// </summary>
         public DbSet<YopoBackend.Modules.UserCRUD.Models.UserBuildingPermission> UserBuildingPermissions { get; set; }
@@ -270,6 +275,25 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade); // Delete tokens when user is deleted
+            });
+
+            // Configure UserFcmToken entity (Module ID: 3)
+            modelBuilder.Entity<UserFcmToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.Token).IsUnique();
+                entity.Property(e => e.Token).HasMaxLength(512);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
             
             // Configure Customer entity (Module ID: 3)

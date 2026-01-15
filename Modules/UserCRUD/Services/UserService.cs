@@ -92,6 +92,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     return null; // Invalid password
                 }
 
+                await SaveFcmTokenAsync(user.Id, loginRequest.FcmToken);
                 Console.WriteLine($"Successful login for user: {user.Email}");
                 return await CreateAuthResponseAsync(user, "Login successful");
             }
@@ -274,6 +275,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
                 await _context.SaveChangesAsync();
 
+                await SaveFcmTokenAsync(user.Id, registerRequest.FcmToken);
+
                 // If the user is a Tenant via invitation, link to unit and create a Tenant record
                 if (!isFirstUser && user.UserTypeId == UserTypeConstants.TENANT_USER_TYPE_ID && invitation != null)
                 {
@@ -381,8 +384,9 @@ namespace YopoBackend.Modules.UserCRUD.Services
         /// Authenticates or registers a user via social login.
         /// </summary>
         /// <param name="socialUser">Verified social user info.</param>
+        /// <param name="fcmToken">Optional FCM device token from the client.</param>
         /// <returns>An authentication response with JWT token if successful.</returns>
-        public async Task<AuthenticationResponseDTO?> SocialLoginAsync(SocialUserInfoDTO socialUser)
+        public async Task<AuthenticationResponseDTO?> SocialLoginAsync(SocialUserInfoDTO socialUser, string? fcmToken)
         {
             if (string.IsNullOrWhiteSpace(socialUser.Email))
             {
@@ -438,6 +442,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
                     await _context.SaveChangesAsync();
                 }
 
+                await SaveFcmTokenAsync(user.Id, fcmToken);
                 return await CreateAuthResponseAsync(user, "Login successful");
             }
 
@@ -450,7 +455,8 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 Email = email,
                 Password = GenerateSocialPassword(),
                 Name = displayName,
-                PhoneNumber = socialUser.PhoneNumber
+                PhoneNumber = socialUser.PhoneNumber,
+                FcmToken = fcmToken
             };
 
             if (!string.IsNullOrWhiteSpace(socialUser.PictureUrl))
@@ -1374,6 +1380,56 @@ namespace YopoBackend.Modules.UserCRUD.Services
             }
 
             return userBuildings;
+        }
+
+        private async Task SaveFcmTokenAsync(int userId, string? fcmToken)
+        {
+            if (string.IsNullOrWhiteSpace(fcmToken))
+            {
+                return;
+            }
+
+            var token = fcmToken.Trim();
+            var now = DateTime.UtcNow;
+            var existing = await _context.UserFcmTokens.FirstOrDefaultAsync(t => t.Token == token);
+
+            if (existing != null)
+            {
+                var updated = false;
+                if (existing.UserId != userId)
+                {
+                    existing.UserId = userId;
+                    updated = true;
+                }
+
+                if (!existing.IsActive)
+                {
+                    existing.IsActive = true;
+                    updated = true;
+                }
+
+                existing.UpdatedAt = now;
+                if (updated)
+                {
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    await _context.SaveChangesAsync();
+                }
+
+                return;
+            }
+
+            _context.UserFcmTokens.Add(new UserFcmToken
+            {
+                UserId = userId,
+                Token = token,
+                IsActive = true,
+                CreatedAt = now
+            });
+
+            await _context.SaveChangesAsync();
         }
 
         private static int ParseMinutes(string? value, int fallback)
