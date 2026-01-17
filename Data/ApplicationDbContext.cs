@@ -13,6 +13,7 @@ using YopoBackend.Modules.AnnouncementCRUD.Models;
 using YopoBackend.Modules.ThreadSocial.Models;
 using YopoBackend.Modules.TicketCRUD.Models;
 using YopoBackend.Modules.TermsConditionsCRUD.Models;
+using YopoBackend.Modules.VerifyIdentity.Models;
 using YopoBackend.Models;
 
 namespace YopoBackend.Data
@@ -107,6 +108,10 @@ namespace YopoBackend.Data
         /// Gets or sets the Tenants DbSet for managing tenant entities.
         /// </summary>
         public DbSet<Tenant> Tenants { get; set; }
+
+        // Module: VerifyIdentity
+        public DbSet<IdentityVerificationRequest> IdentityVerificationRequests { get; set; }
+        public DbSet<IdentityVerificationDocument> IdentityVerificationDocuments { get; set; }
 
         // Module: IntercomCRUD
         /// <summary>
@@ -508,6 +513,62 @@ namespace YopoBackend.Data
                     .WithMany()
                     .HasForeignKey(e => e.CreatedBy)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure IdentityVerificationRequest entity (VerifyIdentity)
+            modelBuilder.Entity<IdentityVerificationRequest>(entity =>
+            {
+                entity.HasKey(e => e.RequestId);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.Status);
+                entity.Property(e => e.Status).HasMaxLength(50);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("datetime");
+                entity.Property(e => e.VerifiedAt)
+                    .HasColumnType("datetime");
+
+                entity.HasOne(e => e.TenantUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.VerifiedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.VerifiedBy)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasMany(e => e.Documents)
+                    .WithOne(d => d.Request)
+                    .HasForeignKey(d => d.RequestId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure IdentityVerificationDocument entity (VerifyIdentity)
+            modelBuilder.Entity<IdentityVerificationDocument>(entity =>
+            {
+                entity.HasKey(e => e.DocumentId);
+                entity.HasIndex(e => e.RequestId);
+                entity.Property(e => e.DocumentType).HasMaxLength(100);
+                entity.Property(e => e.DocumentUrl).HasMaxLength(2048);
+                entity.Property(e => e.DocumentPublicId).HasMaxLength(255);
+                entity.Property(e => e.MimeType).HasMaxLength(100);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
 
             // Configure Intercom entity (IntercomCRUD)

@@ -99,6 +99,9 @@ builder.Services.AddScoped<ITicketService, TicketService>();
 // Module: TermsConditionsCRUD
 builder.Services.AddScoped<ITermsAndConditionsService, TermsAndConditionsService>();
 
+// Module: VerifyIdentity
+builder.Services.AddScoped<YopoBackend.Modules.VerifyIdentity.Services.IVerifyIdentityService, YopoBackend.Modules.VerifyIdentity.Services.VerifyIdentityService>();
+
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
@@ -236,6 +239,7 @@ static string GetControllerDisplayOrder(string? controllerName)
         "modules" => "16-Modules",
         "threadsocial" => "17-ThreadSocial",
         "usertypes" => "18-UserTypes",
+        "verifyidentity" => "20-VerifyIdentity",
         _ => controllerName ?? "Other"
     };
 }

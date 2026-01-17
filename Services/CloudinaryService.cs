@@ -7,7 +7,8 @@ namespace YopoBackend.Services
     public class CloudinaryService : ICloudinaryService
     {
         private readonly Cloudinary _cloudinary;
-        private readonly string _folder;
+        private readonly string _threadPostFolder;
+        private readonly string _identityFolder;
 
         public CloudinaryService(IConfiguration configuration)
         {
@@ -16,7 +17,8 @@ namespace YopoBackend.Services
             {
                 Api = { Secure = true }
             };
-            _folder = configuration["Cloudinary:Folder"] ?? "thread_posts";
+            _threadPostFolder = configuration["Cloudinary:Folder"] ?? "thread_posts";
+            _identityFolder = configuration["Cloudinary:IdentityFolder"] ?? "identity_documents";
         }
 
         public async Task<(string Url, string PublicId)> UploadThreadPostImageAsync(byte[] imageBytes, string mimeType)
@@ -33,7 +35,7 @@ namespace YopoBackend.Services
             var uploadParams = new ImageUploadParams
             {
                 File = new FileDescription(fileName, stream),
-                Folder = _folder
+                Folder = _threadPostFolder
             };
 
             var result = await _cloudinary.UploadAsync(uploadParams);
@@ -56,6 +58,56 @@ namespace YopoBackend.Services
             return (url, result.PublicId);
         }
 
+        public async Task<(string Url, string PublicId)> UploadIdentityDocumentAsync(byte[] fileBytes, string mimeType)
+        {
+            if (fileBytes.Length == 0)
+            {
+                throw new ArgumentException("Document data is empty.");
+            }
+
+            var fileExtension = GetExtensionFromMimeType(mimeType);
+            var fileName = $"identity-doc-{Guid.NewGuid():N}{fileExtension}";
+
+            await using var stream = new MemoryStream(fileBytes);
+
+            UploadResult result;
+            if (mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                var uploadParams = new ImageUploadParams
+                {
+                    File = new FileDescription(fileName, stream),
+                    Folder = _identityFolder
+                };
+                result = await _cloudinary.UploadAsync(uploadParams);
+            }
+            else
+            {
+                var uploadParams = new RawUploadParams
+                {
+                    File = new FileDescription(fileName, stream),
+                    Folder = _identityFolder
+                };
+                result = await _cloudinary.UploadAsync(uploadParams);
+            }
+            if (result.Error != null)
+            {
+                throw new InvalidOperationException($"Cloudinary upload failed: {result.Error.Message}");
+            }
+
+            if (result.StatusCode != System.Net.HttpStatusCode.OK && result.StatusCode != System.Net.HttpStatusCode.Created)
+            {
+                throw new InvalidOperationException("Cloudinary upload failed.");
+            }
+
+            var url = result.SecureUrl?.ToString() ?? result.Url?.ToString();
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(result.PublicId))
+            {
+                throw new InvalidOperationException("Cloudinary upload returned an invalid response.");
+            }
+
+            return (url, result.PublicId);
+        }
+
         public async Task DeleteImageAsync(string publicId)
         {
             if (string.IsNullOrWhiteSpace(publicId))
@@ -64,6 +116,29 @@ namespace YopoBackend.Services
             }
 
             var result = await _cloudinary.DestroyAsync(new DeletionParams(publicId));
+            if (result.Error != null)
+            {
+                throw new InvalidOperationException($"Cloudinary delete failed: {result.Error.Message}");
+            }
+        }
+
+        public async Task DeleteAssetAsync(string publicId, string resourceType)
+        {
+            if (string.IsNullOrWhiteSpace(publicId))
+            {
+                return;
+            }
+
+            var type = string.IsNullOrWhiteSpace(resourceType) ? "image" : resourceType;
+            var mappedType = string.Equals(type, "raw", StringComparison.OrdinalIgnoreCase)
+                ? ResourceType.Raw
+                : ResourceType.Image;
+            var deletionParams = new DeletionParams(publicId)
+            {
+                ResourceType = mappedType
+            };
+
+            var result = await _cloudinary.DestroyAsync(deletionParams);
             if (result.Error != null)
             {
                 throw new InvalidOperationException($"Cloudinary delete failed: {result.Error.Message}");
@@ -124,6 +199,7 @@ namespace YopoBackend.Services
                 "image/gif" => ".gif",
                 "image/webp" => ".webp",
                 "image/bmp" => ".bmp",
+                "application/pdf" => ".pdf",
                 _ => ".img"
             };
         }
