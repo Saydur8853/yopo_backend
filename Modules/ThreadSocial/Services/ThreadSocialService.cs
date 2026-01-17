@@ -14,10 +14,15 @@ namespace YopoBackend.Modules.ThreadSocial.Services
     public class ThreadSocialService : BaseAccessControlService, IThreadSocialService
     {
         private readonly IHubContext<ThreadSocialHub> _hubContext;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public ThreadSocialService(ApplicationDbContext context, IHubContext<ThreadSocialHub> hubContext) : base(context)
+        public ThreadSocialService(
+            ApplicationDbContext context,
+            IHubContext<ThreadSocialHub> hubContext,
+            ICloudinaryService cloudinaryService) : base(context)
         {
             _hubContext = hubContext;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<ThreadPostResponseDTO> CreatePostAsync(int userId, string userRole, CreateThreadPostDTO dto)
@@ -32,8 +37,8 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 throw new ArgumentException("Post must include text or an image.");
             }
 
-            byte[]? imageBytes = null;
-            string? imageMimeType = null;
+            string? imageUrl = null;
+            string? imagePublicId = null;
             if (hasImage)
             {
                 var validation = ImageUtils.ValidateBase64Image(dto.ImageBase64!);
@@ -42,8 +47,9 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                     throw new ArgumentException($"Invalid image: {validation.ErrorMessage}");
                 }
 
-                imageBytes = validation.ImageBytes;
-                imageMimeType = validation.MimeType;
+                var upload = await _cloudinaryService.UploadThreadPostImageAsync(validation.ImageBytes, validation.MimeType);
+                imageUrl = upload.Url;
+                imagePublicId = upload.PublicId;
             }
 
             var buildingId = await ResolveAccessibleBuildingIdAsync(userId, userRole, dto.BuildingId);
@@ -61,8 +67,8 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 AuthorId = userId,
                 AuthorType = GetAuthorTypeForRole(userRole),
                 Content = trimmedContent,
-                Image = imageBytes,
-                ImageMimeType = imageMimeType,
+                ImageUrl = imageUrl,
+                ImagePublicId = imagePublicId,
                 BuildingId = buildingId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
@@ -173,8 +179,13 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             {
                 if (string.IsNullOrWhiteSpace(dto.ImageBase64))
                 {
-                    post.Image = null;
-                    post.ImageMimeType = null;
+                    if (!string.IsNullOrWhiteSpace(post.ImagePublicId))
+                    {
+                        await _cloudinaryService.DeleteImageAsync(post.ImagePublicId);
+                    }
+
+                    post.ImageUrl = null;
+                    post.ImagePublicId = null;
                 }
                 else
                 {
@@ -184,12 +195,18 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                         throw new ArgumentException($"Invalid image: {validation.ErrorMessage}");
                     }
 
-                    post.Image = validation.ImageBytes;
-                    post.ImageMimeType = validation.MimeType;
+                    if (!string.IsNullOrWhiteSpace(post.ImagePublicId))
+                    {
+                        await _cloudinaryService.DeleteImageAsync(post.ImagePublicId);
+                    }
+
+                    var upload = await _cloudinaryService.UploadThreadPostImageAsync(validation.ImageBytes, validation.MimeType);
+                    post.ImageUrl = upload.Url;
+                    post.ImagePublicId = upload.PublicId;
                 }
             }
 
-            if (post.Content == null && post.Image == null)
+            if (post.Content == null && string.IsNullOrWhiteSpace(post.ImageUrl))
             {
                 throw new ArgumentException("Post must include text or an image.");
             }
@@ -313,6 +330,11 @@ namespace YopoBackend.Modules.ThreadSocial.Services
             }
 
             var buildingId = post.BuildingId;
+
+            if (!string.IsNullOrWhiteSpace(post.ImagePublicId))
+            {
+                await _cloudinaryService.DeleteImageAsync(post.ImagePublicId);
+            }
 
             _context.ThreadPosts.Remove(post);
             await _context.SaveChangesAsync();
@@ -619,7 +641,8 @@ namespace YopoBackend.Modules.ThreadSocial.Services
                 AuthorName = authorName,
                 AuthorInfo = authorInfo,
                 Content = post.Content,
-                ImageBase64 = ImageUtils.ConvertToBase64DataUrl(post.Image, post.ImageMimeType),
+                ImageBase64 = null,
+                ImageUrl = post.ImageUrl,
                 BuildingId = post.BuildingId,
                 IsActive = post.IsActive,
                 CommentCount = commentCount,

@@ -37,6 +37,7 @@ namespace YopoBackend.Modules.ThreadSocial.DTOs
         public string? AuthorInfo { get; set; }
         public string? Content { get; set; }
         public string? ImageBase64 { get; set; }
+        public string? ImageUrl { get; set; }
         public int? BuildingId { get; set; }
         public bool IsActive { get; set; }
         public int CommentCount { get; set; }

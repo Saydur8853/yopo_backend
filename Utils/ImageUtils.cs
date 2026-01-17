@@ -15,14 +15,14 @@ namespace YopoBackend.Utils
     public static class ImageUtils
     {
         /// <summary>
-        /// Maximum allowed image size in bytes (5MB).
+        /// Maximum allowed image size in bytes (10MB).
         /// </summary>
-        public const int MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+        public const int MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
         /// <summary>
         /// Maximum allowed image dimensions (width or height).
         /// </summary>
-        public const int MAX_IMAGE_DIMENSION = 2048; // 2048px
+        public const int MAX_IMAGE_DIMENSION = 1080; // 1080px
 
         /// <summary>
         /// Supported image MIME types.

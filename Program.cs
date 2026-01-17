@@ -23,6 +23,9 @@ using YopoBackend.Swagger;
 Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
+var isDesignTime =
+    string.Equals(Environment.GetEnvironmentVariable("EFCORE_DESIGNTIME"), "true", StringComparison.OrdinalIgnoreCase) ||
+    string.Equals(Environment.GetEnvironmentVariable("DOTNET_EF_RUNNING_IN_DESIGN_TIME"), "true", StringComparison.OrdinalIgnoreCase);
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -43,6 +46,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
 builder.Services.AddScoped<IFcmNotificationService, FcmNotificationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 // Register module services
 // Module: UserTypeCRUD (Module ID: 1 - defined in ModuleConstants.USER_TYPE_MODULE_ID)
@@ -100,7 +104,12 @@ var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRI
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+{
+    var serverVersion = isDesignTime
+        ? new MySqlServerVersion(new Version(8, 0, 0))
+        : ServerVersion.AutoDetect(connectionString);
+    options.UseMySql(connectionString, serverVersion);
+});
 
 // Configure JWT Authentication
 var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
@@ -236,20 +245,24 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
     {
-        builder.AllowAnyOrigin()
+        builder.WithOrigins("http://localhost:4200")
                .AllowAnyMethod()
-               .AllowAnyHeader();
+               .AllowAnyHeader()
+               .AllowCredentials();
     });
 });
 
 
             var app = builder.Build();
 
-            using (var scope = app.Services.CreateScope())
+            if (!isDesignTime)
             {
-                var services = scope.ServiceProvider;
-                var context = services.GetRequiredService<ApplicationDbContext>();
-                context.Database.Migrate();
+                using (var scope = app.Services.CreateScope())
+                {
+                    var services = scope.ServiceProvider;
+                    var context = services.GetRequiredService<ApplicationDbContext>();
+                    context.Database.Migrate();
+                }
             }
 
 // Configure the HTTP request pipeline.
@@ -312,40 +325,43 @@ app.MapHub<AnnouncementHub>("/announcementHub");
 app.MapHub<TicketHub>("/ticketHub");
 
 // Ensure database is migrated and initialize default data
-using (var scope = app.Services.CreateScope())
+if (!isDesignTime)
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var dbLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    
-    try
+    using (var scope = app.Services.CreateScope())
     {
-        if (app.Environment.IsProduction())
-        {
-            // In production (AWS), use migrations for proper schema management
-            dbLogger.LogInformation("Production environment detected. Running database migrations...");
-            await context.Database.MigrateAsync();
-            dbLogger.LogInformation("Database migrations completed successfully!");
-        }
-        else
-        {
-            // For development: Use EnsureCreated for simplicity
-            // COMMENTED OUT: This was causing data loss on every run
-            // if (app.Environment.IsDevelopment())
-            // {
-            //     context.Database.EnsureDeleted();
-            //     Console.WriteLine("Development mode: Dropped existing database");
-            // }
-            
-            context.Database.EnsureCreated();
-            dbLogger.LogInformation("Development database connection established successfully!");
-        }
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var dbLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         
-        dbLogger.LogInformation("Available tables: Modules, UserTypes, UserTypeModulePermissions, Invitations, Users, UserTokens");
-    }
-    catch (Exception ex)
-    {
-        dbLogger.LogError(ex, "Database initialization failed: {Message}", ex.Message);
-        throw;
+        try
+        {
+            if (app.Environment.IsProduction())
+            {
+                // In production (AWS), use migrations for proper schema management
+                dbLogger.LogInformation("Production environment detected. Running database migrations...");
+                await context.Database.MigrateAsync();
+                dbLogger.LogInformation("Database migrations completed successfully!");
+            }
+            else
+            {
+                // For development: Use EnsureCreated for simplicity
+                // COMMENTED OUT: This was causing data loss on every run
+                // if (app.Environment.IsDevelopment())
+                // {
+                //     context.Database.EnsureDeleted();
+                //     Console.WriteLine("Development mode: Dropped existing database");
+                // }
+                
+                context.Database.EnsureCreated();
+                dbLogger.LogInformation("Development database connection established successfully!");
+            }
+            
+            dbLogger.LogInformation("Available tables: Modules, UserTypes, UserTypeModulePermissions, Invitations, Users, UserTokens");
+        }
+        catch (Exception ex)
+        {
+            dbLogger.LogError(ex, "Database initialization failed: {Message}", ex.Message);
+            throw;
+        }
     }
 }
 
@@ -353,13 +369,16 @@ using (var scope = app.Services.CreateScope())
 // Every time you add new modules, Super Admin will automatically get access
 
 // Add module checking before initialization
-using (var scope = app.Services.CreateScope())
+if (!isDesignTime)
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var moduleChecker = new YopoBackend.ModuleChecker(context);
-    await moduleChecker.CheckModulesAsync();
-}
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var moduleChecker = new YopoBackend.ModuleChecker(context);
+        await moduleChecker.CheckModulesAsync();
+    }
 
-await app.TryInitializeDefaultDataAsync();
+    await app.TryInitializeDefaultDataAsync();
+}
 
 app.Run();

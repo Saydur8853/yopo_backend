@@ -689,8 +689,8 @@ namespace YopoBackend.Data
                 entity.HasIndex(e => e.BuildingId);
                 entity.Property(e => e.AuthorType).HasMaxLength(50);
                 entity.Property(e => e.Content).HasColumnType("text");
-                entity.Property(e => e.Image).HasColumnType("LONGBLOB");
-                entity.Property(e => e.ImageMimeType).HasMaxLength(100);
+                entity.Property(e => e.ImageUrl).HasMaxLength(2048);
+                entity.Property(e => e.ImagePublicId).HasMaxLength(255);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
                 entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasColumnType("datetime");

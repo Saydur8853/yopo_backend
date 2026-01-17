@@ -18,11 +18,11 @@ namespace YopoBackend.Modules.ThreadSocial.Models
 
         public string? Content { get; set; }
 
-        [Column(TypeName = "LONGBLOB")]
-        public byte[]? Image { get; set; }
+        [MaxLength(2048)]
+        public string? ImageUrl { get; set; }
 
-        [MaxLength(100)]
-        public string? ImageMimeType { get; set; }
+        [MaxLength(255)]
+        public string? ImagePublicId { get; set; }
 
         public int? BuildingId { get; set; }
 
