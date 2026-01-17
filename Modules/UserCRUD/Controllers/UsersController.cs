@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -25,6 +26,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
     [Tags("01-Users")]
     public class UsersController : ControllerBase
     {
+        private const string RefreshTokenCookieName = "refresh_token";
         private readonly IUserService _userService;
         private readonly IJwtService _jwtService;
         private readonly ApplicationDbContext _context;
@@ -65,6 +67,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             if (result == null)
                 return Unauthorized(new { message = "Invalid email or password, or account is inactive." });
 
+            await IssueRefreshTokenAsync(result.User.Id);
             return Ok(result);
         }
 
@@ -89,6 +92,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 if (result == null)
                     return BadRequest(new { message = "Registration failed. Email may already be registered." });
 
+                await IssueRefreshTokenAsync(result.User.Id);
                 return Ok(result);
             }
             catch (UnauthorizedAccessException ex)
@@ -99,6 +103,127 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                     requiresInvitation = true
                 });
             }
+        }
+
+        /// <summary>
+        /// Refreshes the user's session using a refresh token cookie.
+        /// </summary>
+        /// <returns>An authentication response with a new JWT token.</returns>
+        [HttpPost("refresh")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthenticationResponseDTO), 200)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> Refresh()
+        {
+            var refreshToken = Request.Cookies[RefreshTokenCookieName];
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return Unauthorized(new { message = "Refresh token is missing." });
+            }
+
+            var refreshTokenRecord = await _jwtService.GetValidRefreshTokenAsync(refreshToken);
+            if (refreshTokenRecord == null)
+            {
+                ClearRefreshTokenCookie();
+                return Unauthorized(new { message = "Invalid or expired refresh token." });
+            }
+
+            var user = await _context.Users
+                .Include(u => u.UserType)
+                    .ThenInclude(ut => ut!.ModulePermissions)
+                        .ThenInclude(mp => mp.Module)
+                .FirstOrDefaultAsync(u => u.Id == refreshTokenRecord.UserId);
+
+            if (user == null || !user.IsActive)
+            {
+                await _jwtService.RevokeRefreshTokenAsync(refreshToken);
+                ClearRefreshTokenCookie();
+                return Unauthorized(new { message = "User is inactive or does not exist." });
+            }
+
+            var deviceInfo = Request.Headers["User-Agent"].ToString();
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            var (newRefreshToken, refreshExpiresAt) = await _jwtService.RotateRefreshTokenAsync(refreshTokenRecord, deviceInfo, ipAddress);
+            SetRefreshTokenCookie(newRefreshToken, refreshExpiresAt);
+
+            var (token, expiresAt) = await _jwtService.GenerateTokenAsync(user, deviceInfo, ipAddress);
+            var userResponse = await _userService.GetUserByIdAsync(user.Id, user.Id);
+            if (userResponse == null)
+            {
+                await _jwtService.RevokeRefreshTokenAsync(newRefreshToken);
+                ClearRefreshTokenCookie();
+                return Unauthorized(new { message = "User access denied." });
+            }
+
+            return Ok(new AuthenticationResponseDTO
+            {
+                Token = token,
+                ExpiresAt = expiresAt,
+                User = userResponse,
+                Message = "Token refreshed."
+            });
+        }
+
+        /// <summary>
+        /// Logs out the current session by revoking the refresh token.
+        /// </summary>
+        /// <returns>Success status.</returns>
+        [HttpPost("logout")]
+        [AllowAnonymous]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> Logout()
+        {
+            var refreshToken = Request.Cookies[RefreshTokenCookieName];
+            if (!string.IsNullOrWhiteSpace(refreshToken))
+            {
+                await _jwtService.RevokeRefreshTokenAsync(refreshToken);
+            }
+
+            ClearRefreshTokenCookie();
+            return Ok(new { message = "Logout successful." });
+        }
+
+        /// <summary>
+        /// Logs out all sessions by revoking all refresh tokens for the user.
+        /// </summary>
+        /// <returns>Success status.</returns>
+        [HttpPost("logout-all")]
+        [AllowAnonymous]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> LogoutAll()
+        {
+            int? userId = null;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out int parsedUserId))
+            {
+                userId = parsedUserId;
+            }
+            else
+            {
+                var refreshToken = Request.Cookies[RefreshTokenCookieName];
+                if (!string.IsNullOrWhiteSpace(refreshToken))
+                {
+                    var refreshTokenRecord = await _jwtService.GetValidRefreshTokenAsync(refreshToken);
+                    userId = refreshTokenRecord?.UserId;
+                }
+            }
+
+            if (!userId.HasValue)
+            {
+                ClearRefreshTokenCookie();
+                return Unauthorized(new { message = "Invalid refresh token." });
+            }
+
+            var revokedCount = await _jwtService.RevokeAllRefreshTokensAsync(userId.Value);
+            ClearRefreshTokenCookie();
+
+            return Ok(new
+            {
+                message = "Logout from all devices successful.",
+                revokedTokens = revokedCount
+            });
         }
 
         /// <summary>
@@ -323,6 +448,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 if (result == null)
                     return Unauthorized(new { message = "Social login failed or account is inactive." });
 
+                await IssueRefreshTokenAsync(result.User.Id);
                 return Ok(result);
             }
             catch (UnauthorizedAccessException ex)
@@ -589,6 +715,42 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
                 default:
                     return BadRequest(new { message = "Invalid action. Use 'email-availability', 'registration-eligibility', or 'modules'." });
             }
+        }
+
+        private async Task IssueRefreshTokenAsync(int userId)
+        {
+            var deviceInfo = Request.Headers["User-Agent"].ToString();
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var (refreshToken, expiresAt) = await _jwtService.GenerateRefreshTokenAsync(userId, deviceInfo, ipAddress);
+            SetRefreshTokenCookie(refreshToken, expiresAt);
+        }
+
+        private void SetRefreshTokenCookie(string refreshToken, DateTime expiresAt)
+        {
+            var options = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = expiresAt,
+                Path = "/api/Users"
+            };
+
+            Response.Cookies.Append(RefreshTokenCookieName, refreshToken, options);
+        }
+
+        private void ClearRefreshTokenCookie()
+        {
+            var options = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(-1),
+                Path = "/api/Users"
+            };
+
+            Response.Cookies.Append(RefreshTokenCookieName, string.Empty, options);
         }
     }
 }

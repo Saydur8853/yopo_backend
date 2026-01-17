@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,12 +14,14 @@ namespace YopoBackend.Services
     /// </summary>
     public class JwtService : IJwtService
     {
+        private const string RefreshTokenType = "Refresh";
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _context;
         private readonly string _secretKey;
         private readonly string _issuer;
         private readonly string _audience;
         private readonly int _expirationHours;
+        private readonly int _refreshTokenDays;
 
         /// <summary>
         /// Initializes a new instance of the JwtService class.
@@ -35,6 +38,7 @@ namespace YopoBackend.Services
             _issuer = _configuration["Jwt:Issuer"] ?? "YopoBackend";
             _audience = _configuration["Jwt:Audience"] ?? "YopoBackend";
             _expirationHours = int.Parse(_configuration["Jwt:ExpirationHours"] ?? "24");
+            _refreshTokenDays = int.Parse(_configuration["Jwt:RefreshTokenDays"] ?? "7");
         }
 
         /// <summary>
@@ -131,6 +135,94 @@ namespace YopoBackend.Services
             await _context.SaveChangesAsync();
 
             return (tokenString, expiresAt);
+        }
+
+        /// <summary>
+        /// Generates a refresh token for the specified user.
+        /// </summary>
+        /// <param name="userId">The user ID for whom to generate the refresh token.</param>
+        /// <param name="deviceInfo">Optional device information.</param>
+        /// <param name="ipAddress">Optional IP address.</param>
+        /// <returns>A tuple containing the refresh token string and its expiration date.</returns>
+        public async Task<(string Token, DateTime ExpiresAt)> GenerateRefreshTokenAsync(int userId, string? deviceInfo = null, string? ipAddress = null)
+        {
+            var refreshToken = CreateRefreshToken();
+            var expiresAt = DateTime.UtcNow.AddDays(_refreshTokenDays);
+
+            var userToken = new UserToken
+            {
+                UserId = userId,
+                TokenValue = HashToken(refreshToken),
+                TokenType = RefreshTokenType,
+                ExpiresAt = expiresAt,
+                IsActive = true,
+                IsRevoked = false,
+                DeviceInfo = deviceInfo,
+                IpAddress = ipAddress,
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.UserTokens.Add(userToken);
+            await _context.SaveChangesAsync();
+
+            return (refreshToken, expiresAt);
+        }
+
+        /// <summary>
+        /// Gets a valid refresh token record for the provided token string.
+        /// </summary>
+        /// <param name="refreshToken">The refresh token from the client.</param>
+        /// <returns>The refresh token record if valid; otherwise, null.</returns>
+        public async Task<UserToken?> GetValidRefreshTokenAsync(string refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return null;
+            }
+
+            var tokenHash = HashToken(refreshToken);
+            var tokenRecord = await _context.UserTokens
+                .FirstOrDefaultAsync(t => t.TokenType == RefreshTokenType && t.TokenValue == tokenHash);
+
+            return tokenRecord != null && tokenRecord.IsValid ? tokenRecord : null;
+        }
+
+        /// <summary>
+        /// Rotates a refresh token by revoking the current one and issuing a new one.
+        /// </summary>
+        /// <param name="refreshToken">The refresh token record to rotate.</param>
+        /// <param name="deviceInfo">Optional device information.</param>
+        /// <param name="ipAddress">Optional IP address.</param>
+        /// <returns>A tuple containing the new refresh token string and its expiration date.</returns>
+        public async Task<(string Token, DateTime ExpiresAt)> RotateRefreshTokenAsync(UserToken refreshToken, string? deviceInfo = null, string? ipAddress = null)
+        {
+            refreshToken.IsRevoked = true;
+            refreshToken.IsActive = false;
+            refreshToken.RevokedAt = DateTime.UtcNow;
+            refreshToken.LastUsedAt = DateTime.UtcNow;
+
+            var newRefreshToken = CreateRefreshToken();
+            var expiresAt = DateTime.UtcNow.AddDays(_refreshTokenDays);
+
+            var userToken = new UserToken
+            {
+                UserId = refreshToken.UserId,
+                TokenValue = HashToken(newRefreshToken),
+                TokenType = RefreshTokenType,
+                ExpiresAt = expiresAt,
+                IsActive = true,
+                IsRevoked = false,
+                DeviceInfo = deviceInfo ?? refreshToken.DeviceInfo,
+                IpAddress = ipAddress ?? refreshToken.IpAddress,
+                CreatedBy = refreshToken.UserId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.UserTokens.Add(userToken);
+            await _context.SaveChangesAsync();
+
+            return (newRefreshToken, expiresAt);
         }
 
         /// <summary>
@@ -242,6 +334,43 @@ namespace YopoBackend.Services
         }
 
         /// <summary>
+        /// Revokes a specific refresh token, making it invalid.
+        /// </summary>
+        /// <param name="refreshToken">The refresh token to revoke.</param>
+        /// <returns>True if the token was successfully revoked; otherwise, false.</returns>
+        public async Task<bool> RevokeRefreshTokenAsync(string refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return false;
+            }
+
+            try
+            {
+                var tokenHash = HashToken(refreshToken);
+                var userToken = await _context.UserTokens
+                    .FirstOrDefaultAsync(t => t.TokenType == RefreshTokenType && t.TokenValue == tokenHash);
+
+                if (userToken != null)
+                {
+                    userToken.IsRevoked = true;
+                    userToken.IsActive = false;
+                    userToken.RevokedAt = DateTime.UtcNow;
+                    userToken.LastUsedAt = DateTime.UtcNow;
+
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+            }
+            catch
+            {
+                // Refresh token revocation failed
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Revokes all tokens for a specific user.
         /// </summary>
         /// <param name="userId">The user ID whose tokens should be revoked.</param>
@@ -273,6 +402,43 @@ namespace YopoBackend.Services
             catch
             {
                 // Token revocation failed
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Revokes all refresh tokens for a specific user.
+        /// </summary>
+        /// <param name="userId">The user ID whose refresh tokens should be revoked.</param>
+        /// <returns>The number of refresh tokens that were revoked.</returns>
+        public async Task<int> RevokeAllRefreshTokensAsync(int userId)
+        {
+            try
+            {
+                var userTokens = await _context.UserTokens
+                    .Where(t => t.UserId == userId && t.TokenType == RefreshTokenType && t.IsActive && !t.IsRevoked)
+                    .ToListAsync();
+
+                var revokedCount = 0;
+                foreach (var token in userTokens)
+                {
+                    token.IsRevoked = true;
+                    token.IsActive = false;
+                    token.RevokedAt = DateTime.UtcNow;
+                    token.LastUsedAt = DateTime.UtcNow;
+                    revokedCount++;
+                }
+
+                if (revokedCount > 0)
+                {
+                    await _context.SaveChangesAsync();
+                }
+
+                return revokedCount;
+            }
+            catch
+            {
+                // Refresh token revocation failed
                 return 0;
             }
         }
@@ -351,6 +517,18 @@ namespace YopoBackend.Services
                 // Failed to get tokens
                 return new List<UserToken>();
             }
+        }
+
+        private static string CreateRefreshToken()
+        {
+            var bytes = RandomNumberGenerator.GetBytes(64);
+            return Convert.ToBase64String(bytes);
+        }
+
+        private static string HashToken(string value)
+        {
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+            return Convert.ToBase64String(hashBytes);
         }
     }
 }
