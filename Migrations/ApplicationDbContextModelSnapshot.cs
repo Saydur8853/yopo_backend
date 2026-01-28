@@ -423,6 +423,124 @@ namespace YopoBackend.Migrations
                     b.ToTable("IntercomAccessLogs");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomFaceBiometric", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AppVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("AppVersion");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DeviceModel")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("DeviceModel");
+
+                    b.Property<string>("DevicePlatform")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("DevicePlatform");
+
+                    b.Property<string>("FrontImageHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("FrontImageHash");
+
+                    b.Property<string>("FrontImageMimeType")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("FrontImageMimeType");
+
+                    b.Property<string>("FrontImagePublicId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("FrontImagePublicId");
+
+                    b.Property<string>("FrontImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)")
+                        .HasColumnName("FrontImageUrl");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IsActive");
+
+                    b.Property<string>("LeftImageHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("LeftImageHash");
+
+                    b.Property<string>("LeftImageMimeType")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("LeftImageMimeType");
+
+                    b.Property<string>("LeftImagePublicId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("LeftImagePublicId");
+
+                    b.Property<string>("LeftImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)")
+                        .HasColumnName("LeftImageUrl");
+
+                    b.Property<string>("RightImageHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("RightImageHash");
+
+                    b.Property<string>("RightImageMimeType")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("RightImageMimeType");
+
+                    b.Property<string>("RightImagePublicId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("RightImagePublicId");
+
+                    b.Property<string>("RightImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)")
+                        .HasColumnName("RightImageUrl");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("UpdatedAt");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("UserId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("IntercomFaceBiometrics");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomMasterPin", b =>
                 {
                     b.Property<int>("Id")
@@ -1803,6 +1921,17 @@ namespace YopoBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("Intercom");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomFaceBiometric", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.UserCRUD.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomMasterPin", b =>

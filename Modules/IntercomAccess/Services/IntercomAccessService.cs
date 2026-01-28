@@ -1,10 +1,14 @@
 using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using YopoBackend.Auth;
+using YopoBackend.Constants;
 using YopoBackend.Data;
 using YopoBackend.Modules.IntercomAccess.DTOs;
 using YopoBackend.Modules.IntercomAccess.Models;
+using YopoBackend.Modules.IntercomCRUD.Models;
+using YopoBackend.Utils;
 
 namespace YopoBackend.Modules.IntercomAccess.Services
 {
@@ -173,7 +177,7 @@ namespace YopoBackend.Modules.IntercomAccess.Services
             return new PinOperationResponseDTO { Success = true, Message = "Pin updated." };
         }
 
-        public async Task<VerifyPinResponseDTO> VerifyPinAsync(int intercomId, string pin, string? ip, string? deviceInfo)
+        public async Task<VerifyPinResponseDTO> VerifyPinAsync(int intercomId, VerifyAccessDTO dto, string? ip, string? deviceInfo)
         {
             var now = DateTime.UtcNow;
 
@@ -184,51 +188,198 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 return new VerifyPinResponseDTO { Granted = false, Reason = "Intercom not found", CredentialType = "None", CredentialRefId = null, Timestamp = now };
             }
 
-            // Try AccessCodes first (intercom-specific or building-wide), active and not expired
-            var codeCandidates = await _context.Set<IntercomAccessCode>()
-                .Where(c => c.IsActive && (c.ExpiresAt == null || c.ExpiresAt > now)
-                            && (c.ValidFrom == null || c.ValidFrom <= now)
-                            && (c.IntercomId == intercomId || (c.IntercomId == null && c.BuildingId == intercom.BuildingId)))
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
-
-            foreach (var c in codeCandidates)
+            var pinProvided = !string.IsNullOrWhiteSpace(dto.Pin);
+            if (pinProvided)
             {
-                if (BCrypt.Net.BCrypt.Verify(pin, c.CodeHash))
-                {
-                    if (c.IsSingleUse)
-                    {
-                        c.IsActive = false;
-                    }
+                // Try AccessCodes first (intercom-specific or building-wide), active and not expired
+                var codeCandidates = await _context.Set<IntercomAccessCode>()
+                    .Where(c => c.IsActive && (c.ExpiresAt == null || c.ExpiresAt > now)
+                                && (c.ValidFrom == null || c.ValidFrom <= now)
+                                && (c.IntercomId == intercomId || (c.IntercomId == null && c.BuildingId == intercom.BuildingId)))
+                    .OrderByDescending(c => c.CreatedAt)
+                    .ToListAsync();
 
-                    _context.Add(new IntercomAccessLog {
-                        IntercomId = intercomId,
-                        UserId = c.CreatedBy, // attribute to creator for auditing, if desired
-                        CredentialType = "AccessCode",
-                        CredentialRefId = c.Id,
-                        IsSuccess = true,
-                        OccurredAt = now,
-                        IpAddress = ip,
-                        DeviceInfo = deviceInfo
-                    });
-                    await _context.SaveChangesAsync();
-                    return new VerifyPinResponseDTO { Granted = true, Reason = "OK", CredentialType = "AccessCode", CredentialRefId = c.Id, Timestamp = now };
+                foreach (var c in codeCandidates)
+                {
+                    if (BCrypt.Net.BCrypt.Verify(dto.Pin!, c.CodeHash))
+                    {
+                        if (c.IsSingleUse)
+                        {
+                            c.IsActive = false;
+                        }
+
+                        _context.Add(new IntercomAccessLog {
+                            IntercomId = intercomId,
+                            UserId = c.CreatedBy, // attribute to creator for auditing, if desired
+                            CredentialType = "AccessCode",
+                            CredentialRefId = c.Id,
+                            IsSuccess = true,
+                            OccurredAt = now,
+                            IpAddress = ip,
+                            DeviceInfo = deviceInfo
+                        });
+                        await _context.SaveChangesAsync();
+                        return new VerifyPinResponseDTO { Granted = true, Reason = "OK", CredentialType = "AccessCode", CredentialRefId = c.Id, Timestamp = now };
+                    }
                 }
             }
 
-            // Optional: Master pin fallback (if you want to keep admin override)
-            var master = await _context.Set<IntercomMasterPin>().FirstOrDefaultAsync(x => x.IntercomId == intercomId && x.IsActive);
-            if (master != null && BCrypt.Net.BCrypt.Verify(pin, master.PinHash))
+            if (pinProvided)
             {
-                _context.Add(new IntercomAccessLog { IntercomId = intercomId, UserId = null, CredentialType = "Master", CredentialRefId = master.Id, IsSuccess = true, OccurredAt = now, IpAddress = ip, DeviceInfo = deviceInfo });
-                await _context.SaveChangesAsync();
-                return new VerifyPinResponseDTO { Granted = true, Reason = "OK", CredentialType = "Master", CredentialRefId = master.Id, Timestamp = now };
+                // Optional: Master pin fallback (if you want to keep admin override)
+                var master = await _context.Set<IntercomMasterPin>().FirstOrDefaultAsync(x => x.IntercomId == intercomId && x.IsActive);
+                if (master != null && BCrypt.Net.BCrypt.Verify(dto.Pin!, master.PinHash))
+                {
+                    _context.Add(new IntercomAccessLog { IntercomId = intercomId, UserId = null, CredentialType = "Master", CredentialRefId = master.Id, IsSuccess = true, OccurredAt = now, IpAddress = ip, DeviceInfo = deviceInfo });
+                    await _context.SaveChangesAsync();
+                    return new VerifyPinResponseDTO { Granted = true, Reason = "OK", CredentialType = "Master", CredentialRefId = master.Id, Timestamp = now };
+                }
+            }
+
+            if (dto.Face != null)
+            {
+                var faceResult = await TryVerifyFaceAsync(intercom, dto.Face, ip, deviceInfo);
+                if (faceResult != null)
+                {
+                    return faceResult;
+                }
             }
 
             // Log failed attempt
             _context.Add(new IntercomAccessLog { IntercomId = intercomId, UserId = null, CredentialType = "None", CredentialRefId = null, IsSuccess = false, Reason = "Invalid or expired", OccurredAt = now, IpAddress = ip, DeviceInfo = deviceInfo });
             await _context.SaveChangesAsync();
             return new VerifyPinResponseDTO { Granted = false, Reason = "Invalid or expired", CredentialType = "None", CredentialRefId = null, Timestamp = now };
+        }
+
+        private async Task<VerifyPinResponseDTO?> TryVerifyFaceAsync(Intercom intercom, FaceBiometricPayloadDTO face, string? ip, string? deviceInfo)
+        {
+            var now = DateTime.UtcNow;
+
+            if (!TryValidateFacePayload(face, out var validationError, out var front, out var left, out var right))
+            {
+                return new VerifyPinResponseDTO { Granted = false, Reason = validationError ?? "Invalid face payload", CredentialType = "Face", CredentialRefId = null, Timestamp = now };
+            }
+
+            var match = await _context.Set<IntercomFaceBiometric>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.IsActive
+                    && f.FrontImageHash == front.Hash
+                    && f.LeftImageHash == left.Hash
+                    && f.RightImageHash == right.Hash);
+
+            if (match == null)
+            {
+                return new VerifyPinResponseDTO { Granted = false, Reason = "Face not recognized", CredentialType = "Face", CredentialRefId = null, Timestamp = now };
+            }
+
+            if (!await UserHasBuildingAccessAsync(match.UserId, intercom.BuildingId))
+            {
+                return new VerifyPinResponseDTO { Granted = false, Reason = "User has no access to this building", CredentialType = "Face", CredentialRefId = match.Id, Timestamp = now };
+            }
+
+            _context.Add(new IntercomAccessLog
+            {
+                IntercomId = intercom.IntercomId,
+                UserId = match.UserId,
+                CredentialType = "Face",
+                CredentialRefId = match.Id,
+                IsSuccess = true,
+                OccurredAt = now,
+                IpAddress = ip,
+                DeviceInfo = deviceInfo
+            });
+            await _context.SaveChangesAsync();
+
+            return new VerifyPinResponseDTO { Granted = true, Reason = "OK", CredentialType = "Face", CredentialRefId = match.Id, Timestamp = now };
+        }
+
+        private static bool TryValidateFacePayload(
+            FaceBiometricPayloadDTO face,
+            out string? error,
+            out (byte[] Bytes, string MimeType, string Hash) front,
+            out (byte[] Bytes, string MimeType, string Hash) left,
+            out (byte[] Bytes, string MimeType, string Hash) right)
+        {
+            error = null;
+            front = default;
+            left = default;
+            right = default;
+
+            if (string.IsNullOrWhiteSpace(face.FrontImageBase64) ||
+                string.IsNullOrWhiteSpace(face.LeftImageBase64) ||
+                string.IsNullOrWhiteSpace(face.RightImageBase64))
+            {
+                error = "All three face images are required.";
+                return false;
+            }
+
+            var frontValidation = ImageUtils.ValidateBase64Image(face.FrontImageBase64);
+            if (!frontValidation.IsValid || frontValidation.ImageBytes == null || string.IsNullOrWhiteSpace(frontValidation.MimeType))
+            {
+                error = $"Invalid front image: {frontValidation.ErrorMessage ?? "Unsupported image format."}";
+                return false;
+            }
+
+            var leftValidation = ImageUtils.ValidateBase64Image(face.LeftImageBase64);
+            if (!leftValidation.IsValid || leftValidation.ImageBytes == null || string.IsNullOrWhiteSpace(leftValidation.MimeType))
+            {
+                error = $"Invalid left image: {leftValidation.ErrorMessage ?? "Unsupported image format."}";
+                return false;
+            }
+
+            var rightValidation = ImageUtils.ValidateBase64Image(face.RightImageBase64);
+            if (!rightValidation.IsValid || rightValidation.ImageBytes == null || string.IsNullOrWhiteSpace(rightValidation.MimeType))
+            {
+                error = $"Invalid right image: {rightValidation.ErrorMessage ?? "Unsupported image format."}";
+                return false;
+            }
+
+            front = (frontValidation.ImageBytes, frontValidation.MimeType, ComputeHash(frontValidation.ImageBytes));
+            left = (leftValidation.ImageBytes, leftValidation.MimeType, ComputeHash(leftValidation.ImageBytes));
+            right = (rightValidation.ImageBytes, rightValidation.MimeType, ComputeHash(rightValidation.ImageBytes));
+            return true;
+        }
+
+        private static string ComputeHash(byte[] bytes)
+        {
+            var hash = SHA256.HashData(bytes);
+            return Convert.ToHexString(hash).ToLowerInvariant();
+        }
+
+        private async Task<bool> UserHasBuildingAccessAsync(int userId, int buildingId)
+        {
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+            if (user == null)
+            {
+                return false;
+            }
+
+            if (user.UserTypeId == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID)
+            {
+                return true;
+            }
+
+            if (user.UserTypeId == UserTypeConstants.TENANT_USER_TYPE_ID)
+            {
+                var tenantBuildingId = await ResolveTenantBuildingIdAsync(userId);
+                return tenantBuildingId.HasValue && tenantBuildingId.Value == buildingId;
+            }
+
+            var hasExplicit = await _context.UserBuildingPermissions
+                .AsNoTracking()
+                .AnyAsync(p => p.UserId == userId && p.BuildingId == buildingId && p.IsActive);
+            if (hasExplicit)
+            {
+                return true;
+            }
+
+            var building = await _context.Buildings.AsNoTracking().FirstOrDefaultAsync(b => b.BuildingId == buildingId);
+            if (building == null)
+            {
+                return false;
+            }
+
+            return building.CustomerId == userId || building.CreatedBy == userId;
         }
 
         public async Task<(List<YopoBackend.Modules.IntercomAccess.DTOs.AccessLogDTO> items, int total)> GetAccessLogsAsync(

@@ -15,6 +15,7 @@ using YopoBackend.Modules.TicketCRUD.Models;
 using YopoBackend.Modules.TermsConditionsCRUD.Models;
 using YopoBackend.Modules.VerifyIdentity.Models;
 using YopoBackend.Models;
+using YopoBackend.Modules.IntercomAccess.Models;
 
 namespace YopoBackend.Data
 {
@@ -129,6 +130,7 @@ namespace YopoBackend.Data
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomUserPin> IntercomUserPins { get; set; }
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog> IntercomAccessLogs { get; set; }
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessCode> IntercomAccessCodes { get; set; }
+        public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomFaceBiometric> IntercomFaceBiometrics { get; set; }
 
         // Module: Messaging
         public DbSet<Message> Messages { get; set; }
@@ -712,6 +714,35 @@ namespace YopoBackend.Data
                       .WithMany()
                       .HasForeignKey(e => e.CreatedBy)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure IntercomFaceBiometric (user face enrollment)
+            modelBuilder.Entity<YopoBackend.Modules.IntercomAccess.Models.IntercomFaceBiometric>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.UserId).IsUnique();
+                entity.Property(e => e.FrontImageUrl).HasMaxLength(2048);
+                entity.Property(e => e.FrontImagePublicId).HasMaxLength(255);
+                entity.Property(e => e.LeftImageUrl).HasMaxLength(2048);
+                entity.Property(e => e.LeftImagePublicId).HasMaxLength(255);
+                entity.Property(e => e.RightImageUrl).HasMaxLength(2048);
+                entity.Property(e => e.RightImagePublicId).HasMaxLength(255);
+                entity.Property(e => e.FrontImageHash).HasMaxLength(64);
+                entity.Property(e => e.LeftImageHash).HasMaxLength(64);
+                entity.Property(e => e.RightImageHash).HasMaxLength(64);
+                entity.Property(e => e.FrontImageMimeType).HasMaxLength(50);
+                entity.Property(e => e.LeftImageMimeType).HasMaxLength(50);
+                entity.Property(e => e.RightImageMimeType).HasMaxLength(50);
+                entity.Property(e => e.DevicePlatform).HasMaxLength(20);
+                entity.Property(e => e.DeviceModel).HasMaxLength(100);
+                entity.Property(e => e.AppVersion).HasMaxLength(50);
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Configure Message entity (Messaging Module)

@@ -47,21 +47,21 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
 
 
         /// <summary>
-        /// Verify a PIN for an intercom and return an allow or deny decision.
+        /// Verify a PIN or face payload for an intercom and return an allow or deny decision.
         /// </summary>
         /// <remarks>
-        /// Use this endpoint from an intercom device to validate a user, master, or access code PIN.
+        /// Use this endpoint from an intercom device to validate a user, master, access code PIN, or face payload.
         /// </remarks>
         /// <param name="intercomId">Target intercom ID.</param>
         /// <param name="dto">PIN payload to verify.</param>
         [AllowAnonymous]
-        [HttpPost("verify")] // endpoint a device can call to verify a pin
-        public async Task<IActionResult> VerifyPin(int intercomId, [FromBody] VerifyPinDTO dto)
+        [HttpPost("verify")] // endpoint a device can call to verify a pin or face
+        public async Task<IActionResult> VerifyPin(int intercomId, [FromBody] VerifyAccessDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             var device = Request.Headers["User-Agent"].ToString();
-            var res = await _service.VerifyPinAsync(intercomId, dto.Pin, ip, device);
+            var res = await _service.VerifyPinAsync(intercomId, dto, ip, device);
             return Ok(res);
         }
 

@@ -79,6 +79,7 @@ builder.Services.AddScoped<YopoBackend.Modules.IntercomCRUD.Services.IIntercomSe
 
 // Module: Intercom Access Control
 builder.Services.AddScoped<YopoBackend.Modules.IntercomAccess.Services.IIntercomAccessService, YopoBackend.Modules.IntercomAccess.Services.IntercomAccessService>();
+builder.Services.AddScoped<YopoBackend.Modules.IntercomAccess.Services.IFaceBiometricService, YopoBackend.Modules.IntercomAccess.Services.FaceBiometricService>();
 
 // Module: CCTV (Module ID: 10)
 // Module: CCTV (Module ID: 10)
@@ -230,6 +231,7 @@ static string GetControllerDisplayOrder(string? controllerName)
         "intercoms" => "08-Intercoms",
         "intercomaccess" => "09-Intercom Access",
         "accesscodes" => "09-Intercom Access",
+        "facebiometrics" => "09-Intercom Access",
         "accesslogs" => "10-Audit/Access Logs",
         "cctv" => "11-CCTV",
         "message" => "12-Messaging",

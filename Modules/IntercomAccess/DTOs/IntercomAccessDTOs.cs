@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace YopoBackend.Modules.IntercomAccess.DTOs
 {
@@ -34,12 +35,76 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public string? OldPin { get; set; }
     }
 
-    public class VerifyPinDTO
+    public class DeviceInfoDTO
     {
         [Required]
-        [MinLength(4)]
         [MaxLength(20)]
-        public string Pin { get; set; } = string.Empty;
+        public string Platform { get; set; } = string.Empty; // android|ios
+
+        [MaxLength(100)]
+        public string? Model { get; set; }
+
+        [MaxLength(50)]
+        public string? AppVersion { get; set; }
+    }
+
+    public class FaceBiometricPayloadDTO
+    {
+        public string? FrontImageBase64 { get; set; }
+        public string? LeftImageBase64 { get; set; }
+        public string? RightImageBase64 { get; set; }
+        public DeviceInfoDTO? DeviceInfo { get; set; }
+    }
+
+    public class VerifyAccessDTO : IValidatableObject
+    {
+        [MinLength(4)]
+        [MaxLength(200)]
+        public string? Pin { get; set; }
+
+        public FaceBiometricPayloadDTO? Face { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (string.IsNullOrWhiteSpace(Pin) && Face == null)
+            {
+                yield return new ValidationResult("Provide either Pin or Face payload.", new[] { nameof(Pin), nameof(Face) });
+                yield break;
+            }
+
+            if (Face != null)
+            {
+                if (string.IsNullOrWhiteSpace(Face.FrontImageBase64) ||
+                    string.IsNullOrWhiteSpace(Face.LeftImageBase64) ||
+                    string.IsNullOrWhiteSpace(Face.RightImageBase64))
+                {
+                    yield return new ValidationResult("All three face images are required.", new[] { nameof(Face.FrontImageBase64), nameof(Face.LeftImageBase64), nameof(Face.RightImageBase64) });
+                }
+
+                if (Face.DeviceInfo == null || string.IsNullOrWhiteSpace(Face.DeviceInfo.Platform))
+                {
+                    yield return new ValidationResult("DeviceInfo.platform is required.", new[] { nameof(Face.DeviceInfo) });
+                }
+            }
+        }
+    }
+
+    public class FaceBiometricUploadDTO : FaceBiometricPayloadDTO, IValidatableObject
+    {
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (string.IsNullOrWhiteSpace(FrontImageBase64) ||
+                string.IsNullOrWhiteSpace(LeftImageBase64) ||
+                string.IsNullOrWhiteSpace(RightImageBase64))
+            {
+                yield return new ValidationResult("All three face images are required.", new[] { nameof(FrontImageBase64), nameof(LeftImageBase64), nameof(RightImageBase64) });
+            }
+
+            if (DeviceInfo == null || string.IsNullOrWhiteSpace(DeviceInfo.Platform))
+            {
+                yield return new ValidationResult("DeviceInfo.platform is required.", new[] { nameof(DeviceInfo) });
+            }
+        }
     }
 
     public class PinOperationResponseDTO
@@ -113,5 +178,15 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public DateTime? ExpiresAt { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+    }
+
+    public class FaceBiometricRecordDTO
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public List<string> Files { get; set; } = new();
+        public DeviceInfoDTO? DeviceInfo { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }
