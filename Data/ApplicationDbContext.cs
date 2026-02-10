@@ -131,6 +131,7 @@ namespace YopoBackend.Data
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessLog> IntercomAccessLogs { get; set; }
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomAccessCode> IntercomAccessCodes { get; set; }
         public DbSet<YopoBackend.Modules.IntercomAccess.Models.IntercomFaceBiometric> IntercomFaceBiometrics { get; set; }
+        public DbSet<YopoBackend.Modules.IntercomAccess.Models.TempIntercom> TempIntercoms { get; set; }
 
         // Module: Messaging
         public DbSet<Message> Messages { get; set; }
@@ -743,6 +744,22 @@ namespace YopoBackend.Data
                       .WithMany()
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure temp_intercom (pending face sync)
+            modelBuilder.Entity<YopoBackend.Modules.IntercomAccess.Models.TempIntercom>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("temp_intercom");
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => new { e.TenantId, e.BuildingId }).IsUnique();
+                entity.Property(e => e.TenantName).HasMaxLength(200);
+                entity.Property(e => e.FrontImageUrl).HasMaxLength(2048);
+                entity.Property(e => e.LeftImageUrl).HasMaxLength(2048);
+                entity.Property(e => e.RightImageUrl).HasMaxLength(2048);
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             });
 
             // Configure Message entity (Messaging Module)

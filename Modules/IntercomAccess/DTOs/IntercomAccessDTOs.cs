@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace YopoBackend.Modules.IntercomAccess.DTOs
 {
@@ -188,5 +189,29 @@ namespace YopoBackend.Modules.IntercomAccess.DTOs
         public DeviceInfoDTO? DeviceInfo { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+    }
+
+    public class PendingTenantFaceDTO
+    {
+        [JsonPropertyName("tenantId")]
+        public int TenantId { get; set; }
+
+        [JsonPropertyName("tenantName")]
+        public string TenantName { get; set; } = string.Empty;
+
+        [JsonPropertyName("unitId")]
+        public int? UnitId { get; set; }
+
+        [JsonPropertyName("buildingId")]
+        public int BuildingId { get; set; }
+
+        [JsonPropertyName("frontImage")]
+        public string FrontImage { get; set; } = string.Empty;
+
+        [JsonPropertyName("leftImage")]
+        public string LeftImage { get; set; } = string.Empty;
+
+        [JsonPropertyName("rightImage")]
+        public string RightImage { get; set; } = string.Empty;
     }
 }

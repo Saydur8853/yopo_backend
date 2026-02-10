@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using YopoBackend.Data;
 using YopoBackend.Modules.IntercomAccess.DTOs;
 using YopoBackend.Modules.IntercomAccess.Models;
+using YopoBackend.Constants;
 using YopoBackend.Services;
 using YopoBackend.Utils;
 
@@ -91,6 +92,8 @@ namespace YopoBackend.Modules.IntercomAccess.Services
 
             await _context.SaveChangesAsync();
 
+            await UpsertTempIntercomAsync(userId, front.Url, left.Url, right.Url);
+
             return (true, "Uploaded successfully", MapToDto(record));
         }
 
@@ -172,6 +175,89 @@ namespace YopoBackend.Modules.IntercomAccess.Services
                 CreatedAt = record.CreatedAt,
                 UpdatedAt = record.UpdatedAt
             };
+        }
+
+        private async Task UpsertTempIntercomAsync(int userId, string frontUrl, string leftUrl, string rightUrl)
+        {
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+
+            if (user == null || user.UserTypeId != UserTypeConstants.TENANT_USER_TYPE_ID)
+            {
+                return;
+            }
+
+            int? buildingId = null;
+            int? unitId = null;
+            YopoBackend.Modules.TenantCRUD.Models.Tenant? tenant = null;
+
+            var unit = await _context.Units
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.TenantId == userId);
+
+            if (unit != null)
+            {
+                buildingId = unit.BuildingId;
+                unitId = unit.UnitId;
+                tenant = await _context.Tenants
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.UnitId == unit.UnitId);
+
+                if (tenant == null)
+                {
+                    tenant = await _context.Tenants
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(t => t.TenantId == userId);
+                }
+            }
+            else
+            {
+                tenant = await _context.Tenants
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.TenantId == userId);
+
+                if (tenant != null)
+                {
+                    buildingId = tenant.BuildingId;
+                    unitId = tenant.UnitId;
+                }
+            }
+
+            if (tenant == null || !buildingId.HasValue)
+            {
+                return;
+            }
+
+            var existing = await _context.Set<TempIntercom>()
+                .FirstOrDefaultAsync(t => t.TenantId == tenant.TenantId && t.BuildingId == buildingId.Value);
+
+            if (existing == null)
+            {
+                existing = new TempIntercom
+                {
+                    TenantId = tenant.TenantId,
+                    TenantName = tenant.TenantName,
+                    UnitId = unitId ?? tenant.UnitId,
+                    BuildingId = buildingId.Value,
+                    FrontImageUrl = frontUrl,
+                    LeftImageUrl = leftUrl,
+                    RightImageUrl = rightUrl,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Add(existing);
+            }
+            else
+            {
+                existing.TenantName = tenant.TenantName;
+                existing.UnitId = unitId ?? tenant.UnitId;
+                existing.FrontImageUrl = frontUrl;
+                existing.LeftImageUrl = leftUrl;
+                existing.RightImageUrl = rightUrl;
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
         }
     }
 }

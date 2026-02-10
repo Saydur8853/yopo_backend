@@ -80,6 +80,7 @@ builder.Services.AddScoped<YopoBackend.Modules.IntercomCRUD.Services.IIntercomSe
 // Module: Intercom Access Control
 builder.Services.AddScoped<YopoBackend.Modules.IntercomAccess.Services.IIntercomAccessService, YopoBackend.Modules.IntercomAccess.Services.IntercomAccessService>();
 builder.Services.AddScoped<YopoBackend.Modules.IntercomAccess.Services.IFaceBiometricService, YopoBackend.Modules.IntercomAccess.Services.FaceBiometricService>();
+builder.Services.AddScoped<YopoBackend.Modules.IntercomAccess.Services.IIntercomSyncService, YopoBackend.Modules.IntercomAccess.Services.IntercomSyncService>();
 
 // Module: CCTV (Module ID: 10)
 // Module: CCTV (Module ID: 10)
