@@ -16,6 +16,7 @@ using YopoBackend.Modules.TermsConditionsCRUD.Models;
 using YopoBackend.Modules.VerifyIdentity.Models;
 using YopoBackend.Models;
 using YopoBackend.Modules.IntercomAccess.Models;
+using YopoBackend.Modules.Energy.Models;
 
 namespace YopoBackend.Data
 {
@@ -149,6 +150,12 @@ namespace YopoBackend.Data
 
         // Module: TermsConditionsCRUD
         public DbSet<TermsAndCondition> TermsAndConditions { get; set; }
+
+        // Module: Energy
+        public DbSet<EnergyLocation> EnergyLocations { get; set; }
+        public DbSet<EnergyDewaMeter> EnergyDewaMeters { get; set; }
+        public DbSet<EnergyDewaBill> EnergyDewaBills { get; set; }
+        public DbSet<EnergyAlert> EnergyAlerts { get; set; }
 
         /// <summary>
         /// Configures the model and entity relationships using the model builder.
@@ -908,6 +915,106 @@ namespace YopoBackend.Data
                     .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            });
+
+            // Configure EnergyLocation entity (Energy Module)
+            modelBuilder.Entity<EnergyLocation>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.BuildingId);
+                entity.HasIndex(e => e.Name);
+                entity.Property(e => e.Id).HasMaxLength(50);
+                entity.Property(e => e.Name).HasMaxLength(200);
+                entity.Property(e => e.ShortName).HasMaxLength(50);
+                entity.Property(e => e.Address).HasMaxLength(500);
+                entity.Property(e => e.City).HasMaxLength(100).HasDefaultValue("Dubai");
+                entity.Property(e => e.Towers).HasMaxLength(500);
+                entity.Property(e => e.BmsType).HasMaxLength(200);
+                entity.Property(e => e.GatewayId).HasMaxLength(100);
+                entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("onboarding");
+                entity.Property(e => e.DesignDeltaT).HasColumnType("decimal(4,1)").HasDefaultValue(5.5m);
+                entity.Property(e => e.MqttTopicPrefix).HasMaxLength(100);
+                entity.Property(e => e.InfluxBucket).HasMaxLength(100);
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+                entity.Property(e => e.ConnectedSince).HasColumnType("datetime");
+                entity.Property(e => e.LastDataReceived).HasColumnType("datetime");
+
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Configure EnergyDewaMeter entity (Energy Module)
+            modelBuilder.Entity<EnergyDewaMeter>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.LocationId);
+                entity.HasIndex(e => e.AccountNumber);
+                entity.Property(e => e.AccountNumber).HasMaxLength(20);
+                entity.Property(e => e.PremiseLabel).HasMaxLength(10);
+                entity.Property(e => e.MeterNumber).HasMaxLength(20);
+                entity.Property(e => e.MultiplicationFactor).HasColumnType("decimal(10,2)");
+                entity.Property(e => e.CtRatio).HasMaxLength(20);
+                entity.Property(e => e.Description).HasMaxLength(200);
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne(e => e.Location)
+                    .WithMany(l => l.DewaMeters)
+                    .HasForeignKey(e => e.LocationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure EnergyDewaBill entity (Energy Module)
+            modelBuilder.Entity<EnergyDewaBill>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.LocationId);
+                entity.HasIndex(e => e.MeterId);
+                entity.HasIndex(e => new { e.LocationId, e.BillMonth });
+                entity.Property(e => e.BillMonth).HasMaxLength(7);
+                entity.Property(e => e.PeriodStart).HasColumnType("date");
+                entity.Property(e => e.PeriodEnd).HasColumnType("date");
+                entity.Property(e => e.ElectricityAed).HasColumnType("decimal(12,2)");
+                entity.Property(e => e.WaterCubicMeters).HasColumnType("decimal(10,3)");
+                entity.Property(e => e.WaterAed).HasColumnType("decimal(12,2)");
+                entity.Property(e => e.SewerageAed).HasColumnType("decimal(12,2)");
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne(e => e.Location)
+                    .WithMany()
+                    .HasForeignKey(e => e.LocationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Meter)
+                    .WithMany(m => m.Bills)
+                    .HasForeignKey(e => e.MeterId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure EnergyAlert entity (Energy Module)
+            modelBuilder.Entity<EnergyAlert>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.LocationId, e.IsActive });
+                entity.Property(e => e.Id).HasMaxLength(20);
+                entity.Property(e => e.Severity).HasMaxLength(10);
+                entity.Property(e => e.System).HasMaxLength(50);
+                entity.Property(e => e.Equipment).HasMaxLength(100);
+                entity.Property(e => e.Message).HasMaxLength(500);
+                entity.Property(e => e.Timestamp).HasColumnType("datetime");
+                entity.Property(e => e.AcknowledgedBy).HasMaxLength(100);
+                entity.Property(e => e.AcknowledgedAt).HasColumnType("datetime");
+                entity.Property(e => e.BmsReference).HasMaxLength(200);
+                entity.Property(e => e.RecommendedAction).HasMaxLength(500);
+                entity.Property(e => e.EstimatedSavingsAedMonth).HasColumnType("decimal(10,2)");
+                entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne(e => e.Location)
+                    .WithMany(l => l.Alerts)
+                    .HasForeignKey(e => e.LocationId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
         }

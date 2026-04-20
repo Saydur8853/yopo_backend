@@ -12,12 +12,13 @@ using YopoBackend.Services;
 using YopoBackend.Constants;
 using YopoBackend.Middleware;
 using DotNetEnv;
-using Microsoft.AspNetCore.Rewrite;
 using YopoBackend.Hubs;
 using YopoBackend.Modules.AnnouncementCRUD.Services;
 using YopoBackend.Modules.TicketCRUD.Services;
 using YopoBackend.Modules.TermsConditionsCRUD.Services;
 using YopoBackend.Swagger;
+using YopoBackend.Modules.Energy.DTOs;
+using YopoBackend.Modules.Energy.Services;
 
 // Load environment variables from .env file
 Env.Load();
@@ -104,6 +105,18 @@ builder.Services.AddScoped<ITermsAndConditionsService, TermsAndConditionsService
 // Module: VerifyIdentity
 builder.Services.AddScoped<YopoBackend.Modules.VerifyIdentity.Services.IVerifyIdentityService, YopoBackend.Modules.VerifyIdentity.Services.VerifyIdentityService>();
 
+// Module: Energy (env-driven configuration)
+builder.Services.Configure<InfluxDbSettings>(options =>
+{
+    options.Url = Environment.GetEnvironmentVariable("InfluxDb__Url") ?? string.Empty;
+    options.Token = Environment.GetEnvironmentVariable("InfluxDb__Token") ?? string.Empty;
+    options.Org = Environment.GetEnvironmentVariable("InfluxDb__Org") ?? string.Empty;
+    options.DefaultBucket = Environment.GetEnvironmentVariable("InfluxDb__DefaultBucket") ?? string.Empty;
+    options.DefaultTopicPrefix = Environment.GetEnvironmentVariable("InfluxDb__DefaultTopicPrefix") ?? string.Empty;
+});
+builder.Services.AddSingleton<IInfluxDbService, InfluxDbService>();
+builder.Services.AddScoped<IEnergyService, EnergyService>();
+
 // Configure MySQL Database
 var connectionString = Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
@@ -117,9 +130,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 // Configure JWT Authentication
-var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
-                  builder.Configuration["Jwt:SecretKey"] ?? 
-                  "YourDefaultSecretKeyThatShouldBeAtLeast32CharactersLong";
+var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY");
+if (string.IsNullOrWhiteSpace(jwtSecretKey))
+{
+    throw new InvalidOperationException("JWT_SECRET_KEY is missing. Set it in .env or host environment.");
+}
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "YopoBackend";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "YopoBackend";
 
@@ -243,6 +258,8 @@ static string GetControllerDisplayOrder(string? controllerName)
         "threadsocial" => "17-ThreadSocial",
         "usertypes" => "18-UserTypes",
         "verifyidentity" => "20-VerifyIdentity",
+        "energylocations" => "21-Energy",
+        "energyconsumption" => "21-Energy",
         _ => controllerName ?? "Other"
     };
 }
@@ -310,10 +327,6 @@ app.UseDefaultFiles();
 // Enable static files serving
 app.UseStaticFiles();
 
-// Add URL rewriting to redirect root path to auth.html
-app.UseRewriter(new RewriteOptions()
-    .AddRedirect("^$", "auth.html"));
-
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
@@ -330,6 +343,7 @@ app.MapHub<MessageHub>("/messageHub");
 app.MapHub<ThreadSocialHub>("/threadSocialHub");
 app.MapHub<AnnouncementHub>("/announcementHub");
 app.MapHub<TicketHub>("/ticketHub");
+app.MapFallbackToFile("index.html");
 
 // Ensure database is migrated and initialize default data
 if (!isDesignTime)

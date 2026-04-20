@@ -224,6 +224,294 @@ namespace YopoBackend.Migrations
                     b.ToTable("Buildings");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyAlert", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("Acknowledged")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("AcknowledgedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("AcknowledgedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("BmsReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Equipment")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal?>("EstimatedSavingsAedMonth")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("EventCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("LocationId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("RecommendedAction")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("System")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId", "IsActive");
+
+                    b.ToTable("Energy_Alerts");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyDewaBill", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BillMonth")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal>("ElectricityAed")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<int>("Kwh")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LocationId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("MeterId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MeterReadingCurrent")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MeterReadingPrevious")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("PeriodStart")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("SewerageAed")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal?>("WaterAed")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal?>("WaterCubicMeters")
+                        .HasColumnType("decimal(10,3)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("MeterId");
+
+                    b.HasIndex("LocationId", "BillMonth");
+
+                    b.ToTable("Energy_DewaBills");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyDewaMeter", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CtRatio")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("HasWater")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("LocationId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("MeterNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<decimal?>("MultiplicationFactor")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("PremiseLabel")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountNumber");
+
+                    b.HasIndex("LocationId");
+
+                    b.ToTable("Energy_DewaMeters");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyLocation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("Basements")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BmsType")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int?>("BuildingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasDefaultValue("Dubai");
+
+                    b.Property<DateTime?>("ConnectedSince")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal>("DesignDeltaT")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(4,1)")
+                        .HasDefaultValue(5.5m);
+
+                    b.Property<int>("Floors")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GatewayId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("InfluxBucket")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("LastDataReceived")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("MqttTopicPrefix")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("OccupancyPercent")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ShortName")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("onboarding");
+
+                    b.Property<int>("TotalUnits")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Towers")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Energy_Locations");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.FloorCRUD.Models.Floor", b =>
                 {
                     b.Property<int>("FloorId")
@@ -541,72 +829,6 @@ namespace YopoBackend.Migrations
                     b.ToTable("IntercomFaceBiometrics");
                 });
 
-            modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.TempIntercom", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BuildingId")
-                        .HasColumnType("int")
-                        .HasColumnName("BuildingId");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasColumnName("CreatedAt")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("FrontImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("varchar(2048)")
-                        .HasColumnName("FrontImageUrl");
-
-                    b.Property<string>("LeftImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("varchar(2048)")
-                        .HasColumnName("LeftImageUrl");
-
-                    b.Property<string>("RightImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("varchar(2048)")
-                        .HasColumnName("RightImageUrl");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int")
-                        .HasColumnName("TenantId");
-
-                    b.Property<string>("TenantName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
-                        .HasColumnName("TenantName");
-
-                    b.Property<int?>("UnitId")
-                        .HasColumnType("int")
-                        .HasColumnName("UnitId");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("UpdatedAt");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuildingId");
-
-                    b.HasIndex("TenantId");
-
-                    b.HasIndex("TenantId", "BuildingId")
-                        .IsUnique();
-
-                    b.ToTable("temp_intercom");
-                });
-
             modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.IntercomMasterPin", b =>
                 {
                     b.Property<int>("Id")
@@ -714,6 +936,72 @@ namespace YopoBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("IntercomUserPins");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.IntercomAccess.Models.TempIntercom", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int")
+                        .HasColumnName("BuildingId");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("FrontImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)")
+                        .HasColumnName("FrontImageUrl");
+
+                    b.Property<string>("LeftImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)")
+                        .HasColumnName("LeftImageUrl");
+
+                    b.Property<string>("RightImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)")
+                        .HasColumnName("RightImageUrl");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int")
+                        .HasColumnName("TenantId");
+
+                    b.Property<string>("TenantName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("TenantName");
+
+                    b.Property<int?>("UnitId")
+                        .HasColumnType("int")
+                        .HasColumnName("UnitId");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("UpdatedAt");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "BuildingId")
+                        .IsUnique();
+
+                    b.ToTable("temp_intercom", (string)null);
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.IntercomCRUD.Models.Intercom", b =>
@@ -1934,6 +2222,57 @@ namespace YopoBackend.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyAlert", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.Energy.Models.EnergyLocation", "Location")
+                        .WithMany("Alerts")
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Location");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyDewaBill", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.Energy.Models.EnergyLocation", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YopoBackend.Modules.Energy.Models.EnergyDewaMeter", "Meter")
+                        .WithMany("Bills")
+                        .HasForeignKey("MeterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Location");
+
+                    b.Navigation("Meter");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyDewaMeter", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.Energy.Models.EnergyLocation", "Location")
+                        .WithMany("DewaMeters")
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Location");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyLocation", b =>
+                {
+                    b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Building");
+                });
+
             modelBuilder.Entity("YopoBackend.Modules.FloorCRUD.Models.Floor", b =>
                 {
                     b.HasOne("YopoBackend.Modules.BuildingCRUD.Models.Building", "Building")
@@ -2354,6 +2693,18 @@ namespace YopoBackend.Migrations
                     b.Navigation("TenantUser");
 
                     b.Navigation("VerifiedByUser");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyDewaMeter", b =>
+                {
+                    b.Navigation("Bills");
+                });
+
+            modelBuilder.Entity("YopoBackend.Modules.Energy.Models.EnergyLocation", b =>
+                {
+                    b.Navigation("Alerts");
+
+                    b.Navigation("DewaMeters");
                 });
 
             modelBuilder.Entity("YopoBackend.Modules.UserTypeCRUD.Models.UserType", b =>
