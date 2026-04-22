@@ -114,6 +114,37 @@ namespace YopoBackend.Modules.Energy.Controllers
             }
         }
 
+        [HttpGet("topics/live")]
+        [ProducesResponseType(typeof(EnergyTopicLiveResponseDto), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(401)]
+        public async Task<ActionResult<EnergyTopicLiveResponseDto>> GetLiveTopics(
+            string locationId,
+            [FromQuery] int limit = 20)
+        {
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                return Unauthorized(new { message = "You are not authenticated." });
+            }
+
+            try
+            {
+                var result = await _energyService.GetLiveTopicsAsync(locationId, currentUserId.Value, limit);
+                if (result == null)
+                {
+                    return NotFound(new { message = $"Location '{locationId}' not found." });
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
         private int? GetCurrentUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

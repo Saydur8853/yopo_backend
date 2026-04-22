@@ -6,7 +6,6 @@ using YopoBackend.Data;
 using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Modules.Energy.DTOs;
 using YopoBackend.Modules.Energy.Models;
-using YopoBackend.Modules.UserCRUD.Models;
 
 namespace YopoBackend.Modules.Energy.Services
 {
@@ -15,17 +14,17 @@ namespace YopoBackend.Modules.Energy.Services
         private const decimal EffectiveRatePerKwh = 0.44m;
 
         private readonly ApplicationDbContext _context;
-        private readonly IInfluxDbService _influxDbService;
-        private readonly InfluxDbSettings _influxSettings;
+        private readonly IQuestDbService _questDbService;
+        private readonly QuestDbSettings _questSettings;
 
         public EnergyService(
             ApplicationDbContext context,
-            IInfluxDbService influxDbService,
-            IOptions<InfluxDbSettings> influxOptions)
+            IQuestDbService questDbService,
+            IOptions<QuestDbSettings> questOptions)
         {
             _context = context;
-            _influxDbService = influxDbService;
-            _influxSettings = influxOptions.Value;
+            _questDbService = questDbService;
+            _questSettings = questOptions.Value;
         }
 
         public async Task<List<EnergyLocationDto>> GetLocationsAsync(int currentUserId)
@@ -209,14 +208,8 @@ namespace YopoBackend.Modules.Energy.Services
                 .Where(b => b.LocationId == locationKey && EF.Functions.Like(b.BillMonth, baselineYearPrefix + "%"))
                 .SumAsync(b => (decimal?)b.ElectricityAed) ?? 0;
 
-            var bucket = ResolveBucket(energy);
             var topicPrefix = ResolveTopicPrefix(energy, building);
-            if (string.IsNullOrWhiteSpace(bucket) || string.IsNullOrWhiteSpace(topicPrefix))
-            {
-                return BuildConsumptionFallback(building.BuildingId.ToString(), baselineKwh, baselineCost, annualBaseline);
-            }
-
-            var currentKwh = await _influxDbService.GetCurrentMonthConsumptionKwhAsync(bucket, topicPrefix, now);
+            var currentKwh = await _questDbService.GetCurrentMonthConsumptionKwhAsync(building.BuildingId, now, topicPrefix);
             var current = (int)Math.Round(currentKwh, MidpointRounding.AwayFromZero);
             return BuildConsumptionFallback(building.BuildingId.ToString(), baselineKwh, baselineCost, annualBaseline, current);
         }
@@ -230,14 +223,8 @@ namespace YopoBackend.Modules.Energy.Services
             }
 
             var energy = await GetEnergyLocationByBuildingIdAsync(building.BuildingId);
-            var bucket = ResolveBucket(energy);
             var topicPrefix = ResolveTopicPrefix(energy, building);
-            if (string.IsNullOrWhiteSpace(bucket) || string.IsNullOrWhiteSpace(topicPrefix))
-            {
-                return 0;
-            }
-
-            var kw = await _influxDbService.GetCurrentPowerKwAsync(bucket, topicPrefix);
+            var kw = await _questDbService.GetCurrentPowerKwAsync(building.BuildingId, topicPrefix);
             return Math.Round(kw, 2);
         }
 
@@ -259,14 +246,8 @@ namespace YopoBackend.Modules.Energy.Services
                 .Where(b => b.LocationId == locationKey && b.BillMonth == baselineMonth)
                 .SumAsync(b => (int?)b.Kwh) ?? 0;
 
-            var bucket = ResolveBucket(energy);
             var topicPrefix = ResolveTopicPrefix(energy, building);
-            if (string.IsNullOrWhiteSpace(bucket) || string.IsNullOrWhiteSpace(topicPrefix))
-            {
-                return BuildEmptyHourly(monthBaseline);
-            }
-
-            var hours = await _influxDbService.GetHourlyAveragePowerKwAsync(bucket, topicPrefix, targetDate);
+            var hours = await _questDbService.GetHourlyAveragePowerKwAsync(building.BuildingId, targetDate, topicPrefix);
             var baselinePerHour = monthBaseline > 0 ? Math.Round(monthBaseline / 30d / 24d, 2) : 0;
 
             var result = new List<HourlyDataDto>(24);
@@ -327,6 +308,28 @@ namespace YopoBackend.Modules.Energy.Services
                     SavingsPct = 0
                 };
             }).ToList();
+        }
+
+        public async Task<EnergyTopicLiveResponseDto?> GetLiveTopicsAsync(string locationId, int currentUserId, int limit = 20)
+        {
+            var building = await GetAccessibleBuildingAsync(locationId, currentUserId);
+            if (building == null)
+            {
+                return null;
+            }
+
+            var energy = await GetEnergyLocationByBuildingIdAsync(building.BuildingId);
+            var topicPrefix = ResolveTopicPrefix(energy, building);
+            var readings = await _questDbService.GetLatestTopicReadingsAsync(building.BuildingId, topicPrefix, limit);
+
+            return new EnergyTopicLiveResponseDto
+            {
+                LocationId = building.BuildingId.ToString(),
+                BuildingName = building.Name,
+                TopicPrefix = topicPrefix,
+                TotalTopics = readings.Count,
+                Readings = readings
+            };
         }
 
         private async Task<Building?> GetBuildingAsync(string locationId)
@@ -429,48 +432,6 @@ namespace YopoBackend.Modules.Energy.Services
                 .FirstOrDefaultAsync();
         }
 
-        private static string ResolveLocationKey(int buildingId, EnergyLocation? energyLocation)
-        {
-            if (!string.IsNullOrWhiteSpace(energyLocation?.Id))
-            {
-                return energyLocation.Id;
-            }
-
-            return buildingId.ToString();
-        }
-
-        private static string ResolveStatus(Building building, EnergyLocation? energy)
-        {
-            if (!building.IsActive)
-            {
-                return "offline";
-            }
-
-            if (!string.IsNullOrWhiteSpace(energy?.Status))
-            {
-                return energy.Status;
-            }
-
-            if (energy?.LastDataReceived.HasValue == true && energy.LastDataReceived.Value > DateTime.UtcNow.AddMinutes(-10))
-            {
-                return "online";
-            }
-
-            return "active";
-        }
-
-        private string? ResolveBucket(EnergyLocation? energyLocation)
-        {
-            if (!string.IsNullOrWhiteSpace(energyLocation?.InfluxBucket))
-            {
-                return energyLocation.InfluxBucket;
-            }
-
-            return string.IsNullOrWhiteSpace(_influxSettings.DefaultBucket)
-                ? null
-                : _influxSettings.DefaultBucket;
-        }
-
         private string? ResolveTopicPrefix(EnergyLocation? energyLocation, Building building)
         {
             if (!string.IsNullOrWhiteSpace(energyLocation?.MqttTopicPrefix))
@@ -478,14 +439,21 @@ namespace YopoBackend.Modules.Energy.Services
                 return energyLocation.MqttTopicPrefix;
             }
 
-            if (string.IsNullOrWhiteSpace(_influxSettings.DefaultTopicPrefix))
+            if (string.IsNullOrWhiteSpace(_questSettings.DefaultTopicPrefixTemplate))
             {
                 return null;
             }
 
-            var value = _influxSettings.DefaultTopicPrefix
+            var shortName = energyLocation?.ShortName;
+            if (string.IsNullOrWhiteSpace(shortName))
+            {
+                shortName = building.Name;
+            }
+
+            var value = _questSettings.DefaultTopicPrefixTemplate
                 .Replace("{buildingId}", building.BuildingId.ToString())
-                .Replace("{buildingName}", Slugify(building.Name));
+                .Replace("{buildingName}", Slugify(building.Name))
+                .Replace("{shortName}", Slugify(shortName ?? string.Empty));
 
             return string.IsNullOrWhiteSpace(value) ? null : value;
         }
@@ -514,6 +482,36 @@ namespace YopoBackend.Modules.Energy.Services
             }
 
             return sb.ToString().Trim('-');
+        }
+
+        private static string ResolveLocationKey(int buildingId, EnergyLocation? energyLocation)
+        {
+            if (!string.IsNullOrWhiteSpace(energyLocation?.Id))
+            {
+                return energyLocation.Id;
+            }
+
+            return buildingId.ToString();
+        }
+
+        private static string ResolveStatus(Building building, EnergyLocation? energy)
+        {
+            if (!building.IsActive)
+            {
+                return "offline";
+            }
+
+            if (!string.IsNullOrWhiteSpace(energy?.Status))
+            {
+                return energy.Status;
+            }
+
+            if (energy?.LastDataReceived.HasValue == true && energy.LastDataReceived.Value > DateTime.UtcNow.AddMinutes(-10))
+            {
+                return "online";
+            }
+
+            return "active";
         }
 
         private static EnergyConsumptionDto BuildConsumptionFallback(

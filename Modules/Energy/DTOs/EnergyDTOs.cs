@@ -81,4 +81,24 @@ namespace YopoBackend.Modules.Energy.DTOs
         public bool HasWater { get; set; }
         public decimal? LastWaterAed { get; set; }
     }
+
+    public class EnergyTopicReadingDto
+    {
+        public string Topic { get; set; } = string.Empty;
+        public string? Site { get; set; }
+        public string? Category { get; set; }
+        public string? Subcategory { get; set; }
+        public string? Point { get; set; }
+        public double Value { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    public class EnergyTopicLiveResponseDto
+    {
+        public string LocationId { get; set; } = string.Empty;
+        public string BuildingName { get; set; } = string.Empty;
+        public string? TopicPrefix { get; set; }
+        public int TotalTopics { get; set; }
+        public List<EnergyTopicReadingDto> Readings { get; set; } = new();
+    }
 }

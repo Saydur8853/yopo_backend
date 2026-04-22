@@ -2,11 +2,12 @@ using YopoBackend.Modules.Energy.DTOs;
 
 namespace YopoBackend.Modules.Energy.Services
 {
-    public interface IInfluxDbService
+    public interface IQuestDbService
     {
-        Task<double> GetCurrentPowerKwAsync(string bucket, string topicPrefix);
-        Task<double> GetCurrentMonthConsumptionKwhAsync(string bucket, string topicPrefix, DateTime utcNow);
-        Task<Dictionary<int, double>> GetHourlyAveragePowerKwAsync(string bucket, string topicPrefix, DateTime dateUtc);
+        Task<double> GetCurrentPowerKwAsync(int buildingId, string? topicPrefix = null);
+        Task<double> GetCurrentMonthConsumptionKwhAsync(int buildingId, DateTime utcNow, string? topicPrefix = null);
+        Task<Dictionary<int, double>> GetHourlyAveragePowerKwAsync(int buildingId, DateTime dateUtc, string? topicPrefix = null);
+        Task<List<EnergyTopicReadingDto>> GetLatestTopicReadingsAsync(int buildingId, string? topicPrefix = null, int limit = 20);
     }
 
     public interface IEnergyService
@@ -18,5 +19,6 @@ namespace YopoBackend.Modules.Energy.Services
         Task<double> GetCurrentPowerAsync(string locationId, int currentUserId);
         Task<List<HourlyDataDto>> GetHourlyAsync(string locationId, DateTime? date, int currentUserId);
         Task<List<MonthlyDataDto>> GetMonthlyAsync(string locationId, int currentUserId);
+        Task<EnergyTopicLiveResponseDto?> GetLiveTopicsAsync(string locationId, int currentUserId, int limit = 20);
     }
 }

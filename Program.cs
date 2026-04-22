@@ -106,15 +106,21 @@ builder.Services.AddScoped<ITermsAndConditionsService, TermsAndConditionsService
 builder.Services.AddScoped<YopoBackend.Modules.VerifyIdentity.Services.IVerifyIdentityService, YopoBackend.Modules.VerifyIdentity.Services.VerifyIdentityService>();
 
 // Module: Energy (env-driven configuration)
-builder.Services.Configure<InfluxDbSettings>(options =>
+builder.Services.Configure<QuestDbSettings>(options =>
 {
-    options.Url = Environment.GetEnvironmentVariable("InfluxDb__Url") ?? string.Empty;
-    options.Token = Environment.GetEnvironmentVariable("InfluxDb__Token") ?? string.Empty;
-    options.Org = Environment.GetEnvironmentVariable("InfluxDb__Org") ?? string.Empty;
-    options.DefaultBucket = Environment.GetEnvironmentVariable("InfluxDb__DefaultBucket") ?? string.Empty;
-    options.DefaultTopicPrefix = Environment.GetEnvironmentVariable("InfluxDb__DefaultTopicPrefix") ?? string.Empty;
+    options.Host = Environment.GetEnvironmentVariable("QuestDb__Host") ?? string.Empty;
+    options.Port = int.TryParse(Environment.GetEnvironmentVariable("QuestDb__Port"), out var port) ? port : 8812;
+    options.Database = Environment.GetEnvironmentVariable("QuestDb__Database") ?? "qdb";
+    options.Username = Environment.GetEnvironmentVariable("QuestDb__Username") ?? string.Empty;
+    options.Password = Environment.GetEnvironmentVariable("QuestDb__Password") ?? string.Empty;
+    options.TableName = Environment.GetEnvironmentVariable("QuestDb__TableName") ?? "bms_readings";
+    options.PowerSensorLikePattern = Environment.GetEnvironmentVariable("QuestDb__PowerSensorLikePattern") ?? "%power_kw";
+    options.MqttConsumerTableName = Environment.GetEnvironmentVariable("QuestDb__MqttConsumerTableName") ?? "mqtt_consumer";
+    options.MqttPointLikePattern = Environment.GetEnvironmentVariable("QuestDb__MqttPointLikePattern") ?? "value";
+    options.MqttTopicLikePattern = Environment.GetEnvironmentVariable("QuestDb__MqttTopicLikePattern") ?? "%";
+    options.DefaultTopicPrefixTemplate = Environment.GetEnvironmentVariable("QuestDb__DefaultTopicPrefixTemplate") ?? "yopo/{shortName}";
 });
-builder.Services.AddSingleton<IInfluxDbService, InfluxDbService>();
+builder.Services.AddSingleton<IQuestDbService, QuestDbService>();
 builder.Services.AddScoped<IEnergyService, EnergyService>();
 
 // Configure MySQL Database

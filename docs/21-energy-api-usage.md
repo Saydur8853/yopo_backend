@@ -148,8 +148,8 @@ Example response shape:
 ```
 
 Notes:
-- `current` comes from InfluxDB; if Influx is not configured/reachable, it returns `0`.
-- API still returns `200` with fallback values (no 500 from Influx issues).
+- `current` comes from QuestDB; if QuestDB is not configured/reachable, it returns `0`.
+- API still returns `200` with fallback values (no 500 from QuestDB issues).
 
 ## 3.5 Get current power (kW)
 
@@ -236,21 +236,21 @@ Example 404:
 }
 ```
 
-## 5. InfluxDB Configuration (for live values)
+## 5. QuestDB Configuration (for live values)
 
 Recommended: set credentials in `.env` (already loaded by `DotNetEnv` in this project).
 
 ```env
-InfluxDb__Url=http://your-influx-host:8086
-InfluxDb__Token=your-influx-token
-InfluxDb__Org=yopo-energy
-InfluxDb__DefaultBucket=your-default-bucket
-InfluxDb__DefaultTopicPrefix=yopo/{buildingName}
+QuestDb__Host=5.189.144.27
+QuestDb__Port=8812
+QuestDb__Database=qdb
+QuestDb__Username=yopo
+QuestDb__Password=your-password
+QuestDb__TableName=bms_readings
+QuestDb__PowerSensorLikePattern=%power_kw
 ```
 
-Alternative: you can also set these under `InfluxDb` in `appsettings.*.json`.
-
-If Influx is unavailable, Energy APIs continue working with SQL-based + fallback values.
+If QuestDB is unavailable, Energy APIs continue working with SQL-based + fallback values.
 
 ## 6. Suggested Test Flow (YOPO System)
 
