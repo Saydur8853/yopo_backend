@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.Modules.Energy.DTOs;
 using YopoBackend.Modules.Energy.Services;
 
@@ -8,6 +10,7 @@ namespace YopoBackend.Modules.Energy.Controllers
 {
     [ApiController]
     [Authorize]
+    [RequireModule(ModuleConstants.ENERGY_MODULE_ID)]
     [Route("api/energy/locations/{locationId}/energy")]
     [Tags("21-Energy")]
     public class EnergyConsumptionController : ControllerBase

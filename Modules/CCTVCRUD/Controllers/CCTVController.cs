@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using YopoBackend.Attributes;
 using YopoBackend.Constants;
 using YopoBackend.DTOs;
 using YopoBackend.Modules.CCTVCRUD.DTOs;
@@ -9,6 +10,7 @@ using YopoBackend.Modules.CCTVCRUD.Services;
 namespace YopoBackend.Modules.CCTVCRUD.Controllers
 {
     [Authorize]
+    [RequireModule(ModuleConstants.CCTV_MODULE_ID)]
     [ApiController]
     [Route("api/[controller]")]
     [Tags("11-CCTV")]

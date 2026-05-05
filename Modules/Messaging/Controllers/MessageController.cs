@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Security.Claims;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.Modules.Messaging.DTOs;
 using YopoBackend.Modules.Messaging.Services;
 
@@ -10,6 +12,7 @@ namespace YopoBackend.Modules.Messaging.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [RequireModule(ModuleConstants.MESSAGING_MODULE_ID)]
     public class MessageController : ControllerBase
     {
         private readonly IMessageService _messageService;

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using YopoBackend.Auth;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.DTOs;
 using YopoBackend.Modules.IntercomCRUD.DTOs;
 using YopoBackend.Modules.IntercomCRUD.Services;
@@ -12,6 +14,7 @@ namespace YopoBackend.Modules.IntercomCRUD.Controllers
     [Route("api/[controller]")]
     [Produces("application/json")]
     [Authorize]
+    [RequireModule(ModuleConstants.INTERCOM_MODULE_ID)]
     [Tags("08-Intercoms")]
     public class IntercomsController : ControllerBase
     {

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.SignalR;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,6 +12,7 @@ using YopoBackend.Modules.BuildingCRUD.Models;
 using YopoBackend.Services;
 using YopoBackend.Constants;
 using YopoBackend.Utils;
+using YopoBackend.Hubs;
 
 namespace YopoBackend.Modules.UserCRUD.Services
 {
@@ -23,6 +25,7 @@ namespace YopoBackend.Modules.UserCRUD.Services
         private readonly IJwtService _jwtService;
         private readonly ICustomerService _customerService;
         private readonly IEmailService _emailService;
+        private readonly IHubContext<PermissionHub> _permissionHubContext;
         private readonly string _frontendBaseUrl;
         private readonly TimeSpan _resetCodeLifetime;
         private readonly TimeSpan _resetLinkLifetime;
@@ -40,11 +43,13 @@ namespace YopoBackend.Modules.UserCRUD.Services
             IJwtService jwtService,
             ICustomerService customerService,
             IEmailService emailService,
-            IConfiguration configuration) : base(context)
+            IConfiguration configuration,
+            IHubContext<PermissionHub> permissionHubContext) : base(context)
         {
             _jwtService = jwtService;
             _customerService = customerService;
             _emailService = emailService;
+            _permissionHubContext = permissionHubContext;
             _frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:4200";
             _resetCodeLifetime = TimeSpan.FromMinutes(ParseMinutes(configuration["PasswordReset:CodeMinutes"], 10));
             _resetLinkLifetime = TimeSpan.FromMinutes(ParseMinutes(configuration["PasswordReset:LinkMinutes"], 30));
@@ -875,6 +880,13 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 {
                     user.PhoneNumber = updateRequest.PhoneNumber;
                 }
+
+                // Allow blocked page control whenever caller can update this user.
+                var shouldNotifyPagePermissionChanged = false;
+                if (updateRequest.BlockedPages != null)
+                {
+                    shouldNotifyPagePermissionChanged = await UpdateBlockedPagesForUserAsync(id, updateRequest.BlockedPages);
+                }
                 
                 // Update password if provided
                 if (!string.IsNullOrEmpty(updateRequest.Password))
@@ -885,6 +897,11 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 user.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
+
+                if (shouldNotifyPagePermissionChanged)
+                {
+                    await NotifyUserPagePermissionsChangedAsync(id);
+                }
 
                 // Reload user with full relationships for response
                 var updatedUser = await _context.Users
@@ -1251,6 +1268,10 @@ namespace YopoBackend.Modules.UserCRUD.Services
 
             // Use pre-loaded buildings if provided, otherwise return empty list to avoid N+1 queries
             var buildings = userBuildings ?? new List<UserBuildingDto>();
+            var blockedPages = _context.UserPagePermissions
+                .Where(p => p.UserId == user.Id && p.IsBlocked)
+                .Select(p => p.PageKey)
+                .ToList();
 
             return new UserResponseDTO
             {
@@ -1269,8 +1290,86 @@ namespace YopoBackend.Modules.UserCRUD.Services
                 Buildings = buildings,
                 InviteById = user.InviteById,
                 InviteByName = user.InviteByName,
-                ProfilePhotoBase64 = ImageUtils.ConvertToBase64DataUrl(user.ProfilePhoto, user.ProfilePhotoMimeType)
+                ProfilePhotoBase64 = ImageUtils.ConvertToBase64DataUrl(user.ProfilePhoto, user.ProfilePhotoMimeType),
+                BlockedPages = blockedPages
             };
+        }
+
+        private async Task<bool> UpdateBlockedPagesForUserAsync(int userId, IEnumerable<string> blockedPages)
+        {
+            var normalizedBlockedPages = blockedPages
+                .Where(page => !string.IsNullOrWhiteSpace(page))
+                .Select(page => NormalizePageKey(page))
+                .Where(page => !string.IsNullOrWhiteSpace(page))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var existingRecords = await _context.UserPagePermissions
+                .Where(p => p.UserId == userId)
+                .ToListAsync();
+
+            var existingSet = existingRecords
+                .Select(p => p.PageKey)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var incomingSet = normalizedBlockedPages.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var toRemove = existingRecords
+                .Where(record => !incomingSet.Contains(record.PageKey))
+                .ToList();
+
+            if (toRemove.Any())
+            {
+                _context.UserPagePermissions.RemoveRange(toRemove);
+            }
+
+            var now = DateTime.UtcNow;
+            var toAdd = normalizedBlockedPages
+                .Where(page => !existingSet.Contains(page))
+                .Select(page => new UserPagePermission
+                {
+                    UserId = userId,
+                    PageKey = page,
+                    IsBlocked = true,
+                    CreatedAt = now
+                })
+                .ToList();
+
+            if (toAdd.Any())
+            {
+                _context.UserPagePermissions.AddRange(toAdd);
+            }
+
+            return toRemove.Any() || toAdd.Any();
+        }
+
+        private async Task NotifyUserPagePermissionsChangedAsync(int userId)
+        {
+            var group = PermissionHub.GetUserGroupName(userId);
+            await _permissionHubContext.Clients.Group(group).SendAsync("PermissionsUpdated", new
+            {
+                userId,
+                changedAt = DateTime.UtcNow
+            });
+        }
+
+        private static string NormalizePageKey(string rawPageKey)
+        {
+            var value = rawPageKey.Trim().ToLowerInvariant();
+            value = value.TrimStart('/');
+            var queryIndex = value.IndexOf('?');
+            if (queryIndex >= 0)
+            {
+                value = value.Substring(0, queryIndex);
+            }
+
+            var hashIndex = value.IndexOf('#');
+            if (hashIndex >= 0)
+            {
+                value = value.Substring(0, hashIndex);
+            }
+
+            return value.TrimEnd('/');
         }
 
         private async Task<AuthenticationResponseDTO?> CreateAuthResponseAsync(User user, string message)

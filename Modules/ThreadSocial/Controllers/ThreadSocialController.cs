@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.DTOs;
 using YopoBackend.Modules.ThreadSocial.DTOs;
 using YopoBackend.Modules.ThreadSocial.Services;
@@ -10,6 +12,7 @@ namespace YopoBackend.Modules.ThreadSocial.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
+    [RequireModule(ModuleConstants.THREAD_SOCIAL_MODULE_ID)]
     public class ThreadSocialController : ControllerBase
     {
         private readonly IThreadSocialService _threadSocialService;

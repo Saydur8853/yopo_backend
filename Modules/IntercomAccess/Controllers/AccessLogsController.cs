@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using YopoBackend.Auth;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.Modules.IntercomAccess.Services;
 
 namespace YopoBackend.Modules.IntercomAccess.Controllers
@@ -9,6 +11,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
     [Route("api/access-logs")]
     [Produces("application/json")]
     [Authorize]
+    [RequireModule(ModuleConstants.INTERCOM_ACCESS_MODULE_ID)]
     [Tags("10-Audit/Access Logs")]
     public class AccessLogsController : ControllerBase
     {

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.DTOs;
 using YopoBackend.Modules.VerifyIdentity.DTOs;
 using YopoBackend.Modules.VerifyIdentity.Models;
@@ -13,6 +15,7 @@ namespace YopoBackend.Modules.VerifyIdentity.Controllers
     [Produces("application/json")]
     [Tags("20-VerifyIdentity")]
     [Authorize]
+    [RequireModule(ModuleConstants.VERIFY_IDENTITY_MODULE_ID)]
     public class VerifyIdentityController : ControllerBase
     {
         private readonly IVerifyIdentityService _verifyIdentityService;

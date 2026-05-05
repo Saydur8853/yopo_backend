@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.Modules.AnnouncementCRUD.DTOs;
 using YopoBackend.Modules.AnnouncementCRUD.Services;
 
@@ -10,6 +12,7 @@ namespace YopoBackend.Modules.AnnouncementCRUD.Controllers
     [Route("api/[controller]")]
     [Tags("13-Announcements")]
     [Authorize]
+    [RequireModule(ModuleConstants.ANNOUNCEMENT_MODULE_ID)]
     public class AnnouncementsController : ControllerBase
     {
         private readonly IAnnouncementService _announcementService;

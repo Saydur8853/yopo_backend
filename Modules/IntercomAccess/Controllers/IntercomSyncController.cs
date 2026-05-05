@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using YopoBackend.Auth;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.Modules.IntercomAccess.Services;
 
 namespace YopoBackend.Modules.IntercomAccess.Controllers
@@ -40,6 +42,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
 
         [HttpPost("backfill-pending")]
         [Authorize(Roles = Roles.SuperAdmin)]
+        [RequireModule(ModuleConstants.INTERCOM_ACCESS_MODULE_ID)]
         public async Task<IActionResult> BackfillPending([FromQuery] int? buildingId = null)
         {
             if (buildingId.HasValue && buildingId.Value <= 0)

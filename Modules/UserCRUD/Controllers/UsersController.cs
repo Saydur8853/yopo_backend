@@ -357,6 +357,11 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+            
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!int.TryParse(userIdClaim, out int currentUserId))
@@ -365,7 +370,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             // Create new user
             if (string.IsNullOrEmpty(email))
             {
-                var createRequest = System.Text.Json.JsonSerializer.Deserialize<CreateUserRequestDTO>(userRequest.ToString()!);
+                var createRequest = System.Text.Json.JsonSerializer.Deserialize<CreateUserRequestDTO>(userRequest.ToString()!, jsonOptions);
                 if (createRequest == null)
                     return BadRequest(new { message = "Invalid user data." });
 
@@ -377,7 +382,7 @@ namespace YopoBackend.Modules.UserCRUD.Controllers
             }
 
             // Update existing user
-            var updateRequest = System.Text.Json.JsonSerializer.Deserialize<UpdateUserRequestDTO>(userRequest.ToString()!);
+            var updateRequest = System.Text.Json.JsonSerializer.Deserialize<UpdateUserRequestDTO>(userRequest.ToString()!, jsonOptions);
             if (updateRequest == null)
                 return BadRequest(new { message = "Invalid user data." });
 

@@ -77,6 +77,11 @@ namespace YopoBackend.Data
         public DbSet<YopoBackend.Modules.UserCRUD.Models.UserBuildingPermission> UserBuildingPermissions { get; set; }
 
         /// <summary>
+        /// Gets or sets the UserPagePermissions DbSet for per-user blocked page control.
+        /// </summary>
+        public DbSet<YopoBackend.Modules.UserCRUD.Models.UserPagePermission> UserPagePermissions { get; set; }
+
+        /// <summary>
         /// Gets or sets the Customers DbSet for managing customer entities (property managers).
         /// </summary>
         public DbSet<Customer> Customers { get; set; }
@@ -915,6 +920,23 @@ namespace YopoBackend.Data
                     .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            });
+
+            // Configure UserPagePermission entity (Module ID: 3)
+            modelBuilder.Entity<YopoBackend.Modules.UserCRUD.Models.UserPagePermission>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.UserId, e.PageKey }).IsUnique();
+                entity.Property(e => e.PageKey).HasMaxLength(200);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Configure EnergyLocation entity (Energy Module)

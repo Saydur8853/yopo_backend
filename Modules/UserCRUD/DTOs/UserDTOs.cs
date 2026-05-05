@@ -306,6 +306,12 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Set to empty string to remove photo, null or omit to keep existing photo.
         /// </summary>
         public string? ProfilePhotoBase64 { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of blocked frontend page keys for this user.
+        /// Example values: "admin/users", "pm/messages", "fd/intercoms".
+        /// </summary>
+        public List<string>? BlockedPages { get; set; }
     }
 
     /// <summary>
@@ -462,6 +468,11 @@ namespace YopoBackend.Modules.UserCRUD.DTOs
         /// Will be null if no profile photo is set.
         /// </summary>
         public string? ProfilePhotoBase64 { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of blocked frontend page keys for this user.
+        /// </summary>
+        public List<string> BlockedPages { get; set; } = new();
     }
 
     /// <summary>

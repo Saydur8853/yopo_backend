@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using YopoBackend.Auth;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.Modules.TermsConditionsCRUD.DTOs;
 using YopoBackend.Modules.TermsConditionsCRUD.Services;
 
@@ -49,6 +51,7 @@ namespace YopoBackend.Modules.TermsConditionsCRUD.Controllers
         }
 
         [HttpPost]
+        [RequireModule(ModuleConstants.TERMS_CONDITIONS_MODULE_ID)]
         [ProducesResponseType(typeof(TermsAndConditionResponseDTO), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
@@ -71,6 +74,7 @@ namespace YopoBackend.Modules.TermsConditionsCRUD.Controllers
         }
 
         [HttpPut("{id}")]
+        [RequireModule(ModuleConstants.TERMS_CONDITIONS_MODULE_ID)]
         [ProducesResponseType(typeof(TermsAndConditionResponseDTO), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
@@ -99,6 +103,7 @@ namespace YopoBackend.Modules.TermsConditionsCRUD.Controllers
         }
 
         [HttpDelete("{id}")]
+        [RequireModule(ModuleConstants.TERMS_CONDITIONS_MODULE_ID)]
         [ProducesResponseType(204)]
         [ProducesResponseType(401)]
         [ProducesResponseType(403)]

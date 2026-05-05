@@ -268,9 +268,9 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
         public async Task<UserTypeDto?> DeleteUserTypeAsync(int id, int currentUserId)
         {
             // Prevent deletion of essential system user types
-            if (id == UserTypeConstants.SUPER_ADMIN_USER_TYPE_ID || id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID)
+            if (UserTypeConstants.DefaultUserTypes.ContainsKey(id))
             {
-                throw new UnauthorizedAccessException("The 'Super Admin' and 'Property Manager' user types cannot be deleted as they are essential to the system.");
+                throw new UnauthorizedAccessException("Default system user types (Super Admin, Property Manager, Front desk Officer, Tenant) cannot be deleted as they are essential to the system.");
             }
 
             var userType = await _context.UserTypes
@@ -706,25 +706,34 @@ namespace YopoBackend.Modules.UserTypeCRUD.Services
             var I = ModuleConstants.INVITATION_MODULE_ID;
             var USER = ModuleConstants.USER_MODULE_ID;
             var UTYPE = ModuleConstants.USER_TYPE_MODULE_ID;
+            var INTERCOM = ModuleConstants.INTERCOM_MODULE_ID;
+            var INTERCOM_ACCESS = ModuleConstants.INTERCOM_ACCESS_MODULE_ID;
+            var CCTV = ModuleConstants.CCTV_MODULE_ID;
+            var ANN = ModuleConstants.ANNOUNCEMENT_MODULE_ID;
+            var MSG = ModuleConstants.MESSAGING_MODULE_ID;
+            var TERMS = ModuleConstants.TERMS_CONDITIONS_MODULE_ID;
+            var THREAD = ModuleConstants.THREAD_SOCIAL_MODULE_ID;
+            var VERIFY = ModuleConstants.VERIFY_IDENTITY_MODULE_ID;
+            var ENERGY = ModuleConstants.ENERGY_MODULE_ID;
 
             var name = ut.Name.Trim();
             // Defaults per requested flow
             if (ut.Id == UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_ID || name.Equals(UserTypeConstants.PROPERTY_MANAGER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<int> { UTYPE, B, F, U, A, T, TK, I, USER }; // PM: includes UserType and UserCRUD module
+                return new List<int> { UTYPE, B, F, U, A, T, TK, I, USER, INTERCOM, INTERCOM_ACCESS, CCTV, ANN, MSG, TERMS, THREAD, VERIFY, ENERGY };
             }
             if (ut.Id == UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_ID || name.Equals(UserTypeConstants.FRONT_DESK_OFFICER_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<int> { B, F, U, T, TK }; // FDO
+                return new List<int> { B, F, U, T, TK, INTERCOM, INTERCOM_ACCESS, CCTV, MSG }; // FDO
             }
             if (ut.Id == UserTypeConstants.TENANT_USER_TYPE_ID || name.Equals(UserTypeConstants.TENANT_USER_TYPE_NAME, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<int> { B, F, U, A, T, TK }; // Tenant: building/floor/unit/amenity/tenant modules
+                return new List<int> { B, F, U, A, T, TK, INTERCOM_ACCESS, ANN, MSG, THREAD, VERIFY, ENERGY }; // Tenant
             }
             // PM-created types (DataAccess=PM): baseline
             if (ut.DataAccessControl == UserTypeConstants.DATA_ACCESS_PM)
             {
-                return new List<int> { B, F, U, T, TK };
+                return new List<int> { B, F, U, T, TK, INTERCOM_ACCESS, CCTV, ANN, MSG, THREAD, VERIFY, ENERGY };
             }
             // Default for other custom types: none
             return new List<int>();

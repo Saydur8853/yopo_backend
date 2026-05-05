@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using YopoBackend.Auth;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.Modules.IntercomAccess.DTOs;
 using YopoBackend.Modules.IntercomAccess.Services;
 
@@ -37,6 +39,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         /// <param name="dto">Master PIN payload.</param>
         [HttpPost("master-pin")] // SuperAdmin only
         [Authorize(Roles = Roles.SuperAdmin)]
+        [RequireModule(ModuleConstants.INTERCOM_ACCESS_MODULE_ID)]
         public async Task<IActionResult> SetMasterPin(int intercomId, [FromBody] SetMasterPinDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -76,6 +79,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         [HttpPost("pin/self")]
         [Authorize]
+        [RequireModule(ModuleConstants.INTERCOM_ACCESS_MODULE_ID)]
         public async Task<IActionResult> UpdateOwnPin(int intercomId, [FromBody] UpdateOwnPinDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -96,6 +100,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         [HttpPost("users/{userId:int}/pin")] // reset pin endpoint
         [Authorize]
+        [RequireModule(ModuleConstants.INTERCOM_ACCESS_MODULE_ID)]
         public async Task<IActionResult> SetOrUpdateUserPin(int intercomId, int userId, [FromBody] SetUserPinDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);

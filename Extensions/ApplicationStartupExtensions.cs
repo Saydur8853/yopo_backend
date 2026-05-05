@@ -32,6 +32,7 @@ namespace YopoBackend.Extensions
                 await userTypeService.InitializeDefaultUserTypesAsync();
 
                 var context = services.GetRequiredService<YopoBackend.Data.ApplicationDbContext>();
+                await EnsureUserPagePermissionsTableAsync(context);
                 await EnsureDefaultTermsAndConditionsAsync(context);
 
                 // Initialize sample buildings for demonstration - DISABLED
@@ -83,6 +84,7 @@ namespace YopoBackend.Extensions
 
                 // Show which user types were initialized
                 var context = services.GetRequiredService<YopoBackend.Data.ApplicationDbContext>();
+                await EnsureUserPagePermissionsTableAsync(context);
                 await EnsureDefaultTermsAndConditionsAsync(context);
                 var userTypes = await context.UserTypes
                     .Include(ut => ut.ModulePermissions)
@@ -131,6 +133,25 @@ namespace YopoBackend.Extensions
 
             context.TermsAndConditions.Add(entry);
             await context.SaveChangesAsync();
+        }
+
+        private static async Task EnsureUserPagePermissionsTableAsync(YopoBackend.Data.ApplicationDbContext context)
+        {
+            // Safe no-op when table already exists; enables new feature without requiring immediate migration rollout.
+            const string sql = @"
+CREATE TABLE IF NOT EXISTS UserPagePermissions (
+    Id INT NOT NULL AUTO_INCREMENT,
+    UserId INT NOT NULL,
+    PageKey VARCHAR(200) NOT NULL,
+    IsBlocked TINYINT(1) NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt DATETIME NULL,
+    PRIMARY KEY (Id),
+    UNIQUE KEY UX_UserPagePermissions_UserId_PageKey (UserId, PageKey),
+    CONSTRAINT FK_UserPagePermissions_Users_UserId FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+);";
+
+            await context.Database.ExecuteSqlRawAsync(sql);
         }
     }
 }

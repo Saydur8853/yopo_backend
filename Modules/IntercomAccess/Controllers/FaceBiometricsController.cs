@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using YopoBackend.Attributes;
+using YopoBackend.Constants;
 using YopoBackend.Modules.IntercomAccess.DTOs;
 using YopoBackend.Modules.IntercomAccess.Services;
 
@@ -10,6 +12,7 @@ namespace YopoBackend.Modules.IntercomAccess.Controllers
     [Route("api/face-biometric")]
     [Produces("application/json")]
     [Authorize]
+    [RequireModule(ModuleConstants.INTERCOM_ACCESS_MODULE_ID)]
     [Tags("09-Intercom Access")]
     public class FaceBiometricsController : ControllerBase
     {

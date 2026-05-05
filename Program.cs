@@ -161,6 +161,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    (path.StartsWithSegments("/messageHub")
+                    || path.StartsWithSegments("/threadSocialHub")
+                    || path.StartsWithSegments("/announcementHub")
+                    || path.StartsWithSegments("/ticketHub")
+                    || path.StartsWithSegments("/permissionHub")))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
             OnChallenge = context =>
             {
                 context.HandleResponse();
@@ -349,6 +366,7 @@ app.MapHub<MessageHub>("/messageHub");
 app.MapHub<ThreadSocialHub>("/threadSocialHub");
 app.MapHub<AnnouncementHub>("/announcementHub");
 app.MapHub<TicketHub>("/ticketHub");
+app.MapHub<PermissionHub>("/permissionHub");
 app.MapFallbackToFile("index.html");
 
 // Ensure database is migrated and initialize default data

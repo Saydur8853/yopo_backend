@@ -61,6 +61,51 @@ namespace YopoBackend.Constants
         public const int TICKET_MODULE_ID = 9;
 
         /// <summary>
+        /// Module ID for the IntercomCRUD module.
+        /// </summary>
+        public const int INTERCOM_MODULE_ID = 10;
+
+        /// <summary>
+        /// Module ID for the IntercomAccess module.
+        /// </summary>
+        public const int INTERCOM_ACCESS_MODULE_ID = 11;
+
+        /// <summary>
+        /// Module ID for the CCTVCRUD module.
+        /// </summary>
+        public const int CCTV_MODULE_ID = 12;
+
+        /// <summary>
+        /// Module ID for the AnnouncementCRUD module.
+        /// </summary>
+        public const int ANNOUNCEMENT_MODULE_ID = 13;
+
+        /// <summary>
+        /// Module ID for the Messaging module.
+        /// </summary>
+        public const int MESSAGING_MODULE_ID = 14;
+
+        /// <summary>
+        /// Module ID for the TermsConditionsCRUD module.
+        /// </summary>
+        public const int TERMS_CONDITIONS_MODULE_ID = 15;
+
+        /// <summary>
+        /// Module ID for the ThreadSocial module.
+        /// </summary>
+        public const int THREAD_SOCIAL_MODULE_ID = 16;
+
+        /// <summary>
+        /// Module ID for the VerifyIdentity module.
+        /// </summary>
+        public const int VERIFY_IDENTITY_MODULE_ID = 17;
+
+        /// <summary>
+        /// Module ID for the Energy module.
+        /// </summary>
+        public const int ENERGY_MODULE_ID = 18;
+
+        /// <summary>
         /// Module name for the BuildingCRUD module.
         /// </summary>
         public const string BUILDING_MODULE_NAME = "BuildingCRUD";
@@ -217,6 +262,105 @@ namespace YopoBackend.Constants
                     Id = TICKET_MODULE_ID,
                     Name = "TicketCRUD",
                     Description = "Module for managing tenant service tickets and PM workflows",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                INTERCOM_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = INTERCOM_MODULE_ID,
+                    Name = "IntercomCRUD",
+                    Description = "Module for managing intercom devices and assignments",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                INTERCOM_ACCESS_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = INTERCOM_ACCESS_MODULE_ID,
+                    Name = "IntercomAccess",
+                    Description = "Module for access codes, access logs, and biometric intercom access",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                CCTV_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = CCTV_MODULE_ID,
+                    Name = "CCTVCRUD",
+                    Description = "Module for managing CCTV devices and monitoring metadata",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                ANNOUNCEMENT_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = ANNOUNCEMENT_MODULE_ID,
+                    Name = "AnnouncementCRUD",
+                    Description = "Module for creating and managing building announcements",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                MESSAGING_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = MESSAGING_MODULE_ID,
+                    Name = "Messaging",
+                    Description = "Module for tenant and property team messaging",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                TERMS_CONDITIONS_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = TERMS_CONDITIONS_MODULE_ID,
+                    Name = "TermsConditionsCRUD",
+                    Description = "Module for managing terms and conditions content",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                THREAD_SOCIAL_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = THREAD_SOCIAL_MODULE_ID,
+                    Name = "ThreadSocial",
+                    Description = "Module for social threads, posts, reactions, and comments",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                VERIFY_IDENTITY_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = VERIFY_IDENTITY_MODULE_ID,
+                    Name = "VerifyIdentity",
+                    Description = "Module for tenant identity verification workflows",
+                    Version = "1.0.0",
+                    IsActive = true
+                }
+            },
+            {
+                ENERGY_MODULE_ID,
+                new ModuleInfo
+                {
+                    Id = ENERGY_MODULE_ID,
+                    Name = "Energy",
+                    Description = "Module for building energy overview and consumption analytics",
                     Version = "1.0.0",
                     IsActive = true
                 }
